@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { preprocessImage, recognizeImage, extractPdfText } from "@/lib/ocr";
-import type { DocSource } from "@/lib/supabase/enums";
+import type { DocSource, DocType } from "@/lib/supabase/enums";
 
 interface UploadItem {
   fileName: string;
@@ -17,10 +17,26 @@ function extOf(file: File): string {
   return file.type === "application/pdf" ? "pdf" : "jpg";
 }
 
-export function DocumentUploader({ clinicId }: { clinicId: string }) {
+interface DocumentUploaderProps {
+  clinicId: string;
+  /** e.g. "inbox" or "opd-register" — the second segment of the storage path. */
+  folder?: string;
+  /** When set, skips the source picker and always files uploads as this doc_type. */
+  fixedDocType?: DocType;
+  /** When true, shows a date field applied to every file in the batch (OPD register pages). */
+  showDateInput?: boolean;
+}
+
+export function DocumentUploader({
+  clinicId,
+  folder = "inbox",
+  fixedDocType,
+  showDateInput = false,
+}: DocumentUploaderProps) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [source, setSource] = useState<DocSource>("camera");
+  const [docDate, setDocDate] = useState("");
   const [items, setItems] = useState<UploadItem[]>([]);
 
   async function handleFiles(files: FileList | null) {
@@ -37,7 +53,7 @@ export function DocumentUploader({ clinicId }: { clinicId: string }) {
       try {
         const isPdf = file.type === "application/pdf";
         const uploadBlob = isPdf ? file : await preprocessImage(file);
-        const path = `${clinicId}/inbox/${crypto.randomUUID()}.${extOf(file)}`;
+        const path = `${clinicId}/${folder}/${crypto.randomUUID()}.${extOf(file)}`;
 
         const { error: uploadError } = await supabase.storage.from("documents").upload(path, uploadBlob, {
           contentType: isPdf ? "application/pdf" : "image/jpeg",
@@ -48,7 +64,8 @@ export function DocumentUploader({ clinicId }: { clinicId: string }) {
           .from("documents")
           .insert({
             clinic_id: clinicId,
-            doc_type: "other",
+            doc_type: fixedDocType ?? "other",
+            doc_date: docDate || null,
             source: isPdf ? "pdf" : source,
             storage_path: path,
             ocr_status: "pending",
@@ -83,20 +100,38 @@ export function DocumentUploader({ clinicId }: { clinicId: string }) {
 
   return (
     <div className="rounded-[var(--radius-cards)] border border-[var(--color-border)] p-[var(--space-21)]">
-      <div className="mb-3 flex flex-wrap items-center gap-3">
-        <label className="text-sm font-medium" htmlFor="doc-source">
-          Source
-        </label>
-        <select
-          id="doc-source"
-          value={source}
-          onChange={(e) => setSource(e.target.value as DocSource)}
-          className="rounded-[var(--radius-buttons)] border border-[var(--color-border)] bg-[var(--color-background)] px-2 py-1.5 text-sm"
-        >
-          <option value="camera">Photographed (case paper / register)</option>
-          <option value="whatsapp">WhatsApp image</option>
-          <option value="paper">Other paper</option>
-        </select>
+      <div className="mb-3 flex flex-wrap items-center gap-4">
+        {!fixedDocType && (
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium" htmlFor="doc-source">
+              Source
+            </label>
+            <select
+              id="doc-source"
+              value={source}
+              onChange={(e) => setSource(e.target.value as DocSource)}
+              className="rounded-[var(--radius-buttons)] border border-[var(--color-border)] bg-[var(--color-background)] px-2 py-1.5 text-sm"
+            >
+              <option value="camera">Photographed (case paper / register)</option>
+              <option value="whatsapp">WhatsApp image</option>
+              <option value="paper">Other paper</option>
+            </select>
+          </div>
+        )}
+        {showDateInput && (
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium" htmlFor="doc-date">
+              Date
+            </label>
+            <input
+              id="doc-date"
+              type="date"
+              value={docDate}
+              onChange={(e) => setDocDate(e.target.value)}
+              className="rounded-[var(--radius-buttons)] border border-[var(--color-border)] bg-[var(--color-background)] px-2 py-1.5 text-sm"
+            />
+          </div>
+        )}
       </div>
 
       <input
