@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeIndianPhone, telLink, whatsAppLink } from "./whatsapp";
+import { normalizeIndianPhone, telLink, whatsAppLink, reminderMessage } from "./whatsapp";
 
 describe("normalizeIndianPhone", () => {
   it("adds 91 to a bare 10-digit number", () => {
@@ -38,5 +38,37 @@ describe("telLink / whatsAppLink", () => {
   it("returns null for an unparseable phone number", () => {
     expect(telLink("abc")).toBeNull();
     expect(whatsAppLink("abc", "hi")).toBeNull();
+  });
+});
+
+describe("reminderMessage", () => {
+  it("fills the built-in template with the patient and item names", () => {
+    const msg = reminderMessage("Priya", "overdue", "NT scan");
+    expect(msg).toContain("Priya");
+    expect(msg).toContain("NT scan");
+  });
+
+  it("falls back to 'checkup' when no care event name is given", () => {
+    expect(reminderMessage("Priya", "due_soon")).toContain("checkup");
+  });
+
+  it("uses the clinic's custom template when one is set", () => {
+    const msg = reminderMessage("Priya", "overdue", "NT scan", {
+      overdue: "Reminder for {name}: {item} is overdue.",
+    });
+    expect(msg).toBe("Reminder for Priya: NT scan is overdue.");
+  });
+
+  it("falls back to the default when the clinic's template for that reason is blank", () => {
+    const msg = reminderMessage("Priya", "at_risk", undefined, { at_risk: "   " });
+    expect(msg).toContain("Priya");
+    expect(msg).not.toBe("   ");
+  });
+
+  it("substitutes every occurrence of a placeholder, not just the first", () => {
+    const msg = reminderMessage("Priya", "overdue", "scan", {
+      overdue: "{name}, {name} again: your {item} ({item}) is overdue.",
+    });
+    expect(msg).toBe("Priya, Priya again: your scan (scan) is overdue.");
   });
 });

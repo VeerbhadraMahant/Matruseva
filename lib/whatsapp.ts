@@ -22,15 +22,28 @@ export function whatsAppLink(phone: string, message: string): string | null {
 
 export type ReminderReason = "overdue" | "due_soon" | "at_risk" | "lost";
 
-/** Default English reminder message; clinics can override via message_templates in Settings later. */
-export function defaultReminderMessage(patientName: string, reason: ReminderReason, careEventName?: string): string {
-  switch (reason) {
-    case "overdue":
-      return `Hello, this is ${patientName}'s clinic calling. Your ${careEventName ?? "checkup"} is now overdue — please visit us at the earliest, or call us to reschedule.`;
-    case "due_soon":
-      return `Hello, this is a reminder that ${patientName}'s ${careEventName ?? "checkup"} is due soon. Please visit the clinic or call to schedule.`;
-    case "at_risk":
-    case "lost":
-      return `Hello, we haven't seen ${patientName} at the clinic in a while. We hope everything is okay — please call us or visit when convenient.`;
-  }
+/**
+ * Per-clinic overrides, stored in clinics.message_templates (Settings).
+ * English only for now — Hindi/Marathi wording needs the Clinical Lead's
+ * review before shipping, per the plan's open items.
+ */
+export type MessageTemplates = Partial<Record<ReminderReason, string>>;
+
+const DEFAULT_TEMPLATES: Record<ReminderReason, string> = {
+  overdue:
+    "Hello, this is {name}'s clinic calling. Your {item} is now overdue — please visit us at the earliest, or call us to reschedule.",
+  due_soon: "Hello, this is a reminder that {name}'s {item} is due soon. Please visit the clinic or call to schedule.",
+  at_risk: "Hello, we haven't seen {name} at the clinic in a while. We hope everything is okay — please call us or visit when convenient.",
+  lost: "Hello, we haven't seen {name} at the clinic in a while. We hope everything is okay — please call us or visit when convenient.",
+};
+
+/** Fills a clinic's custom template (or the built-in default) with the patient name and, if relevant, the care event name. */
+export function reminderMessage(
+  patientName: string,
+  reason: ReminderReason,
+  careEventName?: string,
+  templates?: MessageTemplates
+): string {
+  const template = templates?.[reason]?.trim() || DEFAULT_TEMPLATES[reason];
+  return template.replace(/\{name\}/g, patientName).replace(/\{item\}/g, careEventName ?? "checkup");
 }

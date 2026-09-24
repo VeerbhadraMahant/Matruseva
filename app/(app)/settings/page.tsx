@@ -5,6 +5,8 @@ import { RiskThresholdsForm } from "@/components/settings/RiskThresholdsForm";
 import { ScheduleItemRow } from "@/components/settings/ScheduleItemRow";
 import { StaffInviteForm } from "@/components/settings/StaffInviteForm";
 import { RemoveStaffButton } from "@/components/settings/RemoveStaffButton";
+import { MessageTemplatesForm } from "@/components/settings/MessageTemplatesForm";
+import type { MessageTemplates } from "@/lib/whatsapp";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -46,6 +48,11 @@ export default async function SettingsPage() {
       <section className="mb-10">
         <h2 className="mb-4 text-[var(--text-subheading)] font-medium">Follow-up thresholds</h2>
         <RiskThresholdsForm atRiskDays={clinic.risk_at_risk_days} lostDays={clinic.risk_lost_days} />
+      </section>
+
+      <section className="mb-10">
+        <h2 className="mb-4 text-[var(--text-subheading)] font-medium">Reminder message templates</h2>
+        <MessageTemplatesForm templates={(clinic.message_templates ?? {}) as MessageTemplates} />
       </section>
 
       <section className="mb-10">

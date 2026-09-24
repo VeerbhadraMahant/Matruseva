@@ -73,6 +73,37 @@ export async function updateRiskThresholds(_prev: ActionResult, formData: FormDa
   return { error: null };
 }
 
+const messageTemplatesSchema = z.object({
+  overdue: z.string().max(500).optional(),
+  due_soon: z.string().max(500).optional(),
+  at_risk: z.string().max(500).optional(),
+  lost: z.string().max(500).optional(),
+});
+
+export async function updateMessageTemplates(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
+  const { supabase, profile, error } = await requireDoctor();
+  if (error || !profile) return { error };
+
+  const parsed = messageTemplatesSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  // Store only the reasons that actually have text — an empty field means
+  // "use the built-in default", not "send a blank message".
+  const templates = Object.fromEntries(
+    Object.entries(parsed.data).filter(([, v]) => v && v.trim().length > 0)
+  );
+
+  const { error: updateError } = await supabase
+    .from("clinics")
+    .update({ message_templates: templates })
+    .eq("id", profile.clinic_id);
+
+  if (updateError) return { error: updateError.message };
+  revalidatePath("/settings");
+  revalidatePath("/calls");
+  return { error: null };
+}
+
 const scheduleItemSchema = z.object({
   itemId: z.uuid(),
   windowStartWeek: z.coerce.number().min(0).max(45),

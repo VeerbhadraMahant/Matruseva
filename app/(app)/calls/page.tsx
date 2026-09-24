@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Phone, WhatsappLogo } from "@phosphor-icons/react/dist/ssr";
 import { createClient } from "@/lib/supabase/server";
-import { telLink, whatsAppLink, defaultReminderMessage, type ReminderReason } from "@/lib/whatsapp";
+import { telLink, whatsAppLink, reminderMessage, type ReminderReason, type MessageTemplates } from "@/lib/whatsapp";
 import { ContactLogForm } from "@/components/ContactLogForm";
 import type { FollowUpRisk } from "@/lib/supabase/enums";
 
@@ -22,6 +22,17 @@ const REASON_LABEL: Record<ReminderReason, string> = {
 
 export default async function CallsPage() {
   const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const { data: profile } = await supabase.from("profiles").select("clinic_id").eq("id", user!.id).single();
+  const { data: clinic } = await supabase
+    .from("clinics")
+    .select("message_templates")
+    .eq("id", profile!.clinic_id)
+    .single();
+  const templates = (clinic?.message_templates ?? {}) as MessageTemplates;
 
   const [{ data: overdueEvents }, { data: risks }] = await Promise.all([
     supabase
@@ -70,7 +81,7 @@ export default async function CallsPage() {
       ) : (
         <ul className="space-y-3">
           {queue.map((row) => {
-            const message = defaultReminderMessage(row.name, row.reason, row.careEventName);
+            const message = reminderMessage(row.name, row.reason, row.careEventName, templates);
             const tel = row.phone ? telLink(row.phone) : null;
             const wa = row.phone ? whatsAppLink(row.phone, message) : null;
 
