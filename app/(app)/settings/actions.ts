@@ -182,9 +182,21 @@ export async function inviteStaff(_prev: ActionResult, formData: FormData): Prom
 }
 
 export async function removeStaff(staffProfileId: string): Promise<ActionResult> {
-  const { profile, error } = await requireDoctor();
+  const { supabase, profile, error } = await requireDoctor();
   if (error || !profile) return { error };
-  if (staffProfileId === profile.clinic_id) return { error: null }; // no-op guard, unreachable in practice
+
+  // createAdminClient() bypasses RLS entirely, so this check is the only
+  // thing standing between "delete my own clinic's staff" and "delete any
+  // user account in the system" — it must happen with the RLS-scoped
+  // client (profiles_select only returns rows in the caller's own clinic),
+  // not the admin client.
+  const { data: target } = await supabase.from("profiles").select("clinic_id, role").eq("id", staffProfileId).maybeSingle();
+  if (!target || target.clinic_id !== profile.clinic_id) {
+    return { error: "That staff member was not found in your clinic." };
+  }
+  if (target.role === "doctor") {
+    return { error: "The clinic's doctor account can't be removed here." };
+  }
 
   const admin = createAdminClient();
   const { error: deleteError } = await admin.auth.admin.deleteUser(staffProfileId);
