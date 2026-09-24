@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:validate": "node scripts/validate-sql.mjs"
+    "db:validate": "node scripts/validate-sql.mjs",
+    "db:seed": "node scripts/seed.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
