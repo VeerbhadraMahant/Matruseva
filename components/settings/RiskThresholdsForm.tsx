@@ -6,7 +6,7 @@ import { SubmitButton } from "@/components/SubmitButton";
 
 const initialState: ActionResult = { error: null };
 const inputClass =
-  "w-full rounded-[var(--radius-buttons)] border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]";
+  "min-h-11 w-full rounded-[var(--radius-buttons)] border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]";
 const labelClass = "mb-1 block text-xs font-medium text-[var(--color-charcoal)]";
 
 export function RiskThresholdsForm({ atRiskDays, lostDays }: { atRiskDays: number; lostDays: number }) {

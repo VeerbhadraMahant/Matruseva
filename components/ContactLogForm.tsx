@@ -5,8 +5,9 @@ import { logContact, type ActionResult } from "@/app/(app)/calls/actions";
 import { useFormStatus } from "react-dom";
 
 const initialState: ActionResult = { error: null };
+// min-h-11 (44px) meets the minimum touch target size (Apple HIG 44pt / Material 48dp)
 const selectClass =
-  "rounded-[var(--radius-buttons)] border border-[var(--color-border)] bg-[var(--color-background)] px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]";
+  "min-h-11 rounded-[var(--radius-buttons)] border border-[var(--color-border)] bg-[var(--color-background)] px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]";
 
 function LogButton() {
   const { pending } = useFormStatus();
@@ -14,7 +15,7 @@ function LogButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-[var(--radius-buttons)] bg-[var(--color-primary)] px-3 py-1.5 text-sm font-medium text-[var(--color-primary-foreground)] hover:bg-[var(--color-primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+      className="min-h-11 rounded-[var(--radius-buttons)] bg-[var(--color-primary)] px-3 py-1.5 text-sm font-medium text-[var(--color-primary-foreground)] hover:bg-[var(--color-primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
     >
       {pending ? "…" : "Log"}
     </button>

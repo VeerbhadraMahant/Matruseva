@@ -6,7 +6,7 @@ import { assignDocument, searchPatientsForAssign, getOpenCareEvents, type Action
 
 const initialState: ActionResult = { error: null };
 const inputClass =
-  "rounded-[var(--radius-buttons)] border border-[var(--color-border)] bg-[var(--color-background)] px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]";
+  "min-h-11 rounded-[var(--radius-buttons)] border border-[var(--color-border)] bg-[var(--color-background)] px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]";
 
 function SaveButton() {
   const { pending } = useFormStatus();
@@ -14,7 +14,7 @@ function SaveButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-[var(--radius-buttons)] bg-[var(--color-primary)] px-3 py-1.5 text-sm font-medium text-[var(--color-primary-foreground)] hover:bg-[var(--color-primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+      className="min-h-11 rounded-[var(--radius-buttons)] bg-[var(--color-primary)] px-3 py-1.5 text-sm font-medium text-[var(--color-primary-foreground)] hover:bg-[var(--color-primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
     >
       {pending ? "…" : "Assign"}
     </button>
@@ -71,7 +71,7 @@ export function AssignDocumentForm({ documentId }: { documentId: string }) {
                 <button
                   type="button"
                   onClick={() => selectPatient(p)}
-                  className="block w-full px-3 py-2 text-left text-sm hover:bg-[var(--color-surface-1)]"
+                  className="block min-h-11 w-full px-3 py-2 text-left text-sm hover:bg-[var(--color-surface-1)]"
                 >
                   {p.name} {p.phone ? `· ${p.phone}` : ""}
                 </button>

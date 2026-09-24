@@ -78,7 +78,10 @@ export default async function CallsPage() {
               <li key={row.patientId} className="rounded-[var(--radius-cards)] border border-[var(--color-border)] p-[var(--space-21)]">
                 <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
                   <div>
-                    <Link href={`/patients/${row.patientId}`} className="font-medium text-[var(--color-primary)] hover:underline">
+                    <Link
+                      href={`/patients/${row.patientId}`}
+                      className="inline-flex min-h-11 items-center font-medium text-[var(--color-primary)] hover:underline"
+                    >
                       {row.name}
                     </Link>
                     <p className="text-sm text-[var(--color-charcoal)]">
@@ -90,7 +93,7 @@ export default async function CallsPage() {
                     {tel && (
                       <a
                         href={tel}
-                        className="flex items-center gap-1 rounded-[var(--radius-buttons)] border border-[var(--color-primary)] px-3 py-1.5 text-sm text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-[var(--color-primary-foreground)]"
+                        className="flex min-h-11 items-center gap-1 rounded-[var(--radius-buttons)] border border-[var(--color-primary)] px-3 py-1.5 text-sm text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-[var(--color-primary-foreground)]"
                       >
                         <Phone size={16} weight="regular" aria-hidden /> Call
                       </a>
@@ -100,7 +103,7 @@ export default async function CallsPage() {
                         href={wa}
                         target="_blank"
                         rel="noreferrer"
-                        className="flex items-center gap-1 rounded-[var(--radius-buttons)] border border-[var(--color-primary)] px-3 py-1.5 text-sm text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-[var(--color-primary-foreground)]"
+                        className="flex min-h-11 items-center gap-1 rounded-[var(--radius-buttons)] border border-[var(--color-primary)] px-3 py-1.5 text-sm text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-[var(--color-primary-foreground)]"
                       >
                         <WhatsappLogo size={16} weight="regular" aria-hidden /> WhatsApp
                       </a>

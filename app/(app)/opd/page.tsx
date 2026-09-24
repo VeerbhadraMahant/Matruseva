@@ -62,7 +62,7 @@ export default async function OpdRegisterPage({
           name="q"
           defaultValue={q ?? ""}
           placeholder="Search register text…"
-          className="w-full max-w-md rounded-[var(--radius-buttons)] border border-[var(--color-border)] bg-[var(--color-background)] px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+          className="min-h-11 w-full max-w-md rounded-[var(--radius-buttons)] border border-[var(--color-border)] bg-[var(--color-background)] px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
         />
       </form>
 

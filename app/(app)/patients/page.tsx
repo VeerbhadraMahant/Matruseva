@@ -65,7 +65,10 @@ export default async function PatientsPage() {
                 return (
                   <tr key={p.id} className="border-b border-[var(--color-border)] last:border-0">
                     <td className="px-4 py-3">
-                      <Link href={`/patients/${p.id}`} className="font-medium text-[var(--color-primary)] hover:underline">
+                      <Link
+                        href={`/patients/${p.id}`}
+                        className="inline-flex min-h-11 items-center font-medium text-[var(--color-primary)] hover:underline"
+                      >
                         {p.name}
                       </Link>
                     </td>

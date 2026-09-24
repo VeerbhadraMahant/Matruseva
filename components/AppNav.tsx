@@ -23,7 +23,7 @@ export function AppSidebar({ clinicName, isDoctor }: { clinicName: string; isDoc
           <Link
             key={href}
             href={href}
-            className="flex items-center gap-3 rounded-[var(--radius-nav)] px-3 py-2 text-[var(--color-foreground)] hover:bg-[var(--color-surface-1)]"
+            className="flex min-h-11 items-center gap-3 rounded-[var(--radius-nav)] px-3 py-2 text-[var(--color-foreground)] hover:bg-[var(--color-surface-1)]"
           >
             <Icon size={20} weight="regular" aria-hidden />
             {label}
@@ -32,7 +32,7 @@ export function AppSidebar({ clinicName, isDoctor }: { clinicName: string; isDoc
         {isDoctor && (
           <Link
             href="/settings"
-            className="flex items-center gap-3 rounded-[var(--radius-nav)] px-3 py-2 text-[var(--color-foreground)] hover:bg-[var(--color-surface-1)]"
+            className="flex min-h-11 items-center gap-3 rounded-[var(--radius-nav)] px-3 py-2 text-[var(--color-foreground)] hover:bg-[var(--color-surface-1)]"
           >
             <Gear size={20} weight="regular" aria-hidden />
             Settings
@@ -41,7 +41,7 @@ export function AppSidebar({ clinicName, isDoctor }: { clinicName: string; isDoc
       </nav>
 
       <form action={logout}>
-        <button type="submit" className="mt-4 text-left text-sm text-[var(--color-charcoal)]">
+        <button type="submit" className="mt-4 flex min-h-11 items-center px-3 text-left text-sm text-[var(--color-charcoal)]">
           Sign out
         </button>
       </form>
@@ -56,7 +56,7 @@ export function AppMobileHeader() {
         MatruSetu
       </span>
       <form action={logout}>
-        <button type="submit" className="text-sm text-[var(--color-charcoal)]">
+        <button type="submit" className="flex min-h-11 items-center px-2 text-sm text-[var(--color-charcoal)]">
           Sign out
         </button>
       </form>

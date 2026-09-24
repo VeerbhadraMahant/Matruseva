@@ -1,7 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Camera } from "@phosphor-icons/react";
 import { createClient } from "@/lib/supabase/client";
 import { preprocessImage, recognizeImage, extractPdfText } from "@/lib/ocr";
 import type { DocSource, DocType } from "@/lib/supabase/enums";
@@ -34,6 +35,7 @@ export function DocumentUploader({
   showDateInput = false,
 }: DocumentUploaderProps) {
   const router = useRouter();
+  const fileInputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [source, setSource] = useState<DocSource>("camera");
   const [docDate, setDocDate] = useState("");
@@ -110,7 +112,7 @@ export function DocumentUploader({
               id="doc-source"
               value={source}
               onChange={(e) => setSource(e.target.value as DocSource)}
-              className="rounded-[var(--radius-buttons)] border border-[var(--color-border)] bg-[var(--color-background)] px-2 py-1.5 text-sm"
+              className="min-h-11 rounded-[var(--radius-buttons)] border border-[var(--color-border)] bg-[var(--color-background)] px-2 py-1.5 text-sm"
             >
               <option value="camera">Photographed (case paper / register)</option>
               <option value="whatsapp">WhatsApp image</option>
@@ -128,7 +130,7 @@ export function DocumentUploader({
               type="date"
               value={docDate}
               onChange={(e) => setDocDate(e.target.value)}
-              className="rounded-[var(--radius-buttons)] border border-[var(--color-border)] bg-[var(--color-background)] px-2 py-1.5 text-sm"
+              className="min-h-11 rounded-[var(--radius-buttons)] border border-[var(--color-border)] bg-[var(--color-background)] px-2 py-1.5 text-sm"
             />
           </div>
         )}
@@ -136,13 +138,20 @@ export function DocumentUploader({
 
       <input
         ref={inputRef}
+        id={fileInputId}
         type="file"
         accept="image/*,application/pdf"
         capture="environment"
         multiple
         onChange={(e) => handleFiles(e.target.files)}
-        className="block w-full text-sm"
+        className="sr-only"
       />
+      <label
+        htmlFor={fileInputId}
+        className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-[var(--radius-buttons)] bg-[var(--color-primary)] px-[var(--space-21)] py-[var(--space-14)] font-medium text-[var(--color-primary-foreground)] hover:bg-[var(--color-primary-hover)]"
+      >
+        <Camera size={20} weight="regular" aria-hidden /> Photograph or upload
+      </label>
       <p className="mt-2 text-xs text-[var(--color-charcoal)]">
         Handwriting recognition is limited — tag documents by hand (patient, date, type) so they stay searchable.
       </p>
