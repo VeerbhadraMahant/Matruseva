@@ -38,14 +38,26 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
   const { data: patient } = await supabase.from("patients").select("*").eq("id", id).maybeSingle();
   if (!patient) notFound();
 
-  const [{ data: careEvents }, { data: visits }] = await Promise.all([
+  const [{ data: careEvents }, { data: visits }, { data: documents }] = await Promise.all([
     supabase
       .from("care_event_status")
       .select("id, name, kind, due_from, due_to, completed_at, status")
       .eq("patient_id", id)
       .order("due_from"),
     supabase.from("visits").select("*").eq("patient_id", id).order("visit_date", { ascending: false }),
+    supabase
+      .from("documents")
+      .select("id, doc_type, doc_date, storage_path, created_at")
+      .eq("patient_id", id)
+      .order("created_at", { ascending: false }),
   ]);
+
+  const documentsWithUrls = await Promise.all(
+    (documents ?? []).map(async (doc) => {
+      const { data: signed } = await supabase.storage.from("documents").createSignedUrl(doc.storage_path, 300);
+      return { ...doc, url: signed?.signedUrl ?? null };
+    })
+  );
 
   const today = todayInClinicTimezone();
   const ga = patient.lmp ? gestationalAge(parseLocalDate(patient.lmp), today) : null;
@@ -129,6 +141,37 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
                     .join(" · ")}
                 </p>
                 {v.notes && <p className="mt-1">{v.notes}</p>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="mt-10">
+        <h2 className="mb-4 text-[var(--text-subheading)] font-medium">Documents</h2>
+        {documentsWithUrls.length === 0 ? (
+          <p className="text-sm text-[var(--color-charcoal)]">
+            No documents filed yet. Upload and assign them from{" "}
+            <a href="/documents" className="text-[var(--color-primary)] underline">
+              Documents
+            </a>
+            .
+          </p>
+        ) : (
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {documentsWithUrls.map((doc) => (
+              <li key={doc.id} className="space-y-2 rounded-[var(--radius-cards)] border border-[var(--color-border)] p-[var(--space-21)]">
+                {doc.url && doc.storage_path.match(/\.(jpe?g|png|webp)$/i) ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- private signed URL, not an optimizable static asset
+                  <img src={doc.url} alt="" className="h-32 w-full rounded-[var(--radius-nav)] object-cover" />
+                ) : doc.url ? (
+                  <a href={doc.url} target="_blank" rel="noreferrer" className="block text-sm text-[var(--color-primary)] underline">
+                    Open PDF
+                  </a>
+                ) : null}
+                <p className="text-xs text-[var(--color-charcoal)]">
+                  {doc.doc_type} · {doc.doc_date ? formatDate(doc.doc_date) : formatDate(doc.created_at!.slice(0, 10))}
+                </p>
               </li>
             ))}
           </ul>
