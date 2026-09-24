@@ -1,0 +1,49 @@
+@import "tailwindcss";
+@import "../design-system/tailwind.theme.css";
+
+/*
+  MatruSetu semantic layer on top of the "Ease Health" botanical tokens.
+  App screens use a 16px base body (the source style's 14px is too small for
+  dense clinical data); the 14px scale stays for labels/captions.
+  Light mode only — the source style defines no dark palette.
+*/
+:root {
+  --color-background: var(--color-cream-paper);
+  --color-foreground: var(--color-charcoal);
+  --color-surface-1: var(--color-keylime-wash);
+  --color-surface-2: var(--color-mint-veil);
+  --color-surface-3: var(--color-sage-mist);
+  --color-surface-4: var(--color-slate-hush);
+  --color-border: var(--color-border-mist);
+  --color-primary: var(--color-forest-ink);
+  --color-primary-hover: var(--color-forest-shadow);
+  --color-primary-foreground: var(--color-cream-paper);
+
+  /* Status — never color alone; always paired with icon + text (see design-system/Extended Design.md) */
+  --color-due: #8a5a00;
+  --color-due-surface: #fbeed4;
+  --color-overdue: #9a2f1f;
+  --color-overdue-surface: #f7ddd6;
+  --color-on-track: var(--color-forest-ink);
+  --color-on-track-surface: var(--color-keylime-wash);
+}
+
+@theme inline {
+  --color-background: var(--color-background);
+  --color-foreground: var(--color-foreground);
+  --font-sans: var(--font-body);
+  --font-heading: var(--font-heading);
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-body), var(--font-suisse-intl);
+  font-size: 16px;
+  line-height: var(--leading-body);
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-heading), var(--font-faire-octave);
+  font-weight: var(--font-weight-light);
+}

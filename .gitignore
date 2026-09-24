@@ -1,0 +1,40 @@
+# Claude / internal notes — never pushed
+claude.md
+CLAUDE.md
+.claude/
+design-system/*.md
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Next.js
+.next/
+out/
+next-env.d.ts
+
+# Supabase
+supabase/.temp/
+supabase/.branches/
+
+# Testing
+coverage/
+playwright-report/
+test-results/
+
+# TypeScript
+*.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
