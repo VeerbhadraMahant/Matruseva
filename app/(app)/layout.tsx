@@ -14,7 +14,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, clinics(name)")
+    .select("full_name, role, clinics(name)")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -27,7 +27,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex min-h-dvh flex-col md:flex-row">
       <AppMobileHeader />
-      <AppSidebar clinicName={clinicName} />
+      <AppSidebar clinicName={clinicName} isDoctor={profile.role === "doctor"} />
       <main className="flex-1 pb-16 md:pb-0">{children}</main>
       <AppBottomNav />
     </div>

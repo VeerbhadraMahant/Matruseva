@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarCheck, Users, PhoneCall, FileText, BookOpenText } from "@phosphor-icons/react/dist/ssr";
+import { CalendarCheck, Users, PhoneCall, FileText, BookOpenText, Gear } from "@phosphor-icons/react/dist/ssr";
 import { logout } from "@/app/(auth)/actions";
 
 const NAV_ITEMS = [
@@ -10,7 +10,7 @@ const NAV_ITEMS = [
   { href: "/opd", label: "OPD", icon: BookOpenText },
 ];
 
-export function AppSidebar({ clinicName }: { clinicName: string }) {
+export function AppSidebar({ clinicName, isDoctor }: { clinicName: string; isDoctor: boolean }) {
   return (
     <aside className="hidden w-56 shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-background)] p-6 md:flex">
       <span className="mb-1 font-[var(--font-heading)] text-xl font-light text-[var(--color-primary)]">
@@ -29,6 +29,15 @@ export function AppSidebar({ clinicName }: { clinicName: string }) {
             {label}
           </Link>
         ))}
+        {isDoctor && (
+          <Link
+            href="/settings"
+            className="flex items-center gap-3 rounded-[var(--radius-nav)] px-3 py-2 text-[var(--color-foreground)] hover:bg-[var(--color-surface-1)]"
+          >
+            <Gear size={20} weight="regular" aria-hidden />
+            Settings
+          </Link>
+        )}
       </nav>
 
       <form action={logout}>
