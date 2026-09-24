@@ -11,7 +11,7 @@ export default function OnboardingPage() {
 
   return (
     <main className="flex min-h-dvh items-center justify-center bg-[var(--color-background)] px-4">
-      <div className="w-full max-w-sm rounded-[var(--radius-cards)] bg-[var(--color-surface-1)] p-[var(--spacing-42)]">
+      <div className="w-full max-w-sm rounded-[var(--radius-cards)] bg-[var(--color-surface-1)] p-[var(--space-42)]">
         <h1 className="mb-2 font-[var(--font-heading)] text-[var(--text-heading-sm)] font-light text-[var(--color-primary)]">
           Set up your clinic
         </h1>

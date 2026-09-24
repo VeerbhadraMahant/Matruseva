@@ -5,7 +5,7 @@ export default async function TodayPage() {
   const { count } = await supabase.from("patients").select("*", { count: "exact", head: true }).eq("status", "active");
 
   return (
-    <div className="p-[var(--spacing-42)]">
+    <div className="p-[var(--space-42)]">
       <h1 className="mb-2 font-[var(--font-heading)] text-[var(--text-heading)] font-light text-[var(--color-primary)]">
         Today
       </h1>

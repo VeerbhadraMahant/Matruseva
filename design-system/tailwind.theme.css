@@ -2,6 +2,17 @@
   MatruSetu Tailwind v4 theme — "Ease Health" botanical clinical style
   Import this in your global CSS (e.g. after @import "tailwindcss";)
   Source: https://styles.refero.design/style/e9f5e976-53f7-42f5-a882-4e63b3c2f734
+
+  IMPORTANT: Tailwind v4 reserves certain @theme key prefixes (--spacing-*,
+  --radius-*, --font-*, --text-*, --leading-*, --tracking-*, --color-*, ...)
+  to auto-generate utility classes. A key that reuses one of Tailwind's own
+  default scale names (e.g. --spacing-4, --radius-lg) SILENTLY OVERRIDES
+  that built-in utility everywhere in the app, not just where you intend it.
+  The scraped design system's raw px spacing/radius scale collides with
+  Tailwind's default numeric scale, so it lives in a plain :root block below
+  instead of @theme, and is used only via arbitrary values, e.g.
+  `p-[var(--space-42)]` / `rounded-[var(--radius-cards)]` — never as bare
+  `p-42` or `rounded-lg` utilities.
 */
 @theme {
   --color-forest-ink: #0f3e17;
@@ -34,26 +45,33 @@
   --text-display: 74px;
   --leading-display: 1.05;
   --tracking-display: -2.22px;
+}
 
-  --spacing-4: 4px;
-  --spacing-7: 7px;
-  --spacing-9: 9px;
-  --spacing-11: 11px;
-  --spacing-14: 14px;
-  --spacing-18: 18px;
-  --spacing-21: 21px;
-  --spacing-28: 28px;
-  --spacing-35: 35px;
-  --spacing-42: 42px;
-  --spacing-49: 49px;
-  --spacing-56: 56px;
-  --spacing-70: 70px;
-  --spacing-76: 76px;
-  --spacing-99: 99px;
-  --spacing-156: 156px;
+:root {
+  /* Raw spacing scale (px) from the source style, renamed --space-* to avoid
+     colliding with Tailwind's reserved --spacing-* utility namespace. */
+  --space-4: 4px;
+  --space-7: 7px;
+  --space-9: 9px;
+  --space-11: 11px;
+  --space-14: 14px;
+  --space-18: 18px;
+  --space-21: 21px;
+  --space-28: 28px;
+  --space-35: 35px;
+  --space-42: 42px;
+  --space-49: 49px;
+  --space-56: 56px;
+  --space-70: 70px;
+  --space-76: 76px;
+  --space-99: 99px;
+  --space-156: 156px;
 
-  --radius-lg: 7.04px;
-  --radius-xl: 14.08px;
-  --radius-full: 999px;
-  --radius-full-2: 9999px;
+  /* Semantic radius names per design-system/Extended Design.md's component
+     specs (nav 7px, cards/buttons 14px, badges 999px, sections 9999px). */
+  --radius-nav: 7px;
+  --radius-cards: 14px;
+  --radius-buttons: 14px;
+  --radius-badges: 999px;
+  --radius-sections: 9999px;
 }

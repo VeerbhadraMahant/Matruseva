@@ -1,8 +1,11 @@
 import Link from "next/link";
-import { CalendarCheck } from "@phosphor-icons/react/dist/ssr";
+import { CalendarCheck, Users } from "@phosphor-icons/react/dist/ssr";
 import { logout } from "@/app/(auth)/actions";
 
-const NAV_ITEMS = [{ href: "/today", label: "Today", icon: CalendarCheck }];
+const NAV_ITEMS = [
+  { href: "/today", label: "Today", icon: CalendarCheck },
+  { href: "/patients", label: "Patients", icon: Users },
+];
 
 export function AppSidebar({ clinicName }: { clinicName: string }) {
   return (
