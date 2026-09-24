@@ -2,7 +2,9 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "./types";
 
-const PUBLIC_PATHS = ["/login", "/signup", "/auth"];
+// /offline must stay reachable with no session and no network round-trip —
+// it's the PWA's offline fallback, so redirecting it anywhere defeats its purpose.
+const PUBLIC_PATHS = ["/login", "/signup", "/auth", "/offline"];
 
 /**
  * Refreshes the Supabase session cookie on every request (required by
