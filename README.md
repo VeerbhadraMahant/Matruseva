@@ -43,11 +43,12 @@ npx supabase db push
 | `npm test` | Unit tests (Vitest) |
 | `npm run db:validate` | Offline SQL syntax check for migrations |
 | `npm run db:seed` | Seed a demo clinic with synthetic patients |
+| `npm run test:e2e` | Playwright golden-path test (needs a running dev server + live Supabase credentials — not run in CI, see `playwright.config.ts`) |
 
 ## Status
 
-Core flows are built and verified end-to-end against a live Supabase project: auth/onboarding, patient registration with auto-generated ANC schedules, the follow-up dashboard and call queue (WhatsApp/tel links, contact logging), document capture with in-browser OCR and full-text search, the OPD register, doctor Settings (clinic details, thresholds, schedule template, staff invites), and PWA install/offline support.
+Built and verified end-to-end against a live Supabase project: auth/onboarding, patient registration with auto-generated ANC schedules, the follow-up dashboard and call queue (WhatsApp/tel links, per-clinic message templates, contact logging), document capture with in-browser OCR and full-text search, the OPD register, doctor Settings (clinic details, thresholds, schedule template, staff invites, message templates), and PWA install/offline support. A Playwright test (`e2e/golden-path.spec.ts`) covers the full flow, and cross-clinic RLS isolation has been independently verified. Accessibility pass done: every custom color pair meets WCAG AA contrast, and interactive elements meet the 44px touch-target minimum.
 
-Not yet built: per-clinic message-template editing wired into the call queue (the `clinics.message_templates` column exists but isn't used yet — `/calls` uses a fixed default message), Playwright e2e coverage, and real SMTP for staff email invites (see the `matrusetu-supabase-auth-autoconfirm` memory note — invites currently return a one-time link for the doctor to share manually).
+Not yet done: real SMTP for staff email invites (see the `matrusetu-supabase-auth-autoconfirm` memory note — invites currently return a one-time link for the doctor to share manually), Hindi/Marathi message-template wording (needs the Clinical Lead's review before shipping — the field only supports one language per template right now), and Clinical Lead sign-off on the default ANC schedule windows and follow-up-risk thresholds.
 
 See `supabase/migrations/` for the schema and `lib/` for the pregnancy-dating, ANC-schedule, and follow-up-risk logic.
