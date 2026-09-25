@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { login, type ActionResult } from "../actions";
 import { SubmitButton } from "@/components/SubmitButton";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 
 const initialState: ActionResult = { error: null };
 
@@ -54,6 +55,13 @@ export default function LoginPage() {
 
           <SubmitButton>Sign in</SubmitButton>
         </form>
+
+        <div className="my-4 flex items-center gap-3 text-xs text-[var(--color-charcoal)]">
+          <span className="h-px flex-1 bg-[var(--color-border)]" />
+          or
+          <span className="h-px flex-1 bg-[var(--color-border)]" />
+        </div>
+        <GoogleSignInButton />
 
         <p className="mt-6 text-sm">
           New clinic?{" "}
