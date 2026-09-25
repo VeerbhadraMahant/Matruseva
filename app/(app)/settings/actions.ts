@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export interface ActionResult {
@@ -12,17 +13,11 @@ export interface ActionResult {
 
 /** Doctor-only guard: every action here mutates clinic-wide settings. */
 async function requireDoctor() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { supabase, profile: null, error: "Your session expired. Please log in again." };
-
-  const { data: profile } = await supabase.from("profiles").select("clinic_id, role").eq("id", user.id).single();
-  if (!profile || profile.role !== "doctor") {
+  const [supabase, me] = await Promise.all([createClient(), getCurrentUser()]);
+  if (me.role !== "doctor") {
     return { supabase, profile: null, error: "Only the clinic's doctor can change this." };
   }
-  return { supabase, profile, error: null };
+  return { supabase, profile: { clinic_id: me.clinicId, role: me.role }, error: null };
 }
 
 const clinicDetailsSchema = z.object({

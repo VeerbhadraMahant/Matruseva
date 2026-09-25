@@ -10,6 +10,12 @@ const nextConfig: NextConfig = {
   // true below), which Next 16's Turbopack dev server otherwise flags as a
   // likely mistake. This acknowledges it's intentional.
   turbopack: {},
+  experimental: {
+    // Every app page is dynamic (per-user, cookie-based), which Next caches
+    // client-side for 0s by default — so tab switches always waited on a
+    // full server render. Server actions' revalidatePath still busts this.
+    staleTimes: { dynamic: 30 },
+  },
 };
 
 const withSerwist = withSerwistInit({

@@ -6,7 +6,7 @@ import { SubmitButton } from "@/components/SubmitButton";
 
 const initialState: ActionResult = { error: null };
 const inputClass =
-  "min-h-11 w-full rounded-[var(--radius-buttons)] border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]";
+  "min-h-10 w-full rounded-[var(--radius-buttons)] border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 py-2 text-sm focus:border-[var(--color-primary)]";
 const labelClass = "mb-1 block text-xs font-medium text-[var(--color-charcoal)]";
 
 export function StaffInviteForm() {
@@ -50,7 +50,7 @@ export function StaffInviteForm() {
                 navigator.clipboard.writeText(state.inviteLink!);
                 setCopied(true);
               }}
-              className="min-h-11 shrink-0 rounded-[var(--radius-buttons)] border border-[var(--color-primary)] px-3 text-xs text-[var(--color-primary)]"
+              className="min-h-10 shrink-0 rounded-[var(--radius-buttons)] border border-[var(--color-primary)] px-3 text-xs text-[var(--color-primary)]"
             >
               {copied ? "Copied" : "Copy"}
             </button>

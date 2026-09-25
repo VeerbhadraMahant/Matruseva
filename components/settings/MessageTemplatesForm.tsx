@@ -7,7 +7,7 @@ import type { MessageTemplates } from "@/lib/whatsapp";
 
 const initialState: ActionResult = { error: null };
 const textareaClass =
-  "w-full rounded-[var(--radius-buttons)] border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]";
+  "w-full rounded-[var(--radius-buttons)] border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 py-2 text-sm focus:border-[var(--color-primary)]";
 const labelClass = "mb-1 block text-xs font-medium text-[var(--color-charcoal)]";
 
 const FIELDS: { name: keyof MessageTemplates; label: string; placeholder: string }[] = [

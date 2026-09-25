@@ -9,9 +9,9 @@ export function SubmitButton({ children }: { children: React.ReactNode }) {
     <button
       type="submit"
       disabled={pending}
-      className="w-full rounded-[var(--radius-buttons)] bg-[var(--color-primary)] px-[var(--space-21)] py-[var(--space-14)] font-medium text-[var(--color-primary-foreground)] transition-colors hover:bg-[var(--color-primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+      className="min-h-10 w-full bg-[var(--color-primary)] px-4 text-[14px] font-semibold text-[var(--color-primary-foreground)] hover:bg-[var(--color-primary-hover)] disabled:cursor-wait disabled:opacity-60"
     >
-      {pending ? "Please wait…" : children}
+      {pending ? "Saving…" : children}
     </button>
   );
 }

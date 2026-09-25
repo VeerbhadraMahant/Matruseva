@@ -112,7 +112,7 @@ export function DocumentUploader({
               id="doc-source"
               value={source}
               onChange={(e) => setSource(e.target.value as DocSource)}
-              className="min-h-11 rounded-[var(--radius-buttons)] border border-[var(--color-border)] bg-[var(--color-background)] px-2 py-1.5 text-sm"
+              className="min-h-10 rounded-[var(--radius-buttons)] border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2 py-1.5 text-sm"
             >
               <option value="camera">Photographed (case paper / register)</option>
               <option value="whatsapp">WhatsApp image</option>
@@ -130,7 +130,7 @@ export function DocumentUploader({
               type="date"
               value={docDate}
               onChange={(e) => setDocDate(e.target.value)}
-              className="min-h-11 rounded-[var(--radius-buttons)] border border-[var(--color-border)] bg-[var(--color-background)] px-2 py-1.5 text-sm"
+              className="min-h-10 rounded-[var(--radius-buttons)] border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2 py-1.5 text-sm"
             />
           </div>
         )}
@@ -148,7 +148,7 @@ export function DocumentUploader({
       />
       <label
         htmlFor={fileInputId}
-        className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-[var(--radius-buttons)] bg-[var(--color-primary)] px-[var(--space-21)] py-[var(--space-14)] font-medium text-[var(--color-primary-foreground)] hover:bg-[var(--color-primary-hover)]"
+        className="flex min-h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-[var(--radius-buttons)] bg-[var(--color-primary)] px-[var(--space-21)] py-[var(--space-14)] font-medium text-[var(--color-primary-foreground)] hover:bg-[var(--color-primary-hover)]"
       >
         <Camera size={20} weight="regular" aria-hidden /> Photograph or upload
       </label>

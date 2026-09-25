@@ -1,133 +1,86 @@
-import Link from "next/link";
-import { Phone, WhatsappLogo } from "@phosphor-icons/react/dist/ssr";
+import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { getClinicSnapshot, daysOverdue, needsFollowUp, followUpPriority } from "@/lib/snapshot";
+import { formatGA } from "@/lib/pregnancy";
+import { daysBetween, parseLocalDate } from "@/lib/format";
 import { telLink, whatsAppLink, reminderMessage, type ReminderReason, type MessageTemplates } from "@/lib/whatsapp";
-import { ContactLogForm } from "@/components/ContactLogForm";
-import type { FollowUpRisk } from "@/lib/supabase/enums";
+import { PageHeader } from "@/components/ui";
+import { CallQueue, type CallFilter, type CallRow } from "@/components/CallQueue";
+import type { ContactOutcome } from "@/lib/supabase/enums";
 
-interface QueueRow {
-  patientId: string;
-  name: string;
-  phone: string | null;
-  reason: ReminderReason;
-  careEventName?: string;
-}
+const FILTER_IDS: CallFilter[] = ["all", "overdue", "at_risk", "lost", "pending"];
 
-const REASON_LABEL: Record<ReminderReason, string> = {
-  overdue: "Overdue",
-  due_soon: "Due soon",
-  at_risk: "At risk",
-  lost: "Lost to follow-up",
-};
-
-export default async function CallsPage() {
+export default async function CallsPage({ searchParams }: { searchParams: Promise<{ f?: string }> }) {
+  const me = await getCurrentUser();
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const { data: profile } = await supabase.from("profiles").select("clinic_id").eq("id", user!.id).single();
-  const { data: clinic } = await supabase
-    .from("clinics")
-    .select("message_templates")
-    .eq("id", profile!.clinic_id)
-    .single();
+  const [{ f }, { rows, today }, { data: clinic }, { data: contacts }] = await Promise.all([
+    searchParams,
+    getClinicSnapshot(),
+    supabase.from("clinics").select("message_templates").eq("id", me.clinicId).single(),
+    supabase
+      .from("contact_log")
+      .select("patient_id, outcome, channel, created_at")
+      .order("created_at", { ascending: false })
+      .limit(2000),
+  ]);
   const templates = (clinic?.message_templates ?? {}) as MessageTemplates;
 
-  const [{ data: overdueEvents }, { data: risks }] = await Promise.all([
-    supabase
-      .from("care_event_status")
-      .select("patient_id, name, due_to")
-      .eq("status", "overdue")
-      .order("due_to"),
-    supabase.from("patient_followup_risk").select("patient_id, risk").in("risk", ["at_risk", "lost"]),
-  ]);
-
-  const overdueByPatient = new Map<string, string>();
-  for (const e of overdueEvents ?? []) {
-    if (!e.patient_id || !e.name) continue;
-    if (!overdueByPatient.has(e.patient_id)) overdueByPatient.set(e.patient_id, e.name);
+  const contactsBy = new Map<string, { outcome: string; channel: string; createdAt: string }[]>();
+  for (const c of contacts ?? []) {
+    const list = contactsBy.get(c.patient_id) ?? [];
+    list.push({ outcome: c.outcome, channel: c.channel, createdAt: c.created_at });
+    contactsBy.set(c.patient_id, list);
   }
-  const riskByPatient = new Map(
-    (risks ?? [])
-      .filter((r): r is typeof r & { patient_id: string } => r.patient_id !== null)
-      .map((r) => [r.patient_id, r.risk as FollowUpRisk])
-  );
 
-  const patientIds = new Set<string>([...overdueByPatient.keys(), ...riskByPatient.keys()]);
+  const queue: CallRow[] = rows
+    .filter(needsFollowUp)
+    .sort((a, b) => followUpPriority(a, today) - followUpPriority(b, today))
+    .map((r) => {
+      const reason: ReminderReason = r.risk === "lost" ? "lost" : r.overdue.length > 0 ? "overdue" : "at_risk";
+      const item = r.overdue[0]?.name;
+      const message = reminderMessage(r.name, reason, item, templates);
+      const history = contactsBy.get(r.id) ?? [];
+      const last = history[0];
+      const lastDate = last ? new Date(last.createdAt) : null;
+      const lastDaysAgo = lastDate
+        ? daysBetween(parseLocalDate(lastDate.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" })), today)
+        : null;
+      return {
+        id: r.id,
+        name: r.name,
+        phone: r.phone,
+        gaLabel: r.ga ? formatGA(r.ga) : null,
+        reason,
+        overdueItems: r.overdue.map((e) => e.name),
+        overdueDays: daysOverdue(r, today),
+        flags: r.flags.filter((fl) => fl.severity !== "info"),
+        noAnswerStreak: r.noAnswerStreak,
+        attempts30d: history.filter((h) => daysBetween(new Date(h.createdAt), today) <= 30).length,
+        lastContact: last
+          ? { outcome: last.outcome as ContactOutcome, channel: last.channel, daysAgo: lastDaysAgo ?? 0 }
+          : null,
+        tel: r.phone ? telLink(r.phone) : null,
+        whatsapp: r.phone ? whatsAppLink(r.phone, message) : null,
+      };
+    });
 
-  const { data: patients } = patientIds.size
-    ? await supabase.from("patients").select("id, name, phone").in("id", Array.from(patientIds))
-    : { data: [] };
-
-  const queue: QueueRow[] = (patients ?? []).map((p) => {
-    const overdueEventName = overdueByPatient.get(p.id);
-    const risk = riskByPatient.get(p.id);
-    const reason: ReminderReason = overdueEventName ? "overdue" : risk === "lost" ? "lost" : "at_risk";
-    return { patientId: p.id, name: p.name, phone: p.phone, reason, careEventName: overdueEventName };
-  });
+  const initialFilter = FILTER_IDS.includes(f as CallFilter) ? (f as CallFilter) : "all";
+  const pending = queue.filter((q) => q.lastContact?.daysAgo !== 0).length;
 
   return (
-    <div className="p-[var(--space-42)]">
-      <h1 className="mb-1 font-[var(--font-heading)] text-[var(--text-heading)] font-light text-[var(--color-primary)]">
-        Calls
-      </h1>
-      <p className="mb-8 text-sm text-[var(--color-charcoal)]">
-        {queue.length} {queue.length === 1 ? "patient needs" : "patients need"} follow-up
-      </p>
-
-      {queue.length === 0 ? (
-        <p className="text-[var(--color-charcoal)]">Nobody needs a follow-up call right now.</p>
-      ) : (
-        <ul className="space-y-3">
-          {queue.map((row) => {
-            const message = reminderMessage(row.name, row.reason, row.careEventName, templates);
-            const tel = row.phone ? telLink(row.phone) : null;
-            const wa = row.phone ? whatsAppLink(row.phone, message) : null;
-
-            return (
-              <li key={row.patientId} className="rounded-[var(--radius-cards)] border border-[var(--color-border)] p-[var(--space-21)]">
-                <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
-                  <div>
-                    <Link
-                      href={`/patients/${row.patientId}`}
-                      className="inline-flex min-h-11 items-center font-medium text-[var(--color-primary)] hover:underline"
-                    >
-                      {row.name}
-                    </Link>
-                    <p className="text-sm text-[var(--color-charcoal)]">
-                      {REASON_LABEL[row.reason]}
-                      {row.careEventName ? `: ${row.careEventName}` : ""}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    {tel && (
-                      <a
-                        href={tel}
-                        className="flex min-h-11 items-center gap-1 rounded-[var(--radius-buttons)] border border-[var(--color-primary)] px-3 py-1.5 text-sm text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-[var(--color-primary-foreground)]"
-                      >
-                        <Phone size={16} weight="regular" aria-hidden /> Call
-                      </a>
-                    )}
-                    {wa && (
-                      <a
-                        href={wa}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex min-h-11 items-center gap-1 rounded-[var(--radius-buttons)] border border-[var(--color-primary)] px-3 py-1.5 text-sm text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-[var(--color-primary-foreground)]"
-                      >
-                        <WhatsappLogo size={16} weight="regular" aria-hidden /> WhatsApp
-                      </a>
-                    )}
-                    {!row.phone && <span className="text-sm text-[var(--color-overdue)]">No phone on file</span>}
-                  </div>
-                </div>
-                <ContactLogForm patientId={row.patientId} />
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </div>
+    <>
+      <PageHeader
+        title="Call queue"
+        meta={
+          <>
+            <span className="num">{queue.length}</span> need follow-up · <span className="num">{pending}</span> not yet contacted today
+          </>
+        }
+      />
+      <div className="p-4 md:p-6">
+        <CallQueue rows={queue} initialFilter={initialFilter} />
+      </div>
+    </>
   );
 }

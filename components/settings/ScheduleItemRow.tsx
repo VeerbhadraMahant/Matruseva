@@ -6,7 +6,7 @@ import { updateScheduleItem, type ActionResult } from "@/app/(app)/settings/acti
 
 const initialState: ActionResult = { error: null };
 const inputClass =
-  "min-h-11 w-20 rounded-[var(--radius-buttons)] border border-[var(--color-border)] bg-[var(--color-background)] px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]";
+  "min-h-10 w-20 rounded-[var(--radius-buttons)] border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2 py-1.5 text-sm focus:border-[var(--color-primary)]";
 
 export function ScheduleItemRow({
   id,
@@ -51,7 +51,7 @@ function SaveButton() {
     <button
       type="submit"
       disabled={pending}
-      className="min-h-11 rounded-[var(--radius-buttons)] border border-[var(--color-primary)] px-3 py-1.5 text-sm font-medium text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-[var(--color-primary-foreground)] disabled:cursor-not-allowed disabled:opacity-50"
+      className="min-h-10 rounded-[var(--radius-buttons)] border border-[var(--color-primary)] px-3 py-1.5 text-sm font-medium text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-[var(--color-primary-foreground)] disabled:cursor-not-allowed disabled:opacity-50"
     >
       {pending ? "…" : "Save"}
     </button>

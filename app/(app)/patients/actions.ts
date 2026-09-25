@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth";
 import { generateSchedule, type ScheduleTemplateItem } from "@/lib/schedule";
 import { todayInClinicTimezone, toISODate } from "@/lib/today";
 import type { CareEventKind } from "@/lib/supabase/enums";
@@ -13,6 +14,7 @@ export interface ActionResult {
 
 const patientSchema = z.object({
   name: z.string().min(2, "Enter the patient's name"),
+  clinicPatientNo: z.string().trim().max(40).optional(),
   phone: z.string().optional(),
   altPhone: z.string().optional(),
   age: z.coerce.number().int().positive().max(70).optional().or(z.literal("")),
@@ -37,24 +39,15 @@ export async function createPatient(_prev: ActionResult, formData: FormData): Pr
   }
   const input = parsed.data;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return { error: "Your session expired. Please log in again." };
-  }
-
-  const { data: profile } = await supabase.from("profiles").select("clinic_id").eq("id", user.id).single();
-  if (!profile) {
-    return { error: "No clinic found for your account." };
-  }
+  const [supabase, me] = await Promise.all([createClient(), getCurrentUser()]);
+  const profile = { clinic_id: me.clinicId };
 
   const { data: patient, error: insertError } = await supabase
     .from("patients")
     .insert({
       clinic_id: profile.clinic_id,
       name: input.name,
+      clinic_patient_no: input.clinicPatientNo || null,
       phone: input.phone || null,
       alt_phone: input.altPhone || null,
       age: input.age === "" || input.age === undefined ? null : input.age,
@@ -65,7 +58,7 @@ export async function createPatient(_prev: ActionResult, formData: FormData): Pr
       rh_negative: input.rhNegative,
       lmp: input.lmp,
       edd_source: "lmp",
-      created_by: user.id,
+      created_by: me.userId,
     })
     .select("id")
     .single();

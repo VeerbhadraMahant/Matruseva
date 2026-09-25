@@ -12,9 +12,9 @@ function Button() {
     <button
       type="submit"
       disabled={pending}
-      className="min-h-11 rounded-[var(--radius-buttons)] border border-[var(--color-primary)] px-3 py-1.5 text-sm font-medium text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-[var(--color-primary-foreground)] disabled:cursor-not-allowed disabled:opacity-50"
+      className="min-h-8 whitespace-nowrap border border-[var(--color-border-strong)] px-2.5 text-[13px] font-medium hover:border-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-white disabled:cursor-wait disabled:opacity-60"
     >
-      {pending ? "…" : "Mark done"}
+      {pending ? "Saving…" : "Mark done"}
     </button>
   );
 }

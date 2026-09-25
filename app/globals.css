@@ -2,48 +2,97 @@
 @import "../design-system/tailwind.theme.css";
 
 /*
-  MatruSetu semantic layer on top of the "Ease Health" botanical tokens.
-  App screens use a 16px base body (the source style's 14px is too small for
-  dense clinical data); the 14px scale stays for labels/captions.
-  Light mode only — the source style defines no dark palette.
+  MatruSetu clinical UI layer. Dense, square, high-contrast: this is a
+  worklist tool used all day at an OPD desk, not a marketing page.
+  Overrides the botanical source tokens (unlayered :root beats @theme).
+  Light mode only.
 */
 :root {
-  --color-background: var(--color-cream-paper);
-  --color-foreground: var(--color-charcoal);
-  --color-surface-1: var(--color-keylime-wash);
-  --color-surface-2: var(--color-mint-veil);
-  --color-surface-3: var(--color-sage-mist);
-  --color-surface-4: var(--color-slate-hush);
-  --color-border: var(--color-border-mist);
-  --color-primary: var(--color-forest-ink);
-  --color-primary-hover: var(--color-forest-shadow);
-  --color-primary-foreground: var(--color-cream-paper);
+  --color-canvas: #f3f3f1;
+  --color-background: #ffffff;
+  --color-foreground: #141619;
+  --color-charcoal: #555a61; /* secondary text — 6.9:1 on white */
+  --color-surface-1: #f6f6f4;
+  --color-surface-2: #eeeeeb;
+  --color-surface-3: #e4e4e0;
+  --color-surface-4: #d9d9d4;
+  --color-border: #dcdbd6;
+  --color-border-strong: #b8b7b0;
+  --color-primary: #0f3e17;
+  --color-primary-hover: #0a2b10;
+  --color-primary-foreground: #ffffff;
 
-  /* Status — never color alone; always paired with icon + text (see design-system/Extended Design.md) */
-  --color-due: #8a5a00;
-  --color-due-surface: #fbeed4;
-  --color-overdue: #9a2f1f;
-  --color-overdue-surface: #f7ddd6;
-  --color-on-track: var(--color-forest-ink);
-  --color-on-track-surface: var(--color-keylime-wash);
+  --color-rail: #111613;
+  --color-rail-hover: #1b221d;
+  --color-rail-text: #c9cfca;
+  --color-rail-accent: #7cc47f;
+
+  /* Status — never color alone; always paired with a text label */
+  --color-due: #7a4f00;
+  --color-due-surface: #fbf0d9;
+  --color-overdue: #a4241b;
+  --color-overdue-surface: #fbe9e7;
+  --color-on-track: #1d6531;
+  --color-on-track-surface: #e6f1e8;
+  --color-info: #1f4f86;
+  --color-info-surface: #e7eef7;
+
+  --text-heading: 22px;
+  --text-heading-sm: 20px;
+  --text-subheading: 15px;
+
+  --space-42: 24px;
+  --space-28: 16px;
+  --space-21: 14px;
+
+  --radius-nav: 0px;
+  --radius-cards: 0px;
+  --radius-buttons: 0px;
+  --radius-badges: 0px;
+  --radius-sections: 0px;
 }
 
 @theme inline {
   --color-background: var(--color-background);
   --color-foreground: var(--color-foreground);
   --font-sans: var(--font-body);
-  --font-heading: var(--font-heading);
+  --font-mono: var(--font-mono-face);
+  --font-heading: var(--font-body);
 }
 
 body {
-  background: var(--color-background);
+  background: var(--color-canvas);
   color: var(--color-foreground);
-  font-family: var(--font-body), var(--font-suisse-intl);
-  font-size: 16px;
-  line-height: var(--leading-body);
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
 }
 
 h1, h2, h3, h4 {
-  font-family: var(--font-heading), var(--font-faire-octave);
-  font-weight: var(--font-weight-light);
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.num {
+  font-family: var(--font-mono-face), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+input, select, textarea, button {
+  border-radius: 0;
+}
+
+@keyframes pulse-bar {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+.skeleton {
+  background: var(--color-surface-2);
+  animation: pulse-bar 1.2s ease-in-out infinite;
 }

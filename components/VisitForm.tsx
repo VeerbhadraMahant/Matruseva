@@ -6,15 +6,15 @@ import { SubmitButton } from "@/components/SubmitButton";
 
 const initialState: ActionResult = { error: null };
 const inputClass =
-  "min-h-11 w-full rounded-[var(--radius-buttons)] border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]";
-const labelClass = "mb-1 block text-xs font-medium text-[var(--color-charcoal)]";
+  "num min-h-9 w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2 py-1 text-[14px] focus:border-[var(--color-primary)]";
+const labelClass = "mb-1 block text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-charcoal)]";
 
 export function VisitForm({ patientId }: { patientId: string }) {
   const action = recordVisit.bind(null, patientId);
   const [state, formAction] = useActionState(action, initialState);
 
   return (
-    <form action={formAction} className="grid grid-cols-2 gap-3 sm:grid-cols-4" noValidate>
+    <form action={formAction} className="grid grid-cols-2 gap-x-2 gap-y-3 sm:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-4" noValidate>
       <div>
         <label htmlFor="visitDate" className={labelClass}>
           Visit date
@@ -23,13 +23,13 @@ export function VisitForm({ patientId }: { patientId: string }) {
       </div>
       <div>
         <label htmlFor="bpSys" className={labelClass}>
-          BP systolic
+          BP sys
         </label>
         <input id="bpSys" name="bpSys" type="number" className={inputClass} />
       </div>
       <div>
         <label htmlFor="bpDia" className={labelClass}>
-          BP diastolic
+          BP dia
         </label>
         <input id="bpDia" name="bpDia" type="number" className={inputClass} />
       </div>
@@ -47,13 +47,13 @@ export function VisitForm({ patientId }: { patientId: string }) {
       </div>
       <div>
         <label htmlFor="fhr" className={labelClass}>
-          FHR
+          FHR (bpm)
         </label>
         <input id="fhr" name="fhr" type="number" className={inputClass} />
       </div>
       <div>
         <label htmlFor="fundalHeight" className={labelClass}>
-          Fundal height
+          Fundal ht (cm)
         </label>
         <input id="fundalHeight" name="fundalHeight" type="number" step="0.1" className={inputClass} />
       </div>
@@ -63,20 +63,20 @@ export function VisitForm({ patientId }: { patientId: string }) {
         </label>
         <input id="nextVisitDate" name="nextVisitDate" type="date" className={inputClass} />
       </div>
-      <div className="col-span-2 sm:col-span-4">
+      <div className="col-span-2 sm:col-span-4 xl:col-span-2 2xl:col-span-4">
         <label htmlFor="notes" className={labelClass}>
           Notes
         </label>
-        <textarea id="notes" name="notes" rows={2} className={inputClass} />
+        <textarea id="notes" name="notes" rows={2} className={inputClass.replace("num ", "")} />
       </div>
 
       {state.error && (
-        <p role="alert" className="col-span-2 text-sm text-[var(--color-overdue)] sm:col-span-4">
+        <p role="alert" className="col-span-2 text-[13px] text-[var(--color-overdue)] sm:col-span-4 xl:col-span-2 2xl:col-span-4">
           {state.error}
         </p>
       )}
 
-      <div className="col-span-2 sm:col-span-4">
+      <div className="col-span-2 sm:col-span-4 xl:col-span-2 2xl:col-span-4">
         <SubmitButton>Save visit</SubmitButton>
       </div>
     </form>

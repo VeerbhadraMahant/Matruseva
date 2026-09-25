@@ -1,8 +1,8 @@
 export default function OfflinePage() {
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-[var(--color-background)] px-4 text-center">
+    <main className="flex min-h-dvh items-center justify-center bg-[var(--color-canvas)] px-4 text-center">
       <div>
-        <h1 className="mb-2 font-[var(--font-heading)] text-[var(--text-heading-sm)] font-light text-[var(--color-primary)]">
+        <h1 className="mb-1 text-[20px] font-semibold tracking-tight text-[var(--color-foreground)]">
           You&apos;re offline
         </h1>
         <p className="text-[var(--color-charcoal)]">

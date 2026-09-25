@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth";
 
 export interface ActionResult {
   error: string | null;
@@ -21,25 +22,20 @@ export async function logContact(patientId: string, _prev: ActionResult, formDat
     return { error: parsed.error.issues[0].message };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const { data: patient } = await supabase.from("patients").select("clinic_id").eq("id", patientId).single();
-  if (!patient) return { error: "Patient not found." };
+  const [supabase, me] = await Promise.all([createClient(), getCurrentUser()]);
 
   const { error } = await supabase.from("contact_log").insert({
     patient_id: patientId,
-    clinic_id: patient.clinic_id,
+    clinic_id: me.clinicId,
     channel: parsed.data.channel,
     outcome: parsed.data.outcome,
     reason: parsed.data.reason || null,
-    created_by: user?.id ?? null,
+    created_by: me.userId,
   });
 
   if (error) return { error: error.message };
 
   revalidatePath("/calls");
+  revalidatePath(`/patients/${patientId}`);
   return { error: null };
 }

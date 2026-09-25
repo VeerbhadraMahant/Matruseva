@@ -35,9 +35,11 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims() verifies the JWT locally (ES256 JWKS, cached) and only hits
+  // the Auth server when the token needs refreshing — getUser() would add a
+  // network round trip to every single request, including prefetches.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims.sub;
 
   const isPublicPath = PUBLIC_PATHS.some((path) => request.nextUrl.pathname.startsWith(path));
 

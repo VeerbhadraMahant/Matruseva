@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth";
 import { todayInClinicTimezone, toISODate } from "@/lib/today";
 
 export interface ActionResult {
@@ -47,17 +48,11 @@ export async function recordVisit(
   const v = parsed.data;
   const num = (x: number | "" | undefined) => (x === "" || x === undefined ? null : x);
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const { data: patient } = await supabase.from("patients").select("clinic_id").eq("id", patientId).single();
-  if (!patient) return { error: "Patient not found." };
+  const [supabase, me] = await Promise.all([createClient(), getCurrentUser()]);
 
   const { error } = await supabase.from("visits").insert({
     patient_id: patientId,
-    clinic_id: patient.clinic_id,
+    clinic_id: me.clinicId,
     visit_date: v.visitDate || toISODate(todayInClinicTimezone()),
     bp_sys: num(v.bpSys),
     bp_dia: num(v.bpDia),
@@ -67,7 +62,7 @@ export async function recordVisit(
     fundal_height: num(v.fundalHeight),
     notes: v.notes || null,
     next_visit_date: v.nextVisitDate || null,
-    created_by: user?.id ?? null,
+    created_by: me.userId,
   });
 
   if (error) return { error: error.message };

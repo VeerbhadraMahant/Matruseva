@@ -5,9 +5,8 @@ import { logContact, type ActionResult } from "@/app/(app)/calls/actions";
 import { useFormStatus } from "react-dom";
 
 const initialState: ActionResult = { error: null };
-// min-h-11 (44px) meets the minimum touch target size (Apple HIG 44pt / Material 48dp)
 const selectClass =
-  "min-h-11 rounded-[var(--radius-buttons)] border border-[var(--color-border)] bg-[var(--color-background)] px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]";
+  "min-h-9 border border-[var(--color-border-strong)] bg-[var(--color-background)] px-1.5 text-[13px] focus:border-[var(--color-primary)]";
 
 function LogButton() {
   const { pending } = useFormStatus();
@@ -15,9 +14,9 @@ function LogButton() {
     <button
       type="submit"
       disabled={pending}
-      className="min-h-11 rounded-[var(--radius-buttons)] bg-[var(--color-primary)] px-3 py-1.5 text-sm font-medium text-[var(--color-primary-foreground)] hover:bg-[var(--color-primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+      className="min-h-9 border border-[var(--color-foreground)] bg-[var(--color-foreground)] px-3 text-[13px] font-semibold text-white hover:bg-black disabled:cursor-wait disabled:opacity-60"
     >
-      {pending ? "…" : "Log"}
+      {pending ? "Saving…" : "Log"}
     </button>
   );
 }
@@ -27,20 +26,24 @@ export function ContactLogForm({ patientId }: { patientId: string }) {
   const [state, formAction] = useActionState(action, initialState);
 
   return (
-    <form action={formAction} className="flex flex-wrap items-center gap-2">
+    <form action={formAction} className="flex items-center">
       <select name="channel" defaultValue="call" className={selectClass} aria-label="Contact channel">
         <option value="call">Call</option>
         <option value="whatsapp">WhatsApp</option>
       </select>
-      <select name="outcome" defaultValue="reached" className={selectClass} aria-label="Outcome">
+      <select name="outcome" defaultValue="reached" className={`${selectClass} -ml-px`} aria-label="Outcome">
         <option value="reached">Reached</option>
+        <option value="will_visit">Will visit</option>
         <option value="no_answer">No answer</option>
         <option value="wrong_number">Wrong number</option>
-        <option value="will_visit">Will visit</option>
         <option value="refused">Refused</option>
       </select>
       <LogButton />
-      {state.error && <span className="text-sm text-[var(--color-overdue)]">{state.error}</span>}
+      {state.error && (
+        <span role="alert" className="ml-2 text-[13px] text-[var(--color-overdue)]">
+          {state.error}
+        </span>
+      )}
     </form>
   );
 }
