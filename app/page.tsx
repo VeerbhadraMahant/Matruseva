@@ -106,7 +106,7 @@ export default function LandingPage() {
             </Link>
             <Link
               href="/signup"
-              className="rounded-full bg-[#4865ff] px-5 py-2 text-[14px] font-semibold text-white shadow-[0_8px_16px_0_rgba(72,101,255,0.25)] transition-colors hover:bg-[#3651e0]"
+              className="rounded-full bg-[#0f3e17] px-5 py-2 text-[14px] font-semibold text-white shadow-[0_8px_16px_0_rgba(15,62,23,0.25)] transition-colors hover:bg-[#0a2b10]"
             >
               Get started
             </Link>
@@ -118,12 +118,12 @@ export default function LandingPage() {
         {/* Hero */}
         <section className="mx-auto max-w-6xl px-4 pt-16 pb-20 sm:px-6 sm:pt-24 sm:pb-28">
           <div className="mx-auto max-w-3xl text-center">
-            <span className="inline-flex items-center rounded-full bg-[#dce4fb] px-4 py-1.5 text-[13px] font-semibold text-[#1b1463]">
+            <span className="inline-flex items-center rounded-full bg-[#e6f1e8] px-4 py-1.5 text-[13px] font-semibold text-[#0f3e17]">
               Built for OB-GYN clinics in India
             </span>
             <h1 className="mt-6 text-[36px] font-bold leading-[1.1] tracking-tight sm:text-[48px] lg:text-[56px]">
               Every pregnancy, tracked. Every follow-up,
-              <span className="text-[#4865ff]"> caught.</span>
+              <span className="text-[#0f3e17]"> caught.</span>
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-[16px] leading-[1.6] text-[#333333] sm:text-[18px]">
               MatruSetu is the clinical worklist for OB-GYN practices —
@@ -134,7 +134,7 @@ export default function LandingPage() {
             <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
                 href="/signup"
-                className="w-full rounded-full bg-[#4865ff] px-7 py-3.5 text-center text-[16px] font-semibold text-white shadow-[0_12px_24px_0_rgba(72,101,255,0.25)] transition-colors hover:bg-[#3651e0] sm:w-auto"
+                className="w-full rounded-full bg-[#0f3e17] px-7 py-3.5 text-center text-[16px] font-semibold text-white shadow-[0_12px_24px_0_rgba(15,62,23,0.25)] transition-colors hover:bg-[#0a2b10] sm:w-auto"
               >
                 Create your clinic account
               </Link>
@@ -184,7 +184,7 @@ export default function LandingPage() {
                   key={title}
                   className="rounded-2xl border border-[#080331]/10 bg-[#f8f3eb] p-8 shadow-[rgba(75,68,57,0.05)_0px_4px_4px_0px,rgba(75,68,57,0.08)_0px_32px_16px_0px]"
                 >
-                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#4865ff]/10 text-[#4865ff]">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#0f3e17]/10 text-[#0f3e17]">
                     <Icon size={22} weight="bold" aria-hidden />
                   </div>
                   <h3 className="mt-5 text-[18px] font-semibold tracking-tight">
@@ -240,14 +240,14 @@ export default function LandingPage() {
         </section>
 
         {/* Trust / how it works strip */}
-        <section className="border-t border-[#080331]/10 bg-[#1b1463] py-20 text-white sm:py-24">
+        <section className="border-t border-[#080331]/10 bg-[#0f3e17] py-20 text-white sm:py-24">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="grid grid-cols-1 gap-10 sm:grid-cols-3">
               <div>
                 <MagnifyingGlass
                   size={28}
                   weight="bold"
-                  className="text-[#a2baff]"
+                  className="text-[#7cc47f]"
                   aria-hidden
                 />
                 <h3 className="mt-4 text-[18px] font-semibold">
@@ -262,7 +262,7 @@ export default function LandingPage() {
                 <ShieldWarning
                   size={28}
                   weight="bold"
-                  className="text-[#a2baff]"
+                  className="text-[#7cc47f]"
                   aria-hidden
                 />
                 <h3 className="mt-4 text-[18px] font-semibold">
@@ -277,7 +277,7 @@ export default function LandingPage() {
                 <DeviceMobile
                   size={28}
                   weight="bold"
-                  className="text-[#a2baff]"
+                  className="text-[#7cc47f]"
                   aria-hidden
                 />
                 <h3 className="mt-4 text-[18px] font-semibold">
@@ -305,7 +305,7 @@ export default function LandingPage() {
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
                 href="/signup"
-                className="w-full rounded-full bg-[#4865ff] px-7 py-3.5 text-center text-[16px] font-semibold text-white shadow-[0_12px_24px_0_rgba(72,101,255,0.25)] transition-colors hover:bg-[#3651e0] sm:w-auto"
+                className="w-full rounded-full bg-[#0f3e17] px-7 py-3.5 text-center text-[16px] font-semibold text-white shadow-[0_12px_24px_0_rgba(15,62,23,0.25)] transition-colors hover:bg-[#0a2b10] sm:w-auto"
               >
                 Create your clinic account
               </Link>
