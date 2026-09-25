@@ -45,10 +45,23 @@ npx supabase db push
 | `npm run db:seed` | Seed a demo clinic with synthetic patients |
 | `npm run test:e2e` | Playwright golden-path test (needs a running dev server + live Supabase credentials — not run in CI, see `playwright.config.ts`) |
 
+## Deployment
+
+The app deploys to [Vercel](https://vercel.com) with no extra config — it auto-detects Next.js and runs `npm run build` (which already targets webpack, required by Serwist's PWA build; see `next.config.ts`).
+
+1. Import the GitHub repo at vercel.com/new.
+2. Set these environment variables in the Vercel project (Settings → Environment Variables), same values as `.env.local`:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY` (server-only — never prefix with `NEXT_PUBLIC_`)
+   - `NEXT_PUBLIC_SITE_URL` — set to the deployed URL (e.g. `https://your-app.vercel.app`)
+3. In the Supabase dashboard, under Authentication → URL Configuration, add the deployed URL to both **Site URL** and **Redirect URLs** — otherwise auth callbacks (email confirmation, Google OAuth, staff invite links) resolve to `localhost`.
+4. If using Google sign-in, the Google Cloud OAuth client's authorized redirect URI must be your Supabase project's callback (`https://<project-ref>.supabase.co/auth/v1/callback`), not the app's own domain — this doesn't change when you deploy.
+
 ## Status
 
-Built and verified end-to-end against a live Supabase project: auth/onboarding, patient registration with auto-generated ANC schedules, the follow-up dashboard and call queue (WhatsApp/tel links, per-clinic message templates, contact logging), document capture with in-browser OCR and full-text search, the OPD register, doctor Settings (clinic details, thresholds, schedule template, staff invites, message templates), and PWA install/offline support. A Playwright test (`e2e/golden-path.spec.ts`) covers the full flow, and cross-clinic RLS isolation has been independently verified. Accessibility pass done: every custom color pair meets WCAG AA contrast, and interactive elements meet the 44px touch-target minimum.
+Built and verified end-to-end against a live Supabase project: auth/onboarding (email/password + Google OAuth, with real SMTP via Resend for confirmation emails), patient registration with auto-generated ANC schedules, the follow-up dashboard and call queue (WhatsApp/tel links, per-clinic message templates, contact logging), document capture with in-browser OCR and full-text search, the OPD register, doctor Settings (clinic details, thresholds, schedule template, staff invites, message templates), and PWA install/offline support. A Playwright test (`e2e/golden-path.spec.ts`) covers the full flow, and cross-clinic RLS isolation has been independently verified. Accessibility pass done: every custom color pair meets WCAG AA contrast, and interactive elements meet the 44px touch-target minimum.
 
-Not yet done: real SMTP for staff email invites (see the `matrusetu-supabase-auth-autoconfirm` memory note — invites currently return a one-time link for the doctor to share manually), Hindi/Marathi message-template wording (needs the Clinical Lead's review before shipping — the field only supports one language per template right now), and Clinical Lead sign-off on the default ANC schedule windows and follow-up-risk thresholds.
+Not yet done: an automated WhatsApp bot (reminders are currently a staff-initiated call queue with one-tap WhatsApp/tel links by design — a real WhatsApp Business API bot needs Meta Business verification, which is an external approval process, not an engineering task), Hindi/Marathi message-template wording (needs the Clinical Lead's review before shipping — the field only supports one language per template right now), and Clinical Lead sign-off on the default ANC schedule windows and follow-up-risk thresholds.
 
 See `supabase/migrations/` for the schema and `lib/` for the pregnancy-dating, ANC-schedule, and follow-up-risk logic.
