@@ -12,6 +12,15 @@ import {
   ShieldWarning,
   UsersThree,
 } from "@phosphor-icons/react/dist/ssr";
+import { Reveal } from "@/components/marketing/Reveal";
+import {
+  HeroBackdrop,
+  FeatureBackdrop,
+  ShowcaseBackdrop,
+  TrustBackdrop,
+  CtaBackdrop,
+  WaveDivider,
+} from "@/components/marketing/Backdrops";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -116,8 +125,9 @@ export default function LandingPage() {
 
       <main>
         {/* Hero */}
-        <section className="mx-auto max-w-6xl px-4 pt-16 pb-20 sm:px-6 sm:pt-24 sm:pb-28">
-          <div className="mx-auto max-w-3xl text-center">
+        <section className="relative mx-auto max-w-6xl px-4 pt-16 pb-20 sm:px-6 sm:pt-24 sm:pb-28">
+          <HeroBackdrop />
+          <Reveal className="mx-auto max-w-3xl text-center">
             <span className="inline-flex items-center rounded-full bg-[#e6f1e8] px-4 py-1.5 text-[13px] font-semibold text-[#0f3e17]">
               Built for OB-GYN clinics in India
             </span>
@@ -145,10 +155,10 @@ export default function LandingPage() {
                 Sign in
               </Link>
             </div>
-          </div>
+          </Reveal>
 
           {/* Hero product shot */}
-          <div className="mx-auto mt-16 max-w-4xl">
+          <Reveal delay={150} className="mx-auto mt-16 max-w-4xl">
             <BrowserFrame>
               <Image
                 src="/marketing/screenshot-today.jpg"
@@ -159,16 +169,17 @@ export default function LandingPage() {
                 className="w-full"
               />
             </BrowserFrame>
-          </div>
+          </Reveal>
         </section>
 
         {/* Feature grid */}
         <section
           id="features"
-          className="border-t border-[#080331]/10 bg-white py-20 sm:py-28"
+          className="relative border-t border-[#080331]/10 bg-white py-20 sm:py-28"
         >
+          <FeatureBackdrop />
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
-            <div className="mx-auto max-w-2xl text-center">
+            <Reveal className="mx-auto max-w-2xl text-center">
               <h2 className="text-[28px] font-bold tracking-tight sm:text-[32px]">
                 Everything an OPD desk needs, nothing it doesn&apos;t
               </h2>
@@ -176,24 +187,23 @@ export default function LandingPage() {
                 MatruSetu replaces the register and the spreadsheet with one
                 worklist doctors and staff both trust.
               </p>
-            </div>
+            </Reveal>
 
             <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {FEATURES.map(({ icon: Icon, title, body }) => (
-                <div
-                  key={title}
-                  className="rounded-2xl border border-[#080331]/10 bg-[#f8f3eb] p-8 shadow-[rgba(75,68,57,0.05)_0px_4px_4px_0px,rgba(75,68,57,0.08)_0px_32px_16px_0px]"
-                >
-                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#0f3e17]/10 text-[#0f3e17]">
-                    <Icon size={22} weight="bold" aria-hidden />
+              {FEATURES.map(({ icon: Icon, title, body }, i) => (
+                <Reveal key={title} delay={(i % 3) * 80}>
+                  <div className="h-full rounded-2xl border border-[#080331]/10 bg-[#f8f3eb] p-8 shadow-[rgba(75,68,57,0.05)_0px_4px_4px_0px,rgba(75,68,57,0.08)_0px_32px_16px_0px]">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#0f3e17]/10 text-[#0f3e17]">
+                      <Icon size={22} weight="bold" aria-hidden />
+                    </div>
+                    <h3 className="mt-5 text-[18px] font-semibold tracking-tight">
+                      {title}
+                    </h3>
+                    <p className="mt-2 text-[14px] leading-[1.6] text-[#333333]">
+                      {body}
+                    </p>
                   </div>
-                  <h3 className="mt-5 text-[18px] font-semibold tracking-tight">
-                    {title}
-                  </h3>
-                  <p className="mt-2 text-[14px] leading-[1.6] text-[#333333]">
-                    {body}
-                  </p>
-                </div>
+                </Reveal>
               ))}
             </div>
           </div>
@@ -202,21 +212,22 @@ export default function LandingPage() {
         {/* Product showcase */}
         <section
           id="product"
-          className="border-t border-[#080331]/10 py-20 sm:py-28"
+          className="relative border-t border-[#080331]/10 py-20 sm:py-28"
         >
+          <ShowcaseBackdrop />
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
-            <div className="mx-auto max-w-2xl text-center">
+            <Reveal className="mx-auto max-w-2xl text-center">
               <h2 className="text-[28px] font-bold tracking-tight sm:text-[32px]">
                 A worklist built for how a clinic actually runs
               </h2>
               <p className="mt-4 text-[16px] leading-[1.6] text-[#333333]">
                 Four screens your doctors and staff will live in every day.
               </p>
-            </div>
+            </Reveal>
 
             <div className="mt-14 grid grid-cols-1 gap-16 lg:grid-cols-2 lg:gap-x-10 lg:gap-y-20">
               {SHOWCASE.map((item, i) => (
-                <div key={item.title} className="flex flex-col">
+                <Reveal key={item.title} delay={(i % 2) * 120} className="flex flex-col">
                   <BrowserFrame>
                     <Image
                       src={item.src}
@@ -233,17 +244,20 @@ export default function LandingPage() {
                   <p className="mt-2 text-[14px] leading-[1.6] text-[#333333]">
                     {item.caption}
                   </p>
-                </div>
+                </Reveal>
               ))}
             </div>
           </div>
         </section>
 
+        <WaveDivider from="#f8f3eb" to="#0f3e17" />
+
         {/* Trust / how it works strip */}
-        <section className="border-t border-[#080331]/10 bg-[#0f3e17] py-20 text-white sm:py-24">
+        <section className="relative bg-[#0f3e17] py-20 text-white sm:py-24">
+          <TrustBackdrop />
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="grid grid-cols-1 gap-10 sm:grid-cols-3">
-              <div>
+              <Reveal>
                 <MagnifyingGlass
                   size={28}
                   weight="bold"
@@ -257,8 +271,8 @@ export default function LandingPage() {
                   ANC due dates are generated automatically from LMP, following
                   standard antenatal care timelines.
                 </p>
-              </div>
-              <div>
+              </Reveal>
+              <Reveal delay={80}>
                 <ShieldWarning
                   size={28}
                   weight="bold"
@@ -272,8 +286,8 @@ export default function LandingPage() {
                   Patients drifting off-track are flagged before a missed scan
                   becomes a missed pregnancy.
                 </p>
-              </div>
-              <div>
+              </Reveal>
+              <Reveal delay={160}>
                 <DeviceMobile
                   size={28}
                   weight="bold"
@@ -287,14 +301,17 @@ export default function LandingPage() {
                   Installs as a PWA on any staff phone or desktop — the app
                   shell keeps working even when the network doesn&apos;t.
                 </p>
-              </div>
+              </Reveal>
             </div>
           </div>
         </section>
 
+        <WaveDivider from="#0f3e17" to="#f8f3eb" />
+
         {/* Final CTA */}
-        <section className="py-20 sm:py-28">
-          <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
+        <section className="relative py-20 sm:py-28">
+          <CtaBackdrop />
+          <Reveal className="mx-auto max-w-3xl px-4 text-center sm:px-6">
             <h2 className="text-[28px] font-bold tracking-tight sm:text-[32px]">
               Bring your OPD onto one worklist
             </h2>
@@ -316,7 +333,7 @@ export default function LandingPage() {
                 Sign in
               </Link>
             </div>
-          </div>
+          </Reveal>
         </section>
       </main>
 
