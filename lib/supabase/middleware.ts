@@ -6,6 +6,10 @@ import type { Database } from "./types";
 // it's the PWA's offline fallback, so redirecting it anywhere defeats its purpose.
 const PUBLIC_PATHS = ["/login", "/signup", "/auth", "/offline"];
 
+// "/" (the marketing landing page) is also public, but it must be matched
+// exactly — "/" is a prefix of every path in the app, so treating it like
+// the other PUBLIC_PATHS with startsWith() would open up the entire app.
+
 /**
  * Refreshes the Supabase session cookie on every request (required by
  * @supabase/ssr) and redirects signed-out users away from app routes.
@@ -41,7 +45,9 @@ export async function updateSession(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const user = data?.claims.sub;
 
-  const isPublicPath = PUBLIC_PATHS.some((path) => request.nextUrl.pathname.startsWith(path));
+  const isPublicPath =
+    request.nextUrl.pathname === "/" ||
+    PUBLIC_PATHS.some((path) => request.nextUrl.pathname.startsWith(path));
 
   if (!user && !isPublicPath) {
     const url = request.nextUrl.clone();
