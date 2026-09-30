@@ -91,7 +91,7 @@ export async function updateMessageTemplates(_prev: ActionResult, formData: Form
     .eq("id", profile.clinic_id)
     .single();
 
-  const current = ((clinic?.message_templates ?? {}) as Record<string, any>);
+  const current = (clinic?.message_templates ?? {}) as Record<string, unknown>;
   const activeLang = parsed.data.lang;
 
   // Store non-empty templates for this language
@@ -109,7 +109,7 @@ export async function updateMessageTemplates(_prev: ActionResult, formData: Form
 
   const { error: updateError } = await supabase
     .from("clinics")
-    .update({ message_templates: merged })
+    .update({ message_templates: merged as unknown as import("@/lib/supabase/types").Json })
     .eq("id", profile.clinic_id);
 
   if (updateError) return { error: updateError.message };

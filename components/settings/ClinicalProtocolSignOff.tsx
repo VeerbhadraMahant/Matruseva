@@ -6,7 +6,6 @@ import {
   CheckCircle,
   FileText,
   ArrowsClockwise,
-  Info,
   CalendarCheck,
   Stethoscope,
 } from "@phosphor-icons/react";

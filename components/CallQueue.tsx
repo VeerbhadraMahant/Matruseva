@@ -8,8 +8,6 @@ import {
   CheckCircle,
   X,
   PhoneCall,
-  ChatCircleText,
-  Clock,
   ArrowsLeftRight,
   Translate,
   Robot,

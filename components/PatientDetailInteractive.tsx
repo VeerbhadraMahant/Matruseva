@@ -34,7 +34,6 @@ export function PatientDetailInteractive({
   patientId,
   patientName,
   gaLabel,
-  phone,
   tel,
   wa,
   whatsappByLang,

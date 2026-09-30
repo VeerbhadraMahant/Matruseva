@@ -21,6 +21,16 @@ interface Message {
   status?: "sent" | "delivered" | "read";
 }
 
+let globalMsgSeq = 0;
+function nextMessageId(prefix: string): string {
+  globalMsgSeq += 1;
+  return `${prefix}-${globalMsgSeq}`;
+}
+
+function getCurrentTimeString(): string {
+  return new Intl.DateTimeFormat([], { hour: "2-digit", minute: "2-digit" }).format(new Date());
+}
+
 export function WhatsAppBotSimulator({
   patients,
   initialPatientId,
@@ -55,8 +65,7 @@ export function WhatsAppBotSimulator({
   // Initial trigger of reminder when opening or changing patient/language
   useEffect(() => {
     if (!currentPatient) return;
-    setMessages([]);
-    setDbUpdateNotice(null);
+    let isCancelled = false;
 
     startTransition(async () => {
       const res = await dispatchBotReminder(
@@ -66,28 +75,32 @@ export function WhatsAppBotSimulator({
         currentPatient.reason,
         lang
       );
+      if (isCancelled) return;
       if (res.reminderText) {
-        const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
         setMessages([
           {
-            id: `msg-${Date.now()}`,
+            id: nextMessageId("msg"),
             sender: "bot",
             text: res.reminderText,
-            time: now,
+            time: getCurrentTimeString(),
             status: "read",
           },
         ]);
         setDbUpdateNotice("Dispatched automated WhatsApp reminder → Logged to Supabase contact_log");
       }
     });
-  }, [selectedPatientId, lang]);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [currentPatient, lang]);
 
   const handleSendPatientReply = (textToSend?: string) => {
     const text = (textToSend || inputText).trim();
     if (!text || !currentPatient || isPending) return;
 
-    const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    const userMsgId = `usr-${Date.now()}`;
+    const userMsgId = nextMessageId("usr");
+    const userTime = getCurrentTimeString();
 
     // Add user message to UI
     setMessages((prev) => [
@@ -96,7 +109,7 @@ export function WhatsAppBotSimulator({
         id: userMsgId,
         sender: "patient",
         text,
-        time: now,
+        time: userTime,
       },
     ]);
     setInputText("");
@@ -104,13 +117,13 @@ export function WhatsAppBotSimulator({
     // Process via Bot action
     startTransition(async () => {
       const res = await processBotReply(currentPatient.id, text, lang);
-      const replyTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      const replyTime = getCurrentTimeString();
 
       if (res.result) {
         setMessages((prev) => [
           ...prev,
           {
-            id: `bot-${Date.now()}`,
+            id: nextMessageId("bot"),
             sender: "bot",
             text: res.result!.replyText,
             time: replyTime,
@@ -256,7 +269,6 @@ export function WhatsAppBotSimulator({
             <button
               type="button"
               onClick={() => {
-                setMessages([]);
                 startTransition(async () => {
                   if (!currentPatient) return;
                   const res = await dispatchBotReminder(
@@ -267,13 +279,12 @@ export function WhatsAppBotSimulator({
                     lang
                   );
                   if (res.reminderText) {
-                    const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
                     setMessages([
                       {
-                        id: `msg-${Date.now()}`,
+                        id: nextMessageId("msg"),
                         sender: "bot",
                         text: res.reminderText,
-                        time: now,
+                        time: getCurrentTimeString(),
                         status: "read",
                       },
                     ]);

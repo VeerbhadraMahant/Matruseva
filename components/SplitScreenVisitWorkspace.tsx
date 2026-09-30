@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useTransition, useActionState, useEffect } from "react";
+import { useState, useActionState, useEffect } from "react";
 import {
-  SidebarSimple,
   X,
   MagnifyingGlassPlus,
   MagnifyingGlassMinus,
@@ -10,7 +9,6 @@ import {
   FilePdf,
   Check,
   ClipboardText,
-  CaretDown,
   Columns,
   Warning,
 } from "@phosphor-icons/react";
@@ -78,14 +76,6 @@ export function SplitScreenVisitWorkspace({
 
   const action = recordVisit.bind(null, patientId);
   const [state, formAction] = useActionState(action, initialState);
-
-  useEffect(() => {
-    if (initialDocId) {
-      setSelectedDocId(initialDocId);
-    } else if (documents.length > 0 && !selectedDocId) {
-      setSelectedDocId(documents[0].id);
-    }
-  }, [initialDocId, documents, selectedDocId]);
 
   // Handle ESC key to close
   useEffect(() => {

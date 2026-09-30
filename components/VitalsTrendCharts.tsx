@@ -10,8 +10,6 @@ import {
   Warning,
   CheckCircle,
   WarningOctagon,
-  ArrowUp,
-  ArrowDown,
 } from "@phosphor-icons/react";
 import { formatShortDate, parseLocalDate } from "@/lib/format";
 import { gestationalAge, formatGA } from "@/lib/pregnancy";
@@ -55,7 +53,7 @@ interface ParsedVisit {
   notes: string | null;
 }
 
-export function VitalsTrendCharts({ visits, lmp, edd, patientName }: VitalsTrendChartsProps) {
+export function VitalsTrendCharts({ visits, lmp, patientName }: VitalsTrendChartsProps) {
   const [activeTab, setActiveTab] = useState<MetricTab>("bp");
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
@@ -400,7 +398,6 @@ export function VitalsTrendCharts({ visits, lmp, edd, patientName }: VitalsTrend
             visits={bpVisits}
             hoveredIndex={hoveredIndex}
             onHover={setHoveredIndex}
-            patientName={patientName}
           />
         )}
         {activeTab === "sfh" && (
@@ -416,7 +413,6 @@ export function VitalsTrendCharts({ visits, lmp, edd, patientName }: VitalsTrend
             visits={hbVisits}
             hoveredIndex={hoveredIndex}
             onHover={setHoveredIndex}
-            patientName={patientName}
           />
         )}
         {activeTab === "weight_fhr" && (
@@ -425,7 +421,6 @@ export function VitalsTrendCharts({ visits, lmp, edd, patientName }: VitalsTrend
             fhrVisits={fhrVisits}
             hoveredIndex={hoveredIndex}
             onHover={setHoveredIndex}
-            patientName={patientName}
           />
         )}
       </div>
@@ -441,12 +436,10 @@ function BpChart({
   visits,
   hoveredIndex,
   onHover,
-  patientName,
 }: {
   visits: ParsedVisit[];
   hoveredIndex: number | null;
   onHover: (idx: number | null) => void;
-  patientName: string;
 }) {
   if (visits.length === 0) {
     return (
@@ -1031,12 +1024,10 @@ function HbChart({
   visits,
   hoveredIndex,
   onHover,
-  patientName,
 }: {
   visits: ParsedVisit[];
   hoveredIndex: number | null;
   onHover: (idx: number | null) => void;
-  patientName: string;
 }) {
   if (visits.length === 0) {
     return (
@@ -1348,13 +1339,11 @@ function WeightFhrChart({
   fhrVisits,
   hoveredIndex,
   onHover,
-  patientName,
 }: {
   weightVisits: ParsedVisit[];
   fhrVisits: ParsedVisit[];
   hoveredIndex: number | null;
   onHover: (idx: number | null) => void;
-  patientName: string;
 }) {
   if (weightVisits.length === 0 && fhrVisits.length === 0) {
     return (
