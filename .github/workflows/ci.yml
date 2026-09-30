@@ -31,9 +31,23 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
 
       - name: Build
-        run: npm run build
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee /tmp/build.log
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
           SUPABASE_SERVICE_ROLE_KEY: placeholder
           NEXT_PUBLIC_SITE_URL: http://localhost:3000
+          NODE_OPTIONS: --max-old-space-size=4096
+
+      - name: Report Build Failure Diagnostics
+        if: failure()
+        run: |
+          if [ -f /tmp/build.log ]; then
+            echo "### Build Failure Diagnostics" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            tail -n 120 /tmp/build.log >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+

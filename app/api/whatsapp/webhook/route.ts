@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleIncomingWhatsAppMessage } from "@/lib/whatsappBot";
 
+export const dynamic = "force-dynamic";
+
 /**
  * Meta WhatsApp Cloud API Webhook Verification Endpoint (GET).
  * Used when setting up the webhook in Meta Developers Console.
  */
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
+  const { searchParams } = req.nextUrl;
   const mode = searchParams.get("hub.mode");
   const token = searchParams.get("hub.verify_token");
   const challenge = searchParams.get("hub.challenge");
@@ -88,6 +90,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ status: "EVENT_RECEIVED" });
     }
 
+    return NextResponse.json({ error: "Invalid payload format" }, { status: 400 });
   } catch (err: unknown) {
     console.error("WhatsApp webhook error:", err);
     const message = err instanceof Error ? err.message : "Internal server error";
