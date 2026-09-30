@@ -11,6 +11,7 @@ import { MarkDoneButton } from "@/components/MarkDoneButton";
 import { VisitForm } from "@/components/VisitForm";
 import { PregnancyTimeline } from "@/components/PregnancyTimeline";
 import { VitalsTrendCharts } from "@/components/VitalsTrendCharts";
+import { PatientDetailInteractive } from "@/components/PatientDetailInteractive";
 import { Panel, Tag, Empty, SEVERITY_TONE, buttonPrimary, buttonSecondary, th, td, type Tone } from "@/components/ui";
 import type { CareEventStatus, ContactOutcome, FollowUpRisk } from "@/lib/supabase/enums";
 
@@ -78,7 +79,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
         .order("created_at", { ascending: false }),
       supabase
         .from("documents")
-        .select("id, doc_type, doc_date, storage_path, created_at")
+        .select("id, doc_type, doc_date, storage_path, ocr_text, created_at")
         .eq("patient_id", id)
         .order("created_at", { ascending: false }),
       supabase
@@ -96,6 +97,15 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
     ? await supabase.storage.from("documents").createSignedUrls(docs.map((d) => d.storage_path), 300)
     : { data: [] };
   const urlByPath = new Map((signed ?? []).map((s) => [s.path, s.signedUrl]));
+  const patientDocs = docs.map((d) => ({
+    id: d.id,
+    doc_type: d.doc_type,
+    doc_date: d.doc_date,
+    storage_path: d.storage_path,
+    ocr_text: d.ocr_text ?? null,
+    url: urlByPath.get(d.storage_path) ?? null,
+    created_at: d.created_at,
+  }));
 
   const today = todayInClinicTimezone();
   const lmp = patient.lmp ? parseLocalDate(patient.lmp) : null;
@@ -211,7 +221,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
         </div>
       </header>
 
-      <div className="space-y-4 p-4 md:p-6">
+      <div className="space-y-4 p-4 md:p-6 pb-20 md:pb-6">
         {flags.length > 0 && (
           <div className="flex flex-wrap items-center gap-1.5 border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2">
             <span className="mr-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-charcoal)]">Alerts</span>
@@ -343,6 +353,15 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
           <div className="space-y-4">
             <Panel title="Record visit" className="scroll-mt-4" >
               <div id="record-visit" className="p-3">
+                <PatientDetailInteractive
+                  patientId={id}
+                  patientName={patient.name}
+                  gaLabel={ga ? formatGA(ga) : null}
+                  phone={patient.phone}
+                  tel={tel}
+                  wa={wa}
+                  documents={patientDocs}
+                />
                 <VisitForm patientId={id} />
               </div>
             </Panel>

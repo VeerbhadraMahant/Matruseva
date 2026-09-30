@@ -39,3 +39,28 @@ export async function logContact(patientId: string, _prev: ActionResult, formDat
   revalidatePath(`/patients/${patientId}`);
   return { error: null };
 }
+
+export async function quickLogContact(
+  patientId: string,
+  channel: "call" | "whatsapp",
+  outcome: "reached" | "no_answer" | "wrong_number" | "will_visit" | "refused",
+  notes?: string
+): Promise<ActionResult> {
+  const [supabase, me] = await Promise.all([createClient(), getCurrentUser()]);
+
+  const { error } = await supabase.from("contact_log").insert({
+    patient_id: patientId,
+    clinic_id: me.clinicId,
+    channel,
+    outcome,
+    notes: notes || null,
+    created_by: me.userId,
+  });
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/calls");
+  revalidatePath(`/patients/${patientId}`);
+  return { error: null };
+}
+
