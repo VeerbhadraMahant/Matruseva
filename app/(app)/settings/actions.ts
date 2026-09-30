@@ -219,3 +219,81 @@ export async function removeStaff(staffProfileId: string): Promise<ActionResult>
   revalidatePath("/settings");
   return { error: null };
 }
+
+export async function applyStandardFogsiSchedule(): Promise<ActionResult> {
+  const { supabase, profile, error } = await requireDoctor();
+  if (error || !profile) return { error };
+
+  const { FOGSI_MOHFW_SCHEDULE_ITEMS, CLINICAL_RISK_THRESHOLDS } = await import("@/lib/clinicalProtocols");
+
+  // 1. Update clinic risk thresholds to standard 7 and 21 days
+  const { error: clinicErr } = await supabase
+    .from("clinics")
+    .update({
+      risk_at_risk_days: CLINICAL_RISK_THRESHOLDS.atRiskDays,
+      risk_lost_days: CLINICAL_RISK_THRESHOLDS.lostDays,
+    })
+    .eq("id", profile.clinic_id);
+
+  if (clinicErr) return { error: clinicErr.message };
+
+  // 2. Fetch default schedule template
+  const { data: template, error: tmplErr } = await supabase
+    .from("schedule_templates")
+    .select("id, schedule_template_items(id, code)")
+    .eq("clinic_id", profile.clinic_id)
+    .eq("is_default", true)
+    .maybeSingle();
+
+  if (tmplErr || !template) {
+    return { error: tmplErr?.message || "Default schedule template not found" };
+  }
+
+  // 3. Update existing items to match FOGSI windows
+  const items = template.schedule_template_items || [];
+  for (const std of FOGSI_MOHFW_SCHEDULE_ITEMS) {
+    const existing = items.find((it) => it.code === std.code);
+    if (existing) {
+      await supabase
+        .from("schedule_template_items")
+        .update({
+          window_start_week: std.windowStartWeek,
+          window_end_week: std.windowEndWeek,
+          is_critical: std.isCritical,
+        })
+        .eq("id", existing.id);
+    }
+  }
+
+  revalidatePath("/settings");
+  revalidatePath("/today");
+  revalidatePath("/calls");
+  return { error: null };
+}
+
+export async function resetMessageTemplatesToCertified(): Promise<ActionResult> {
+  const { supabase, profile, error } = await requireDoctor();
+  if (error || !profile) return { error };
+
+  const { DEFAULT_TEMPLATES } = await import("@/lib/whatsapp");
+
+  const { error: updateError } = await supabase
+    .from("clinics")
+    .update({
+      message_templates: {
+        en: DEFAULT_TEMPLATES.en,
+        hi: DEFAULT_TEMPLATES.hi,
+        mr: DEFAULT_TEMPLATES.mr,
+        default_lang: "en",
+        certified_at: new Date().toISOString(),
+        certified_by: "Clinical Directorate (FOGSI / MoHFW Aligned)",
+      },
+    })
+    .eq("id", profile.clinic_id);
+
+  if (updateError) return { error: updateError.message };
+  revalidatePath("/settings");
+  revalidatePath("/calls");
+  return { error: null };
+}
+

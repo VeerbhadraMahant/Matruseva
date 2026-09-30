@@ -7,6 +7,7 @@ import { ScheduleItemRow } from "@/components/settings/ScheduleItemRow";
 import { StaffInviteForm } from "@/components/settings/StaffInviteForm";
 import { RemoveStaffButton } from "@/components/settings/RemoveStaffButton";
 import { MessageTemplatesForm } from "@/components/settings/MessageTemplatesForm";
+import { ClinicalProtocolSignOff } from "@/components/settings/ClinicalProtocolSignOff";
 import { PageHeader, Panel, Tag } from "@/components/ui";
 import type { MessageTemplates } from "@/lib/whatsapp";
 
@@ -65,6 +66,12 @@ export default async function SettingsPage() {
         </div>
 
         <div className="space-y-4">
+          <Panel title="Clinical Lead Protocol Sign-Off (FOGSI / MoHFW)">
+            <div className="p-3">
+              <ClinicalProtocolSignOff />
+            </div>
+          </Panel>
+
           <Panel title="ANC schedule template" count={items.length}>
             <p className="border-b border-[var(--color-border)] px-3 py-2 text-[13px] text-[var(--color-charcoal)]">
               Due-date windows in weeks of pregnancy. Applies to newly registered patients and to schedules regenerated after an LMP

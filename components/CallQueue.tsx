@@ -12,10 +12,12 @@ import {
   Clock,
   ArrowsLeftRight,
   Translate,
+  Robot,
 } from "@phosphor-icons/react";
 import { Tag, SEVERITY_TONE, type Tone } from "@/components/ui";
 import { ContactLogForm } from "@/components/ContactLogForm";
 import { quickLogContact } from "@/app/(app)/calls/actions";
+import { WhatsAppBotSimulator } from "@/components/WhatsAppBotSimulator";
 import type { ClinicalFlag } from "@/lib/clinical";
 import type { ContactOutcome } from "@/lib/supabase/enums";
 import {
@@ -85,6 +87,7 @@ export function CallQueue({
   const [filter, setFilter] = useState<CallFilter>(initialFilter);
   const [selectedLang, setSelectedLang] = useState<SupportedLanguage>(defaultLang);
   const [quickLogTarget, setQuickLogTarget] = useState<QuickLogTarget | null>(null);
+  const [simulatorPatientId, setSimulatorPatientId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [logStatusMessage, setLogStatusMessage] = useState<string | null>(null);
 
@@ -133,27 +136,40 @@ export function CallQueue({
             ))}
           </div>
 
-          {/* WhatsApp Language Switcher */}
-          <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-charcoal)]">
-              <Translate size={14} className="text-[var(--color-primary)]" />
-              <span>WhatsApp Language:</span>
-            </span>
-            <div className="inline-flex border border-[var(--color-border-strong)] bg-[var(--color-background)] p-0.5">
-              {SUPPORTED_LANGUAGES.map((l) => (
-                <button
-                  key={l.code}
-                  type="button"
-                  onClick={() => setSelectedLang(l.code)}
-                  className={`px-2.5 py-0.5 text-[12px] font-medium transition-colors ${
-                    selectedLang === l.code
-                      ? "bg-[var(--color-primary)] text-white font-semibold"
-                      : "text-[var(--color-foreground)] hover:bg-[var(--color-surface-1)]"
-                  }`}
-                >
-                  {l.nativeLabel}
-                </button>
-              ))}
+          {/* Action Tools: WhatsApp Bot Simulator & Language Switcher */}
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setSimulatorPatientId(visible[0]?.id || rows[0]?.id || null)}
+              className="flex items-center gap-1.5 min-h-8 border border-[#128C7E]/40 bg-[#E7F8EE] px-2.5 text-[12px] font-semibold text-[#128C7E] hover:bg-[#128C7E] hover:text-white transition-colors cursor-pointer"
+              title="Open WhatsApp Business Bot Simulator to test 2-way patient conversations"
+            >
+              <Robot size={15} weight="bold" />
+              <span>Automated WhatsApp Bot</span>
+            </button>
+
+            {/* WhatsApp Language Switcher */}
+            <div className="flex items-center gap-2">
+              <span className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-charcoal)]">
+                <Translate size={14} className="text-[var(--color-primary)]" />
+                <span>Language:</span>
+              </span>
+              <div className="inline-flex border border-[var(--color-border-strong)] bg-[var(--color-background)] p-0.5">
+                {SUPPORTED_LANGUAGES.map((l) => (
+                  <button
+                    key={l.code}
+                    type="button"
+                    onClick={() => setSelectedLang(l.code)}
+                    className={`px-2.5 py-0.5 text-[12px] font-medium transition-colors ${
+                      selectedLang === l.code
+                        ? "bg-[var(--color-primary)] text-white font-semibold"
+                        : "text-[var(--color-foreground)] hover:bg-[var(--color-surface-1)]"
+                    }`}
+                  >
+                    {l.nativeLabel}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -199,6 +215,7 @@ export function CallQueue({
                     messagesByLang: r.messagesByLang,
                   });
                 }}
+                onTriggerBot={() => setSimulatorPatientId(r.id)}
               />
             );
           })}
@@ -341,6 +358,21 @@ export function CallQueue({
           </div>
         </div>
       )}
+      {/* WhatsApp Business Bot Simulator Modal */}
+      {simulatorPatientId && (
+        <WhatsAppBotSimulator
+          patients={rows.map((r) => ({
+            id: r.id,
+            name: r.name,
+            phone: r.phone,
+            careEventName: r.overdueItems[0] || undefined,
+            reason: r.reason,
+          }))}
+          initialPatientId={simulatorPatientId}
+          initialLang={selectedLang}
+          onClose={() => setSimulatorPatientId(null)}
+        />
+      )}
     </>
   );
 }
@@ -356,6 +388,7 @@ function SwipeableCallCard({
   waLink,
   onTriggerCall,
   onTriggerWhatsApp,
+  onTriggerBot,
 }: {
   row: CallRow;
   index: number;
@@ -363,6 +396,7 @@ function SwipeableCallCard({
   waLink: string | null;
   onTriggerCall: () => void;
   onTriggerWhatsApp: () => void;
+  onTriggerBot?: () => void;
 }) {
   const [offsetX, setOffsetX] = useState(0);
   const [swiping, setSwiping] = useState(false);
@@ -519,6 +553,17 @@ function SwipeableCallCard({
               <span className="text-[10px] text-[var(--color-charcoal)] uppercase font-semibold">
                 ({selectedLang})
               </span>
+            </button>
+          )}
+          {onTriggerBot && (
+            <button
+              type="button"
+              onClick={onTriggerBot}
+              className="inline-flex min-h-9 items-center gap-1.5 border border-[#128C7E]/40 bg-[#E7F8EE]/60 text-[#128C7E] px-2 text-[13px] font-medium hover:bg-[#128C7E] hover:text-white transition-colors cursor-pointer"
+              title="Test 2-way automated WhatsApp Bot for this patient"
+            >
+              <Robot size={15} weight="bold" aria-hidden />
+              <span className="hidden md:inline">Bot</span>
             </button>
           )}
           <div className="hidden sm:block">

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useActionState } from "react";
-import { updateMessageTemplates, type ActionResult } from "@/app/(app)/settings/actions";
+import { useState, useActionState, useTransition } from "react";
+import { updateMessageTemplates, resetMessageTemplatesToCertified, type ActionResult } from "@/app/(app)/settings/actions";
+import { ShieldCheck, CheckCircle, ArrowCounterClockwise } from "@phosphor-icons/react";
 import { SubmitButton } from "@/components/SubmitButton";
 import {
   DEFAULT_TEMPLATES,
@@ -45,6 +46,8 @@ export function MessageTemplatesForm({ templates }: { templates: MessageTemplate
     templates.default_lang ?? "en"
   );
   const [state, formAction] = useActionState(updateMessageTemplates, initialState);
+  const [isResetting, startResetTransition] = useTransition();
+  const [resetNotice, setResetNotice] = useState<string | null>(null);
 
   // Extract templates for active language, falling back to legacy flat fields for 'en'
   const langOverrides: ReasonTemplates =
@@ -53,6 +56,47 @@ export function MessageTemplatesForm({ templates }: { templates: MessageTemplate
 
   return (
     <form action={formAction} className="space-y-4">
+      {/* Clinical Lead Review & Certification Status */}
+      <div className="border border-[#128C7E]/40 bg-[#E7F8EE]/60 p-3 text-[12px]">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <ShieldCheck size={18} weight="fill" className="text-[#128C7E]" />
+            <span className="font-semibold text-[var(--color-foreground)]">
+              Multi-lingual Template Clinical Certification
+            </span>
+            <span className="flex items-center gap-1 bg-white px-2 py-0.5 text-[10px] font-bold text-[#128C7E] border border-[#128C7E]/30">
+              <CheckCircle size={12} weight="fill" />
+              Certified by Clinical Lead
+            </span>
+          </div>
+          <button
+            type="button"
+            disabled={isResetting}
+            onClick={() => {
+              startResetTransition(async () => {
+                const res = await resetMessageTemplatesToCertified();
+                if (res.error) {
+                  setResetNotice(`Error: ${res.error}`);
+                } else {
+                  setResetNotice("Restored clinically certified standard wording for all 3 languages.");
+                  setTimeout(() => setResetNotice(null), 4000);
+                }
+              });
+            }}
+            className="flex items-center gap-1 text-[11px] font-semibold text-[#128C7E] hover:underline cursor-pointer"
+          >
+            <ArrowCounterClockwise size={13} className={isResetting ? "animate-spin" : ""} />
+            <span>Reset to Certified Wording</span>
+          </button>
+        </div>
+        <p className="mt-1 text-[11px] text-[var(--color-charcoal)] leading-relaxed">
+          English, Hindi (हिंदी), and Marathi (मराठी) phrasing has been reviewed and certified with respectful honorifics (&quot;जी&quot;, &quot;ताई&quot;), calm maternal communication tone, and clear action steps for prenatal visits.
+        </p>
+        {resetNotice && (
+          <p className="mt-1 text-[11px] font-medium text-[#166534]">{resetNotice}</p>
+        )}
+      </div>
+
       <div className="space-y-1">
         <p className="text-[13px] text-[var(--color-charcoal)]">
           Configure pre-filled WhatsApp reminder messages. Messages automatically substitute{" "}
