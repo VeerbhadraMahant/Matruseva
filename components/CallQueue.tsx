@@ -11,13 +11,18 @@ import {
   ChatCircleText,
   Clock,
   ArrowsLeftRight,
+  Translate,
 } from "@phosphor-icons/react";
 import { Tag, SEVERITY_TONE, type Tone } from "@/components/ui";
 import { ContactLogForm } from "@/components/ContactLogForm";
 import { quickLogContact } from "@/app/(app)/calls/actions";
 import type { ClinicalFlag } from "@/lib/clinical";
 import type { ContactOutcome } from "@/lib/supabase/enums";
-import type { ReminderReason } from "@/lib/whatsapp";
+import {
+  SUPPORTED_LANGUAGES,
+  type ReminderReason,
+  type SupportedLanguage,
+} from "@/lib/whatsapp";
 
 export interface CallRow {
   id: string;
@@ -33,6 +38,8 @@ export interface CallRow {
   lastContact: { outcome: ContactOutcome; channel: string; daysAgo: number } | null;
   tel: string | null;
   whatsapp: string | null;
+  whatsappByLang?: Record<SupportedLanguage, string | null>;
+  messagesByLang?: Record<SupportedLanguage, string>;
 }
 
 export type CallFilter = "all" | "overdue" | "at_risk" | "lost" | "pending";
@@ -62,10 +69,21 @@ interface QuickLogTarget {
   name: string;
   phone: string | null;
   channel: "call" | "whatsapp";
+  whatsappUrl?: string | null;
+  messagesByLang?: Record<SupportedLanguage, string>;
 }
 
-export function CallQueue({ rows, initialFilter }: { rows: CallRow[]; initialFilter: CallFilter }) {
+export function CallQueue({
+  rows,
+  initialFilter,
+  defaultLang = "en",
+}: {
+  rows: CallRow[];
+  initialFilter: CallFilter;
+  defaultLang?: SupportedLanguage;
+}) {
   const [filter, setFilter] = useState<CallFilter>(initialFilter);
+  const [selectedLang, setSelectedLang] = useState<SupportedLanguage>(defaultLang);
   const [quickLogTarget, setQuickLogTarget] = useState<QuickLogTarget | null>(null);
   const [isPending, startTransition] = useTransition();
   const [logStatusMessage, setLogStatusMessage] = useState<string | null>(null);
@@ -93,8 +111,9 @@ export function CallQueue({ rows, initialFilter }: { rows: CallRow[]; initialFil
   return (
     <>
       <div className="border border-[var(--color-border)] bg-[var(--color-background)]">
-        {/* Filter Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-border)] p-3">
+        {/* Filter and Language Toolbar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-border)] p-3 bg-[var(--color-surface-1)]">
+          {/* Worklist Filter Tabs */}
           <div className="flex flex-wrap gap-px bg-[var(--color-border)] p-px" role="tablist" aria-label="Filter queue">
             {FILTERS.map((f) => (
               <button
@@ -114,39 +133,75 @@ export function CallQueue({ rows, initialFilter }: { rows: CallRow[]; initialFil
             ))}
           </div>
 
-          {/* Mobile Gestures Hint */}
-          <div className="lg:hidden flex items-center gap-1.5 text-[11px] text-[var(--color-charcoal)]">
-            <ArrowsLeftRight size={14} aria-hidden />
-            <span>Swipe card: Right for Call · Left for WhatsApp</span>
+          {/* WhatsApp Language Switcher */}
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-charcoal)]">
+              <Translate size={14} className="text-[var(--color-primary)]" />
+              <span>WhatsApp Language:</span>
+            </span>
+            <div className="inline-flex border border-[var(--color-border-strong)] bg-[var(--color-background)] p-0.5">
+              {SUPPORTED_LANGUAGES.map((l) => (
+                <button
+                  key={l.code}
+                  type="button"
+                  onClick={() => setSelectedLang(l.code)}
+                  className={`px-2.5 py-0.5 text-[12px] font-medium transition-colors ${
+                    selectedLang === l.code
+                      ? "bg-[var(--color-primary)] text-white font-semibold"
+                      : "text-[var(--color-foreground)] hover:bg-[var(--color-surface-1)]"
+                  }`}
+                >
+                  {l.nativeLabel}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
+        {/* Mobile Gestures Hint */}
+        <div className="lg:hidden flex items-center justify-between px-3 py-1.5 bg-[var(--color-surface-2)] border-b border-[var(--color-border)] text-[11px] text-[var(--color-charcoal)]">
+          <span className="flex items-center gap-1.5">
+            <ArrowsLeftRight size={13} aria-hidden />
+            <span>Swipe: Right for Call · Left for WhatsApp</span>
+          </span>
+          <span className="font-medium text-[var(--color-foreground)]">
+            WA: {SUPPORTED_LANGUAGES.find((l) => l.code === selectedLang)?.nativeLabel}
+          </span>
+        </div>
+
         <ol>
-          {visible.map((r, i) => (
-            <SwipeableCallCard
-              key={r.id}
-              row={r}
-              index={i}
-              onTriggerCall={() => {
-                if (r.tel) window.location.href = r.tel;
-                setQuickLogTarget({
-                  patientId: r.id,
-                  name: r.name,
-                  phone: r.phone,
-                  channel: "call",
-                });
-              }}
-              onTriggerWhatsApp={() => {
-                if (r.whatsapp) window.open(r.whatsapp, "_blank");
-                setQuickLogTarget({
-                  patientId: r.id,
-                  name: r.name,
-                  phone: r.phone,
-                  channel: "whatsapp",
-                });
-              }}
-            />
-          ))}
+          {visible.map((r, i) => {
+            const currentWaLink = r.whatsappByLang?.[selectedLang] ?? r.whatsapp;
+            return (
+              <SwipeableCallCard
+                key={r.id}
+                row={r}
+                index={i}
+                selectedLang={selectedLang}
+                waLink={currentWaLink}
+                onTriggerCall={() => {
+                  if (r.tel) window.location.href = r.tel;
+                  setQuickLogTarget({
+                    patientId: r.id,
+                    name: r.name,
+                    phone: r.phone,
+                    channel: "call",
+                  });
+                }}
+                onTriggerWhatsApp={() => {
+                  if (currentWaLink) window.open(currentWaLink, "_blank");
+                  setQuickLogTarget({
+                    patientId: r.id,
+                    name: r.name,
+                    phone: r.phone,
+                    channel: "whatsapp",
+                    whatsappUrl: currentWaLink,
+                    messagesByLang: r.messagesByLang,
+                  });
+                }}
+              />
+            );
+          })}
         </ol>
 
         {visible.length === 0 && (
@@ -169,7 +224,7 @@ export function CallQueue({ rows, initialFilter }: { rows: CallRow[]; initialFil
                 {quickLogTarget.channel === "call" ? (
                   <PhoneCall size={20} className="text-[var(--color-primary)]" weight="fill" />
                 ) : (
-                  <WhatsappLogo size={20} className="text-[var(--color-on-track)]" weight="fill" />
+                  <WhatsappLogo size={20} className="text-[#25D366]" weight="fill" />
                 )}
                 <div>
                   <h3 className="text-[15px] font-semibold text-[var(--color-foreground)]">
@@ -190,13 +245,43 @@ export function CallQueue({ rows, initialFilter }: { rows: CallRow[]; initialFil
               </button>
             </div>
 
+            {/* If WhatsApp, show language used and message preview */}
+            {quickLogTarget.channel === "whatsapp" && quickLogTarget.messagesByLang && (
+              <div className="my-3 p-2.5 bg-[var(--color-surface-1)] border border-[var(--color-border)] text-[12px]">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[11px] font-semibold uppercase text-[var(--color-charcoal)]">
+                    WhatsApp Message Preview:
+                  </span>
+                  <div className="inline-flex gap-1">
+                    {SUPPORTED_LANGUAGES.map((l) => (
+                      <button
+                        key={l.code}
+                        type="button"
+                        onClick={() => setSelectedLang(l.code)}
+                        className={`px-1.5 py-0.5 text-[10px] font-medium border ${
+                          selectedLang === l.code
+                            ? "bg-[var(--color-primary)] text-white border-[var(--color-primary)]"
+                            : "bg-white text-[var(--color-charcoal)] border-[var(--color-border)] hover:border-black"
+                        }`}
+                      >
+                        {l.nativeLabel}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <p className="text-[12px] italic text-[var(--color-foreground)] leading-relaxed">
+                  &ldquo;{quickLogTarget.messagesByLang[selectedLang]}&rdquo;
+                </p>
+              </div>
+            )}
+
             {logStatusMessage ? (
               <div className="py-6 text-center text-[14px] font-semibold text-[var(--color-on-track)] flex items-center justify-center gap-2">
                 <CheckCircle size={20} weight="fill" />
                 {logStatusMessage}
               </div>
             ) : (
-              <div className="space-y-3 pt-3">
+              <div className="space-y-3 pt-2">
                 <p className="text-[12px] font-medium uppercase tracking-[0.06em] text-[var(--color-charcoal)]">
                   Select Contact Outcome:
                 </p>
@@ -261,17 +346,21 @@ export function CallQueue({ rows, initialFilter }: { rows: CallRow[]; initialFil
 }
 
 /* =========================================================================
-   Swipeable Call Card Sub-component
+   Swipeable Call Card Sub-component with Language-aware WhatsApp
    ========================================================================= */
 
 function SwipeableCallCard({
   row: r,
   index: i,
+  selectedLang,
+  waLink,
   onTriggerCall,
   onTriggerWhatsApp,
 }: {
   row: CallRow;
   index: number;
+  selectedLang: SupportedLanguage;
+  waLink: string | null;
   onTriggerCall: () => void;
   onTriggerWhatsApp: () => void;
 }) {
@@ -292,7 +381,6 @@ function SwipeableCallCard({
     if (!swiping) return;
     currentXRef.current = e.touches[0].clientX;
     const diff = currentXRef.current - startXRef.current;
-    // Damping resistance beyond 120px
     if (Math.abs(diff) < 140) {
       setOffsetX(diff);
     }
@@ -335,7 +423,11 @@ function SwipeableCallCard({
           }`}
           style={{ width: `${Math.max(0, -offsetX)}px` }}
         >
-          {offsetX < -60 && <span className="whitespace-nowrap">WhatsApp</span>}
+          {offsetX < -60 && (
+            <span className="whitespace-nowrap font-medium">
+              WA ({SUPPORTED_LANGUAGES.find((l) => l.code === selectedLang)?.nativeLabel})
+            </span>
+          )}
           <WhatsappLogo size={18} weight="fill" className="shrink-0" />
         </div>
       </div>
@@ -415,13 +507,18 @@ function SwipeableCallCard({
               <Phone size={15} weight="fill" aria-hidden /> Call
             </button>
           )}
-          {r.whatsapp && (
+          {waLink && (
             <button
               type="button"
               onClick={onTriggerWhatsApp}
-              className="inline-flex min-h-9 items-center gap-1.5 border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 text-[13px] font-medium hover:border-[var(--color-foreground)] cursor-pointer"
+              className="inline-flex min-h-9 items-center gap-1.5 border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2.5 text-[13px] font-medium hover:border-[var(--color-foreground)] cursor-pointer"
+              title={`Send WhatsApp reminder in ${SUPPORTED_LANGUAGES.find((l) => l.code === selectedLang)?.nativeLabel}`}
             >
-              <WhatsappLogo size={15} aria-hidden /> WhatsApp
+              <WhatsappLogo size={15} aria-hidden />
+              <span>WhatsApp</span>
+              <span className="text-[10px] text-[var(--color-charcoal)] uppercase font-semibold">
+                ({selectedLang})
+              </span>
             </button>
           )}
           <div className="hidden sm:block">

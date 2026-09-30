@@ -3,7 +3,13 @@ import { createClient } from "@/lib/supabase/server";
 import { getClinicSnapshot, daysOverdue, needsFollowUp, followUpPriority } from "@/lib/snapshot";
 import { formatGA } from "@/lib/pregnancy";
 import { daysBetween, parseLocalDate } from "@/lib/format";
-import { telLink, whatsAppLink, reminderMessage, type ReminderReason, type MessageTemplates } from "@/lib/whatsapp";
+import {
+  telLink,
+  whatsAppLink,
+  allLanguageMessages,
+  type ReminderReason,
+  type MessageTemplates,
+} from "@/lib/whatsapp";
 import { PageHeader } from "@/components/ui";
 import { CallQueue, type CallFilter, type CallRow } from "@/components/CallQueue";
 import type { ContactOutcome } from "@/lib/supabase/enums";
@@ -17,7 +23,7 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
   const [{ f }, { rows, today }, { data: clinic }, { data: contacts }] = await Promise.all([
     searchParams,
     getClinicSnapshot(),
-    supabase.from("clinics").select("message_templates").eq("id", me.clinicId).single(),
+    supabase.from("clinics").select("name, message_templates").eq("id", me.clinicId).single(),
     supabase
       .from("contact_log")
       .select("patient_id, outcome, channel, created_at")
@@ -25,6 +31,7 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
       .limit(2000),
   ]);
   const templates = (clinic?.message_templates ?? {}) as MessageTemplates;
+  const defaultLang = templates.default_lang ?? "en";
 
   const contactsBy = new Map<string, { outcome: string; channel: string; createdAt: string }[]>();
   for (const c of contacts ?? []) {
@@ -39,7 +46,12 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
     .map((r) => {
       const reason: ReminderReason = r.risk === "lost" ? "lost" : r.overdue.length > 0 ? "overdue" : "at_risk";
       const item = r.overdue[0]?.name;
-      const message = reminderMessage(r.name, reason, item, templates);
+      const messagesByLang = allLanguageMessages(r.name, reason, item, templates, clinic?.name);
+      const whatsappByLang = {
+        en: r.phone ? whatsAppLink(r.phone, messagesByLang.en) : null,
+        hi: r.phone ? whatsAppLink(r.phone, messagesByLang.hi) : null,
+        mr: r.phone ? whatsAppLink(r.phone, messagesByLang.mr) : null,
+      };
       const history = contactsBy.get(r.id) ?? [];
       const last = history[0];
       const lastDate = last ? new Date(last.createdAt) : null;
@@ -61,7 +73,9 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
           ? { outcome: last.outcome as ContactOutcome, channel: last.channel, daysAgo: lastDaysAgo ?? 0 }
           : null,
         tel: r.phone ? telLink(r.phone) : null,
-        whatsapp: r.phone ? whatsAppLink(r.phone, message) : null,
+        whatsapp: whatsappByLang[defaultLang],
+        whatsappByLang,
+        messagesByLang,
       };
     });
 
@@ -79,7 +93,7 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
         }
       />
       <div className="p-4 md:p-6">
-        <CallQueue rows={queue} initialFilter={initialFilter} />
+        <CallQueue rows={queue} initialFilter={initialFilter} defaultLang={defaultLang} />
       </div>
     </>
   );

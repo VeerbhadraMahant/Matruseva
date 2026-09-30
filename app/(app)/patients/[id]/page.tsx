@@ -6,7 +6,13 @@ import { gestationalAge, formatGA, trimester } from "@/lib/pregnancy";
 import { todayInClinicTimezone, toISODate } from "@/lib/today";
 import { daysBetween, formatDate, formatGravidaPara, formatShortDate, parseLocalDate, relativeDays } from "@/lib/format";
 import { bpFlag, hbFlag, fhrFlag, patientFlags, vitalsFlags, sortFlags } from "@/lib/clinical";
-import { telLink, whatsAppLink, reminderMessage } from "@/lib/whatsapp";
+import {
+  telLink,
+  whatsAppLink,
+  allLanguageMessages,
+  type MessageTemplates,
+  type ReminderReason,
+} from "@/lib/whatsapp";
 import { MarkDoneButton } from "@/components/MarkDoneButton";
 import { VisitForm } from "@/components/VisitForm";
 import { PregnancyTimeline } from "@/components/PregnancyTimeline";
@@ -133,11 +139,29 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
     ...patientFlags({ age: patient.age, gravida: patient.gravida, rhNegative: patient.rh_negative, bloodGroup: patient.blood_group, gaWeeks: ga?.weeks ?? null }),
   ]);
 
+  const [{ data: clinic }] = await Promise.all([
+    supabase.from("clinics").select("name, message_templates").eq("id", patient.clinic_id).single(),
+  ]);
+
+  const clinicTemplates = (clinic?.message_templates ?? {}) as MessageTemplates;
+  const defaultLang = clinicTemplates.default_lang ?? "en";
+
   const tel = patient.phone ? telLink(patient.phone) : null;
   const firstOverdue = events.find((e) => e.status === "overdue");
-  const wa = patient.phone
-    ? whatsAppLink(patient.phone, reminderMessage(patient.name, firstOverdue ? "overdue" : "due_soon", firstOverdue?.name))
-    : null;
+  const reminderReason: ReminderReason = firstOverdue ? "overdue" : "due_soon";
+  const messagesByLang = allLanguageMessages(
+    patient.name,
+    reminderReason,
+    firstOverdue?.name,
+    clinicTemplates,
+    clinic?.name
+  );
+  const whatsappByLang = {
+    en: patient.phone ? whatsAppLink(patient.phone, messagesByLang.en) : null,
+    hi: patient.phone ? whatsAppLink(patient.phone, messagesByLang.hi) : null,
+    mr: patient.phone ? whatsAppLink(patient.phone, messagesByLang.mr) : null,
+  };
+  const wa = whatsappByLang[defaultLang];
 
   return (
     <>
@@ -360,6 +384,9 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
                   phone={patient.phone}
                   tel={tel}
                   wa={wa}
+                  whatsappByLang={whatsappByLang}
+                  messagesByLang={messagesByLang}
+                  defaultLang={defaultLang}
                   documents={patientDocs}
                 />
                 <VisitForm patientId={id} />

@@ -69,6 +69,8 @@ export async function updateRiskThresholds(_prev: ActionResult, formData: FormDa
 }
 
 const messageTemplatesSchema = z.object({
+  lang: z.enum(["en", "hi", "mr"]).default("en"),
+  defaultLang: z.enum(["en", "hi", "mr"]).optional(),
   overdue: z.string().max(500).optional(),
   due_soon: z.string().max(500).optional(),
   at_risk: z.string().max(500).optional(),
@@ -82,15 +84,32 @@ export async function updateMessageTemplates(_prev: ActionResult, formData: Form
   const parsed = messageTemplatesSchema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  // Store only the reasons that actually have text — an empty field means
-  // "use the built-in default", not "send a blank message".
-  const templates = Object.fromEntries(
-    Object.entries(parsed.data).filter(([, v]) => v && v.trim().length > 0)
-  );
+  // Fetch current clinic message_templates to merge
+  const { data: clinic } = await supabase
+    .from("clinics")
+    .select("message_templates")
+    .eq("id", profile.clinic_id)
+    .single();
+
+  const current = ((clinic?.message_templates ?? {}) as Record<string, any>);
+  const activeLang = parsed.data.lang;
+
+  // Store non-empty templates for this language
+  const langOverrides: Record<string, string> = {};
+  if (parsed.data.overdue?.trim()) langOverrides.overdue = parsed.data.overdue.trim();
+  if (parsed.data.due_soon?.trim()) langOverrides.due_soon = parsed.data.due_soon.trim();
+  if (parsed.data.at_risk?.trim()) langOverrides.at_risk = parsed.data.at_risk.trim();
+  if (parsed.data.lost?.trim()) langOverrides.lost = parsed.data.lost.trim();
+
+  const merged = {
+    ...current,
+    [activeLang]: langOverrides,
+    default_lang: parsed.data.defaultLang || current.default_lang || "en",
+  };
 
   const { error: updateError } = await supabase
     .from("clinics")
-    .update({ message_templates: templates })
+    .update({ message_templates: merged })
     .eq("id", profile.clinic_id);
 
   if (updateError) return { error: updateError.message };
