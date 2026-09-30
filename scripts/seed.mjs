@@ -9,7 +9,15 @@ import { createClient } from "@supabase/supabase-js";
 import { readFileSync } from "node:fs";
 
 function loadEnv() {
-  const text = readFileSync(new URL("../.env", import.meta.url), "utf8").replace(/\r\n/g, "\n");
+  let text = "";
+  try {
+    text = readFileSync(new URL("../.env.local", import.meta.url), "utf8");
+  } catch {
+    try {
+      text = readFileSync(new URL("../.env", import.meta.url), "utf8");
+    } catch {}
+  }
+  text = text.replace(/\r\n/g, "\n");
   for (const line of text.split("\n")) {
     const match = line.match(/^([A-Z_]+)=(.*)$/);
     if (match) process.env[match[1]] ??= match[2].trim();

@@ -10,6 +10,7 @@ import { telLink, whatsAppLink, reminderMessage } from "@/lib/whatsapp";
 import { MarkDoneButton } from "@/components/MarkDoneButton";
 import { VisitForm } from "@/components/VisitForm";
 import { PregnancyTimeline } from "@/components/PregnancyTimeline";
+import { VitalsTrendCharts } from "@/components/VitalsTrendCharts";
 import { Panel, Tag, Empty, SEVERITY_TONE, buttonPrimary, buttonSecondary, th, td, type Tone } from "@/components/ui";
 import type { CareEventStatus, ContactOutcome, FollowUpRisk } from "@/lib/supabase/enums";
 
@@ -227,6 +228,13 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
             <PregnancyTimeline lmp={patient.lmp!} gaDays={ga.days} events={events} />
           </Panel>
         )}
+
+        <VitalsTrendCharts
+          visits={visitList}
+          lmp={patient.lmp}
+          edd={eddIso}
+          patientName={patient.name}
+        />
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
           <div className="space-y-4">
