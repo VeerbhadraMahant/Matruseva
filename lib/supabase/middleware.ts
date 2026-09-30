@@ -4,7 +4,8 @@ import type { Database } from "./types";
 
 // /offline must stay reachable with no session and no network round-trip —
 // it's the PWA's offline fallback, so redirecting it anywhere defeats its purpose.
-const PUBLIC_PATHS = ["/login", "/signup", "/auth", "/offline"];
+// /api/whatsapp must be public for external Meta WhatsApp Cloud API webhooks.
+const PUBLIC_PATHS = ["/login", "/signup", "/auth", "/offline", "/api/whatsapp"];
 
 // "/" (the marketing landing page) is also public, but it must be matched
 // exactly — "/" is a prefix of every path in the app, so treating it like
