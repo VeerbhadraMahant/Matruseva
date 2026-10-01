@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/ui";
-import { ScanQRCardButton, QRScannerModal } from "@/components/QRScannerModal";
+import { ScanQRCardButton } from "@/components/QRScannerModal";
 import Link from "next/link";
 import { Camera, QrCode, ArrowLeft, ShieldCheck } from "@phosphor-icons/react/dist/ssr";
 
@@ -8,7 +8,7 @@ export default function ScanPage() {
     <>
       <PageHeader
         title="OPD Reception QR Scanner"
-        meta="Fast-track patient check-in using Mother's Health Pass QR Code"
+        meta="Fast-track patient check-in using Mother&apos;s Health Pass QR Code"
         actions={
           <Link href="/patients" className="text-xs text-[var(--color-primary)] hover:underline flex items-center gap-1">
             <ArrowLeft size={14} /> Back to Patients
@@ -25,7 +25,7 @@ export default function ScanPage() {
           <div>
             <h2 className="text-lg font-bold text-[var(--color-foreground)]">Scan Patient QR Health Pass</h2>
             <p className="text-xs text-[var(--color-charcoal)] max-w-sm mx-auto mt-1">
-              Hold the mother's health card QR code or WhatsApp photo in front of the camera to instantly pull up her pregnancy timeline and ANC records.
+              Hold the mother&apos;s health card QR code or WhatsApp photo in front of the camera to instantly pull up her pregnancy timeline and ANC records.
             </p>
           </div>
 

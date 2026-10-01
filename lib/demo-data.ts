@@ -1,6 +1,6 @@
 import { todayInClinicTimezone, toISODate } from "@/lib/today";
-import { gestationalAge, type GestationalAge } from "@/lib/pregnancy";
-import { parseLocalDate, daysBetween } from "@/lib/format";
+import { gestationalAge } from "@/lib/pregnancy";
+import { parseLocalDate } from "@/lib/format";
 import { patientFlags, vitalsFlags, sortFlags } from "@/lib/clinical";
 import type { PatientRow, OpenEvent, LatestVisit } from "@/lib/snapshot";
 import type { CareEventStatus, FollowUpRisk, ContactOutcome } from "@/lib/supabase/enums";

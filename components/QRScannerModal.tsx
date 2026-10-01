@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, QrCode, X, WarningCircle, Image, ArrowRight, CheckCircle } from "@phosphor-icons/react";
+import { Camera, X, WarningCircle, Image as ImageIcon, ArrowRight, CheckCircle } from "@phosphor-icons/react";
 import { buttonPrimary, buttonSecondary } from "@/components/ui";
 
 function playBeep() {
@@ -18,7 +18,7 @@ function playBeep() {
     gain.connect(audioCtx.destination);
     osc.start();
     osc.stop(audioCtx.currentTime + 0.15);
-  } catch (e) {
+  } catch {
     // Audio might fail if autoplay policy blocks it without prior user gesture
   }
 }
@@ -52,7 +52,7 @@ export function QRScannerModal({ onClose }: { onClose: () => void }) {
   const scannerRef = useRef<unknown>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleDetected = (decodedText: string) => {
+  const handleDetected = useCallback((decodedText: string) => {
     if (isProcessing) return;
     setIsProcessing(true);
     playBeep();
@@ -90,7 +90,7 @@ export function QRScannerModal({ onClose }: { onClose: () => void }) {
       onClose();
       router.push(`/patients/${patientId}`);
     }, 600);
-  };
+  }, [isProcessing, onClose, router]);
 
   useEffect(() => {
     let html5QrCode: unknown = null;
@@ -134,7 +134,7 @@ export function QRScannerModal({ onClose }: { onClose: () => void }) {
         }
       }
     };
-  }, []);
+  }, [handleDetected]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -177,7 +177,7 @@ export function QRScannerModal({ onClose }: { onClose: () => void }) {
               <Camera size={16} weight="bold" />
             </div>
             <div>
-              <h2 className="text-[14px] font-bold text-[var(--color-foreground)]">Scan Mother's Health Card</h2>
+              <h2 className="text-[14px] font-bold text-[var(--color-foreground)]">Scan Mother&apos;s Health Card</h2>
               <p className="text-[11px] text-[var(--color-charcoal)]">OPD Fast-Track Check-in</p>
             </div>
           </div>
@@ -239,7 +239,7 @@ export function QRScannerModal({ onClose }: { onClose: () => void }) {
                   onClick={() => fileInputRef.current?.click()}
                   className="flex items-center gap-1.5 text-xs font-semibold text-[var(--color-primary)] hover:underline"
                 >
-                  <Image size={15} />
+                  <ImageIcon size={15} />
                   <span>Upload QR Card photo (WhatsApp)</span>
                 </button>
 

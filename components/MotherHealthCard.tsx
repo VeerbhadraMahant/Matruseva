@@ -161,7 +161,7 @@ export function MotherHealthCardModal({
               {/* Left Details */}
               <div className="flex-1 min-w-0 space-y-2">
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#645a70]">Mother's Name</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#645a70]">Mother&apos;s Name</p>
                   <h3 className="truncate text-[17px] font-bold tracking-tight text-[#1c1528] leading-snug">
                     {patient.name}
                   </h3>
@@ -212,6 +212,7 @@ export function MotherHealthCardModal({
               <div className="flex flex-col items-center shrink-0">
                 <div className="relative rounded-xl border border-[#baadca] bg-white p-2 shadow-xs">
                   {qrDataUrl ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
                     <img
                       src={qrDataUrl}
                       alt={`QR Code for ${patient.name}`}
