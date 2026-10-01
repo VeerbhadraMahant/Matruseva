@@ -1,10 +1,8 @@
 "use client";
 
 import { useActionState } from "react";
-import Link from "next/link";
 import { login, type ActionResult } from "../actions";
 import { SubmitButton } from "@/components/SubmitButton";
-import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 
 const initialState: ActionResult = { error: null };
 
@@ -40,6 +38,7 @@ export default function LoginPage() {
                 name="email"
                 type="email"
                 autoComplete="email"
+                defaultValue="demo.doctor@matrusetu.test"
                 required
                 className="min-h-10 w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 text-[15px] focus:border-[var(--color-primary)]"
               />
@@ -53,6 +52,7 @@ export default function LoginPage() {
                 name="password"
                 type="password"
                 autoComplete="current-password"
+                defaultValue="DemoClinic123!"
                 required
                 className="min-h-10 w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 text-[15px] focus:border-[var(--color-primary)]"
               />
@@ -66,20 +66,6 @@ export default function LoginPage() {
 
             <SubmitButton>Sign in</SubmitButton>
           </form>
-
-          <div className="my-4 flex items-center gap-3 text-xs text-[var(--color-charcoal)]">
-            <span className="h-px flex-1 bg-[var(--color-border)]" />
-            or
-            <span className="h-px flex-1 bg-[var(--color-border)]" />
-          </div>
-          <GoogleSignInButton />
-
-          <p className="mt-6 text-sm">
-            New clinic?{" "}
-            <Link href="/signup" className="font-medium text-[var(--color-primary)] underline">
-              Create an account
-            </Link>
-          </p>
         </div>
       </div>
     </main>

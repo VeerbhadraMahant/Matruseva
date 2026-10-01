@@ -11,6 +11,7 @@ import {
   Gear,
   MagnifyingGlass,
   SignOut,
+  QrCode,
 } from "@phosphor-icons/react";
 import { logout } from "@/app/(auth)/actions";
 import { openCommandPalette } from "@/components/CommandPalette";
@@ -18,6 +19,7 @@ import { openCommandPalette } from "@/components/CommandPalette";
 const NAV_ITEMS = [
   { href: "/today", label: "Today", icon: CalendarCheck },
   { href: "/patients", label: "Patients", icon: Users },
+  { href: "/scan", label: "Scan QR Card", short: "Scan", icon: QrCode },
   { href: "/calls", label: "Call queue", short: "Calls", icon: PhoneCall },
   { href: "/documents", label: "Documents", short: "Docs", icon: Tray },
   { href: "/opd", label: "OPD register", short: "OPD", icon: BookOpenText },

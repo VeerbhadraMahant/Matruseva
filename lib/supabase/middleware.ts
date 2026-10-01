@@ -19,6 +19,12 @@ const PUBLIC_PATHS = ["/login", "/signup", "/auth", "/offline", "/api/whatsapp"]
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
+  // Demo bypass: allow access without Supabase auth round-trip
+  const isDemo = request.cookies.get("matrusetu_demo")?.value === "1";
+  if (isDemo) {
+    return response;
+  }
+
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

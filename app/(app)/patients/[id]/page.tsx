@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Phone, WhatsappLogo, FilePdf } from "@phosphor-icons/react/dist/ssr";
@@ -13,13 +14,16 @@ import {
   type MessageTemplates,
   type ReminderReason,
 } from "@/lib/whatsapp";
+import { getCurrentUser } from "@/lib/auth";
 import { MarkDoneButton } from "@/components/MarkDoneButton";
 import { VisitForm } from "@/components/VisitForm";
 import { PregnancyTimeline } from "@/components/PregnancyTimeline";
+import { MotherHealthCardButton } from "@/components/MotherHealthCard";
 import { VitalsTrendCharts } from "@/components/VitalsTrendCharts";
 import { PatientDetailInteractive } from "@/components/PatientDetailInteractive";
 import { Panel, Tag, Empty, SEVERITY_TONE, buttonPrimary, buttonSecondary, th, td, type Tone } from "@/components/ui";
 import type { CareEventStatus, ContactOutcome, FollowUpRisk } from "@/lib/supabase/enums";
+import { getDemoPatientDetail } from "@/lib/demo-data";
 
 const STATUS: Record<CareEventStatus, { label: string; tone: Tone }> = {
   done: { label: "Done", tone: "ok" },
@@ -65,12 +69,82 @@ function Abn({ abnormal, children }: { abnormal: boolean; children: React.ReactN
   return <span className={abnormal ? "font-semibold text-[var(--color-overdue)]" : ""}>{children}</span>;
 }
 
+import type { Database } from "@/lib/supabase/types";
+
+type PatientRecord = Database["public"]["Tables"]["patients"]["Row"];
+type VisitRecord = Database["public"]["Tables"]["visits"]["Row"];
+
+interface CareEventRecord {
+  id: string;
+  name: string;
+  kind: string;
+  due_from: string;
+  due_to: string;
+  completed_at: string | null;
+  status: CareEventStatus;
+}
+
+interface DocRecord {
+  id: string;
+  doc_type: string;
+  doc_date: string | null;
+  storage_path: string;
+  ocr_text?: string | null;
+  created_at: string;
+}
+
+interface ContactRecord {
+  id: string;
+  channel: string;
+  outcome: ContactOutcome;
+  notes: string | null;
+  created_at: string;
+}
+
+interface RiskRecord {
+  risk: FollowUpRisk;
+  next_visit_date: string | null;
+}
+
 export default async function PatientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const supabase = await createClient();
+  const cookieStore = await cookies();
+  const isDemo = cookieStore.get("matrusetu_demo")?.value === "1";
+  const [me, supabase] = await Promise.all([getCurrentUser(), createClient()]);
 
-  const [{ data: patient }, { data: careEvents }, { data: visits }, { data: documents }, { data: contacts }, { data: risk }] =
-    await Promise.all([
+  let patient: PatientRecord | null = null;
+  let careEvents: CareEventRecord[] = [];
+  let visits: VisitRecord[] = [];
+  let documents: DocRecord[] = [];
+  let contacts: ContactRecord[] = [];
+  let risk: RiskRecord | null = null;
+
+  if (isDemo) {
+    const demo = getDemoPatientDetail(id);
+    patient = demo.patient as PatientRecord;
+    careEvents = demo.careEvents as CareEventRecord[];
+    visits = demo.visits.map((v) => ({
+      id: v.id,
+      patient_id: v.patient_id,
+      clinic_id: "00000000-0000-0000-0000-000000000002",
+      visit_date: v.visit_date,
+      bp_sys: v.bp_sys,
+      bp_dia: v.bp_dia,
+      hb: v.hb,
+      fhr: v.fhr,
+      weight: v.weight,
+      fundal_height: v.fundal_height,
+      ga_weeks: null,
+      notes: v.notes,
+      next_visit_date: v.next_visit_date,
+      created_at: v.created_at,
+      created_by: null,
+    }));
+    documents = demo.documents as DocRecord[];
+    contacts = demo.contacts as ContactRecord[];
+    risk = demo.risk as RiskRecord;
+  } else {
+    const [pRes, ceRes, vRes, dRes, cRes, rRes] = await Promise.all([
       supabase.from("patients").select("*").eq("id", id).maybeSingle(),
       supabase
         .from("care_event_status")
@@ -96,11 +170,19 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
         .limit(20),
       supabase.from("patient_followup_risk").select("risk, next_visit_date").eq("patient_id", id).maybeSingle(),
     ]);
+    patient = pRes.data as PatientRecord | null;
+    careEvents = (ceRes.data ?? []) as CareEventRecord[];
+    visits = (vRes.data ?? []) as VisitRecord[];
+    documents = (dRes.data ?? []) as DocRecord[];
+    contacts = (cRes.data ?? []) as ContactRecord[];
+    risk = rRes.data as RiskRecord | null;
+  }
+
   if (!patient) notFound();
 
   const docs = documents ?? [];
-  const { data: signed } = docs.length
-    ? await supabase.storage.from("documents").createSignedUrls(docs.map((d) => d.storage_path), 300)
+  const { data: signed } = (!isDemo && docs.length)
+    ? await supabase.storage.from("documents").createSignedUrls(docs.map((d: DocRecord) => d.storage_path), 300)
     : { data: [] };
   const urlByPath = new Map((signed ?? []).map((s) => [s.path, s.signedUrl]));
   const patientDocs = docs.map((d) => ({
@@ -187,7 +269,24 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
                 .join("  ·  ")}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <MotherHealthCardButton
+              patient={{
+                id: patient.id,
+                name: patient.name,
+                clinicPatientNo: patient.clinic_patient_no,
+                age: patient.age,
+                phone: patient.phone,
+                altPhone: patient.alt_phone,
+                bloodGroup: patient.blood_group,
+                rhNegative: patient.rh_negative,
+                edd: eddIso ? formatShortDate(eddIso) : null,
+                gaLabel: ga ? `${formatGA(ga)} · T${trimester(ga)}` : null,
+                gravida: patient.gravida,
+                para: patient.para,
+                clinicName: me.clinicName,
+              }}
+            />
             {tel && (
               <a href={tel} className={buttonPrimary}>
                 <Phone size={15} weight="fill" aria-hidden /> Call

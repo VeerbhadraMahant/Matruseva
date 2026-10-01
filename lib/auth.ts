@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 
 export interface CurrentUser {
@@ -15,6 +16,18 @@ export interface CurrentUser {
 // unlike getUser() it costs no Auth-server round trip. cache() dedupes this
 // across the layout, page and nested components within one request.
 export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
+  const cookieStore = await cookies();
+  const isDemo = cookieStore.get("matrusetu_demo")?.value === "1";
+  if (isDemo) {
+    return {
+      userId: "demo-doctor-id",
+      clinicId: "demo-clinic-id",
+      clinicName: "MatruSetu Demo Clinic",
+      fullName: "Dr. Demo",
+      role: "doctor",
+    };
+  }
+
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   const userId = data?.claims.sub;

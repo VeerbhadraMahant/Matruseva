@@ -1,11 +1,13 @@
 import "server-only";
 import { cache } from "react";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { gestationalAge, type GestationalAge } from "@/lib/pregnancy";
 import { todayInClinicTimezone, toISODate } from "@/lib/today";
 import { parseLocalDate, daysBetween } from "@/lib/format";
 import { patientFlags, vitalsFlags, sortFlags, type ClinicalFlag } from "@/lib/clinical";
 import type { CareEventStatus, FollowUpRisk } from "@/lib/supabase/enums";
+import { getDemoSnapshot } from "@/lib/demo-data";
 
 export interface OpenEvent {
   id: string;
@@ -57,6 +59,12 @@ function eddIso(lmp: string): string {
  * via cache(). RLS scopes every query to the caller's clinic.
  */
 export const getClinicSnapshot = cache(async () => {
+  const cookieStore = await cookies();
+  const isDemo = cookieStore.get("matrusetu_demo")?.value === "1";
+  if (isDemo) {
+    return getDemoSnapshot();
+  }
+
   const supabase = await createClient();
   const today = todayInClinicTimezone();
 

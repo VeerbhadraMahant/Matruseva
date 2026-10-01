@@ -5,6 +5,7 @@ import { formatGA, trimester } from "@/lib/pregnancy";
 import { daysBetween, formatDate, formatGravidaPara, parseLocalDate, relativeDays } from "@/lib/format";
 import { PageHeader, buttonPrimary } from "@/components/ui";
 import { PatientTable, type PatientFilter, type PatientListRow } from "@/components/PatientTable";
+import { ScanQRCardButton } from "@/components/QRScannerModal";
 
 const FILTER_IDS: PatientFilter[] = ["all", "t1", "t2", "t3", "overdue", "at_risk", "lost", "alerts", "term"];
 
@@ -38,9 +39,12 @@ export default async function PatientsPage({ searchParams }: { searchParams: Pro
         title="Patients"
         meta={`${rows.length} active ${rows.length === 1 ? "pregnancy" : "pregnancies"}`}
         actions={
-          <Link href="/patients/new" className={buttonPrimary}>
-            <Plus size={15} weight="bold" aria-hidden /> New patient
-          </Link>
+          <div className="flex items-center gap-2">
+            <ScanQRCardButton />
+            <Link href="/patients/new" className={buttonPrimary}>
+              <Plus size={15} weight="bold" aria-hidden /> New patient
+            </Link>
+          </div>
         }
       />
       <div className="p-4 md:p-6">
