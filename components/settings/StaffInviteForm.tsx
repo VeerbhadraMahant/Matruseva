@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { inviteStaff, type ActionResult } from "@/app/(app)/settings/actions";
 import { SubmitButton } from "@/components/SubmitButton";
+import { withSuccessToast } from "@/components/Toaster";
 
 const initialState: ActionResult = { error: null };
 const inputClass =
@@ -10,7 +11,7 @@ const inputClass =
 const labelClass = "mb-1 block text-xs font-medium text-[var(--color-charcoal)]";
 
 export function StaffInviteForm() {
-  const [state, formAction] = useActionState(inviteStaff, initialState);
+  const [state, formAction] = useActionState(withSuccessToast(inviteStaff, "Invite created"), initialState);
   const [copied, setCopied] = useState(false);
 
   return (

@@ -8,7 +8,9 @@ import { StaffInviteForm } from "@/components/settings/StaffInviteForm";
 import { RemoveStaffButton } from "@/components/settings/RemoveStaffButton";
 import { MessageTemplatesForm } from "@/components/settings/MessageTemplatesForm";
 import { ClinicalProtocolSignOff } from "@/components/settings/ClinicalProtocolSignOff";
-import { PageHeader, Panel, Tag, pageBody } from "@/components/ui";
+import Link from "next/link";
+import { GearSix } from "@phosphor-icons/react/dist/ssr";
+import { PageHeader, Panel, Tag, buttonSecondary, card, pageBody } from "@/components/ui";
 import type { MessageTemplates } from "@/lib/whatsapp";
 
 export default async function SettingsPage() {
@@ -25,7 +27,28 @@ export default async function SettingsPage() {
       .eq("is_default", true)
       .maybeSingle(),
   ]);
-  if (!clinic) return null;
+  if (!clinic) {
+    return (
+      <>
+        <PageHeader title="Settings" />
+        <div className={pageBody}>
+          <div className={`mx-auto max-w-lg space-y-3 p-8 text-center ${card}`}>
+            <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--color-primary-surface)] text-[var(--color-primary)]">
+              <GearSix size={28} aria-hidden />
+            </span>
+            <h2 className="text-[18px] font-semibold">Settings need a live clinic account</h2>
+            <p className="text-[14px] text-[var(--color-charcoal)]">
+              Clinic details, risk thresholds, the ANC schedule, staff and message templates are stored in your clinic&apos;s
+              database. Sign in with your clinic account to view and change them. In demo mode they aren&apos;t available.
+            </p>
+            <Link href="/today" className={`${buttonSecondary} mt-2`}>
+              Back to Today
+            </Link>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   const items = [...(template?.schedule_template_items ?? [])].sort((a, b) => a.sort_order - b.sort_order);
 

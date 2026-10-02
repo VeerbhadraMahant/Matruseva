@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { updateScheduleItem, type ActionResult } from "@/app/(app)/settings/actions";
+import { withSuccessToast } from "@/components/Toaster";
 
 const initialState: ActionResult = { error: null };
 const inputClass =
@@ -21,7 +22,7 @@ export function ScheduleItemRow({
   windowEndWeek: number;
   isCritical: boolean;
 }) {
-  const [state, formAction] = useActionState(updateScheduleItem, initialState);
+  const [state, formAction] = useActionState(withSuccessToast(updateScheduleItem, "Schedule item saved"), initialState);
 
   return (
     <form action={formAction} className="flex flex-wrap items-center gap-3 border-b border-[var(--color-border)] py-3 last:border-0">

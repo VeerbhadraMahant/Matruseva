@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { markCareEventDone, type ActionResult } from "@/app/(app)/patients/[id]/actions";
+import { withSuccessToast } from "@/components/Toaster";
 
 const initialState: ActionResult = { error: null };
 
@@ -21,7 +22,7 @@ function Button() {
 
 export function MarkDoneButton({ careEventId, patientId }: { careEventId: string; patientId: string }) {
   const action = markCareEventDone.bind(null, careEventId, patientId);
-  const [, formAction] = useActionState(action, initialState);
+  const [, formAction] = useActionState(withSuccessToast(action, "Marked as done"), initialState);
 
   return (
     <form action={formAction}>

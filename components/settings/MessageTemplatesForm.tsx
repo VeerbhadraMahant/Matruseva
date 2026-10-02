@@ -12,6 +12,7 @@ import {
   type SupportedLanguage,
   type ReasonTemplates,
 } from "@/lib/whatsapp";
+import { withSuccessToast } from "@/components/Toaster";
 
 const initialState: ActionResult = { error: null };
 const textareaClass =
@@ -45,7 +46,7 @@ export function MessageTemplatesForm({ templates }: { templates: MessageTemplate
   const [activeLang, setActiveLang] = useState<SupportedLanguage>(
     templates.default_lang ?? "en"
   );
-  const [state, formAction] = useActionState(updateMessageTemplates, initialState);
+  const [state, formAction] = useActionState(withSuccessToast(updateMessageTemplates, "Message templates saved"), initialState);
   const [isResetting, startResetTransition] = useTransition();
   const [resetNotice, setResetNotice] = useState<string | null>(null);
 

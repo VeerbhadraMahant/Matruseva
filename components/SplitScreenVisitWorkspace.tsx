@@ -16,6 +16,7 @@ import { recordVisit, type ActionResult } from "@/app/(app)/patients/[id]/action
 import { SubmitButton } from "@/components/SubmitButton";
 import { bpFlag, hbFlag, fhrFlag } from "@/lib/clinical";
 import { formatShortDate } from "@/lib/format";
+import { withSuccessToast } from "@/components/Toaster";
 
 export interface PatientDocument {
   id: string;
@@ -75,7 +76,7 @@ export function SplitScreenVisitWorkspace({
   const [notes, setNotes] = useState<string>("");
 
   const action = recordVisit.bind(null, patientId);
-  const [state, formAction] = useActionState(action, initialState);
+  const [state, formAction] = useActionState(withSuccessToast(action, "Visit saved"), initialState);
 
   // Handle ESC key to close
   useEffect(() => {

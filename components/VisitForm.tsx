@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { recordVisit, type ActionResult } from "@/app/(app)/patients/[id]/actions";
 import { SubmitButton } from "@/components/SubmitButton";
+import { withSuccessToast } from "@/components/Toaster";
 
 const initialState: ActionResult = { error: null };
 const inputClass =
@@ -11,7 +12,7 @@ const labelClass = "mb-1 block text-[12px] font-medium text-[var(--color-charcoa
 
 export function VisitForm({ patientId }: { patientId: string }) {
   const action = recordVisit.bind(null, patientId);
-  const [state, formAction] = useActionState(action, initialState);
+  const [state, formAction] = useActionState(withSuccessToast(action, "Visit saved"), initialState);
 
   return (
     <form action={formAction} className="grid grid-cols-2 gap-x-2 gap-y-3 sm:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-4" noValidate>

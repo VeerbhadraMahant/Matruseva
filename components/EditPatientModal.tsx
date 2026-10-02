@@ -7,6 +7,7 @@ import { buttonSecondary } from "@/components/ui";
 import { updatePatient, type ActionResult } from "@/app/(app)/patients/[id]/actions";
 import { eddFromLmp, gestationalAge, formatGA, trimester } from "@/lib/pregnancy";
 import { SubmitButton } from "@/components/SubmitButton";
+import { withSuccessToast } from "@/components/Toaster";
 
 export interface EditPatientData {
   id: string;
@@ -72,7 +73,7 @@ export function EditPatientModal({
   patient: EditPatientData;
   onClose: () => void;
 }) {
-  const [state, formAction] = useActionState(updatePatient.bind(null, patient.id), initialState);
+  const [state, formAction] = useActionState(withSuccessToast(updatePatient.bind(null, patient.id), "Patient details updated"), initialState);
   const [hasSubmitted, setHasSubmitted] = useState(false);
 
   const [lmp, setLmp] = useState(patient.lmp || "");

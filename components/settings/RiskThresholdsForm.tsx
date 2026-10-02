@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { updateRiskThresholds, type ActionResult } from "@/app/(app)/settings/actions";
 import { SubmitButton } from "@/components/SubmitButton";
+import { withSuccessToast } from "@/components/Toaster";
 
 const initialState: ActionResult = { error: null };
 const inputClass =
@@ -10,7 +11,7 @@ const inputClass =
 const labelClass = "mb-1 block text-xs font-medium text-[var(--color-charcoal)]";
 
 export function RiskThresholdsForm({ atRiskDays, lostDays }: { atRiskDays: number; lostDays: number }) {
-  const [state, formAction] = useActionState(updateRiskThresholds, initialState);
+  const [state, formAction] = useActionState(withSuccessToast(updateRiskThresholds, "Risk thresholds saved"), initialState);
 
   return (
     <form action={formAction} className="grid max-w-sm gap-3 sm:grid-cols-2">

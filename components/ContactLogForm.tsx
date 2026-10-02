@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { logContact, type ActionResult } from "@/app/(app)/calls/actions";
 import { useFormStatus } from "react-dom";
+import { withSuccessToast } from "@/components/Toaster";
 
 const initialState: ActionResult = { error: null };
 const selectClass =
@@ -23,7 +24,7 @@ function LogButton() {
 
 export function ContactLogForm({ patientId }: { patientId: string }) {
   const action = logContact.bind(null, patientId);
-  const [state, formAction] = useActionState(action, initialState);
+  const [state, formAction] = useActionState(withSuccessToast(action, "Contact logged"), initialState);
 
   return (
     <form action={formAction} className="flex items-center gap-2">

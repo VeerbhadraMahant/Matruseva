@@ -3,6 +3,7 @@
 import { useActionState, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
 import { assignDocument, searchPatientsForAssign, getOpenCareEvents, type ActionResult } from "@/app/(app)/documents/actions";
+import { withSuccessToast } from "@/components/Toaster";
 
 const initialState: ActionResult = { error: null };
 const inputClass =
@@ -23,7 +24,7 @@ function SaveButton() {
 
 export function AssignDocumentForm({ documentId }: { documentId: string }) {
   const action = assignDocument.bind(null, documentId);
-  const [state, formAction] = useActionState(action, initialState);
+  const [state, formAction] = useActionState(withSuccessToast(action, "Document filed"), initialState);
   const [, startTransition] = useTransition();
 
   const [query, setQuery] = useState("");
