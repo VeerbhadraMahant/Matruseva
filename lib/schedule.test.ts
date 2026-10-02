@@ -70,4 +70,45 @@ describe("diffRegeneratedSchedule", () => {
     const diff = diffRegeneratedSchedule(regenerated, existing);
     expect(diff.toUpdateDates.find((e) => e.templateItemId === "dating_scan")).toBeUndefined();
   });
+
+  it("recalculates milestone dates when dating scan corrects LMP forward by 2 weeks", () => {
+    const correctedLmp = new Date(2026, 0, 15); // +14 days from original Jan 1
+
+    const correctedSchedule = generateSchedule(correctedLmp, template, { rhNegative: false }, correctedLmp);
+    const existing = [
+      { templateItemId: "dating_scan", completedAt: new Date(2026, 1, 10), manuallySkipped: false }, // completed, should not change
+      { templateItemId: "nt_scan", completedAt: null, manuallySkipped: false }, // open, should update
+      { templateItemId: "anomaly_scan", completedAt: null, manuallySkipped: false }, // open, should update
+    ];
+
+    const diff = diffRegeneratedSchedule(correctedSchedule, existing);
+    expect(diff.toInsert).toEqual([]);
+    expect(diff.toUpdateDates.length).toBe(2);
+
+    const ntUpdate = diff.toUpdateDates.find((u) => u.templateItemId === "nt_scan");
+    expect(ntUpdate?.dueFrom).toEqual(dateAtWeek(correctedLmp, 11));
+    expect(ntUpdate?.dueTo).toEqual(dateAtWeek(correctedLmp, 13.85));
+
+    const anomalyUpdate = diff.toUpdateDates.find((u) => u.templateItemId === "anomaly_scan");
+    expect(anomalyUpdate?.dueFrom).toEqual(dateAtWeek(correctedLmp, 18));
+    expect(anomalyUpdate?.dueTo).toEqual(dateAtWeek(correctedLmp, 22));
+  });
+
+  it("inserts newly applicable milestones when patient is updated to Rh negative", () => {
+    const lmpDate = new Date(2026, 0, 1);
+    // Previously Rh positive (anti_d excluded)
+    const existing = [
+      { templateItemId: "dating_scan", completedAt: null, manuallySkipped: false },
+      { templateItemId: "nt_scan", completedAt: null, manuallySkipped: false },
+      { templateItemId: "anomaly_scan", completedAt: null, manuallySkipped: false },
+    ];
+
+    // Updated to Rh negative (anti_d now applicable)
+    const updatedSchedule = generateSchedule(lmpDate, template, { rhNegative: true }, lmpDate);
+    const diff = diffRegeneratedSchedule(updatedSchedule, existing);
+
+    expect(diff.toInsert.map((e) => e.templateItemId)).toEqual(["anti_d"]);
+    expect(diff.toInsert[0].name).toBe("Anti-D");
+  });
 });
+

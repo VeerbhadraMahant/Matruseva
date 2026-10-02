@@ -20,6 +20,7 @@ import { VisitForm } from "@/components/VisitForm";
 import { PregnancyTimeline } from "@/components/PregnancyTimeline";
 import { MotherHealthCardButton } from "@/components/MotherHealthCard";
 import { ClosePregnancyForm } from "@/components/ClosePregnancyForm";
+import { EditPatientButton } from "@/components/EditPatientModal";
 import { VitalsTrendCharts } from "@/components/VitalsTrendCharts";
 import { PatientDetailInteractive } from "@/components/PatientDetailInteractive";
 import { Panel, Tag, Empty, SEVERITY_TONE, buttonPrimary, buttonSecondary, th, td, type Tone } from "@/components/ui";
@@ -271,6 +272,24 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <EditPatientButton
+              patient={{
+                id: patient.id,
+                name: patient.name,
+                clinicPatientNo: patient.clinic_patient_no,
+                age: patient.age,
+                phone: patient.phone,
+                altPhone: patient.alt_phone,
+                address: patient.address,
+                gravida: patient.gravida,
+                para: patient.para,
+                bloodGroup: patient.blood_group,
+                rhNegative: patient.rh_negative,
+                lmp: patient.lmp,
+                edd: patient.edd,
+                eddSource: (patient.edd_source as "lmp" | "scan" | "manual") || "lmp",
+              }}
+            />
             <MotherHealthCardButton
               patient={{
                 id: patient.id,
