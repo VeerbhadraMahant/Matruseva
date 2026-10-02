@@ -42,9 +42,9 @@ describe("FEATURE 1: Delivery Outcome Recording & Pregnancy Closure", () => {
   });
 
   it("fails gracefully and idempotently when closing an already-closed pregnancy", () => {
-    const patientId = "p11-radha-shinde"; // Seeded delivered patient
+    const patientId = "p2-sunita-verma"; // Closed in previous test
     const res = closeDemoPregnancy(patientId, {
-      deliveryDate: "2026-09-28",
+      deliveryDate: "2026-10-01",
       deliveryMode: "LSCS",
       birthWeightKg: 3.15,
     });
@@ -58,8 +58,8 @@ describe("FEATURE 2: Clinic Compliance & Macro Analytics", () => {
     const { rows } = getDemoSnapshot();
     expect(rows.length).toBeGreaterThan(0);
 
-    // Delivered patients (p11 and closed p2) must not be in active rows
-    expect(rows.some((r) => r.id === "p11-radha-shinde")).toBe(false);
+    // Delivered patient (closed p2) must not be in active rows
+    expect(rows.some((r) => r.id === "p2-sunita-verma")).toBe(false);
 
     const contactStats = getDemoContactStats();
     expect(contactStats.total).toBeGreaterThan(0);
@@ -73,8 +73,8 @@ describe("FEATURE 2: Clinic Compliance & Macro Analytics", () => {
 
 describe("FEATURE 3: Batch Contact Logging in Call Queue", () => {
   it("logs batch contacts for active patients and skips closed/delivered patients", () => {
-    // p3 is active, p11 is delivered
-    const batchResult = logDemoBatchContacts(["p3-kavita-patel", "p11-radha-shinde"], "reached", "Batch follow-up");
+    // p3 is active, p2 is delivered/closed
+    const batchResult = logDemoBatchContacts(["p3-kavita-patel", "p2-sunita-verma"], "reached", "Batch follow-up");
     expect(batchResult.error).toBeNull();
     expect(batchResult.loggedCount).toBe(1);
     expect(batchResult.skippedCount).toBe(1);
