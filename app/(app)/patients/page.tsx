@@ -3,7 +3,7 @@ import { Plus } from "@phosphor-icons/react/dist/ssr";
 import { getClinicSnapshot } from "@/lib/snapshot";
 import { formatGA, trimester } from "@/lib/pregnancy";
 import { daysBetween, formatDate, formatGravidaPara, parseLocalDate, relativeDays } from "@/lib/format";
-import { PageHeader, buttonPrimary } from "@/components/ui";
+import { PageHeader, buttonPrimary, pageBody } from "@/components/ui";
 import { PatientTable, type PatientFilter, type PatientListRow } from "@/components/PatientTable";
 import { ScanQRCardButton } from "@/components/QRScannerModal";
 
@@ -47,7 +47,7 @@ export default async function PatientsPage({ searchParams }: { searchParams: Pro
           </div>
         }
       />
-      <div className="p-4 md:p-6">
+      <div className={pageBody}>
         <PatientTable rows={list} initialFilter={initialFilter} />
       </div>
     </>

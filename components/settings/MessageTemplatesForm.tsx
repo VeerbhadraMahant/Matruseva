@@ -16,7 +16,7 @@ import {
 const initialState: ActionResult = { error: null };
 const textareaClass =
   "w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 py-2 text-[13px] leading-relaxed focus:border-[var(--color-primary)] outline-none";
-const labelClass = "mb-1 block text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-charcoal)]";
+const labelClass = "mb-1 block text-[12px] font-medium text-[var(--color-charcoal)]";
 
 const FIELDS: { name: ReminderReason; label: string; description: string }[] = [
   {
@@ -57,14 +57,14 @@ export function MessageTemplatesForm({ templates }: { templates: MessageTemplate
   return (
     <form action={formAction} className="space-y-4">
       {/* Clinical Lead Review & Certification Status */}
-      <div className="border border-[#128C7E]/40 bg-[#E7F8EE]/60 p-3 text-[12px]">
+      <div className="rounded-xl border border-[#128C7E]/40 bg-[#E7F8EE]/60 p-3 text-[12px]">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <ShieldCheck size={18} weight="fill" className="text-[#128C7E]" />
             <span className="font-semibold text-[var(--color-foreground)]">
               Multi-lingual Template Clinical Certification
             </span>
-            <span className="flex items-center gap-1 bg-white px-2 py-0.5 text-[10px] font-bold text-[#128C7E] border border-[#128C7E]/30">
+            <span className="rounded-xl flex items-center gap-1 bg-white px-2 py-0.5 text-[10px] font-bold text-[#128C7E] border border-[#128C7E]/30">
               <CheckCircle size={12} weight="fill" />
               Certified by Clinical Lead
             </span>
@@ -109,7 +109,7 @@ export function MessageTemplatesForm({ templates }: { templates: MessageTemplate
       </div>
 
       {/* Clinic Default Language Selector */}
-      <div className="border border-[var(--color-border)] bg-[var(--color-surface-1)] p-3 flex flex-wrap items-center justify-between gap-3">
+      <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] p-3 flex flex-wrap items-center justify-between gap-3">
         <div>
           <label htmlFor="defaultLangSelect" className="text-[12px] font-semibold text-[var(--color-foreground)] block">
             Clinic Default Language for WhatsApp Links:
@@ -122,7 +122,7 @@ export function MessageTemplatesForm({ templates }: { templates: MessageTemplate
           id="defaultLangSelect"
           name="defaultLang"
           defaultValue={templates.default_lang ?? "en"}
-          className="min-h-8 border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2 text-[13px] font-medium"
+          className="rounded-xl min-h-8 border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2 text-[13px] font-medium"
         >
           {SUPPORTED_LANGUAGES.map((l) => (
             <option key={l.code} value={l.code}>

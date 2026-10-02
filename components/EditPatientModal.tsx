@@ -29,7 +29,7 @@ const initialState: ActionResult = { error: null };
 
 const inputClass =
   "min-h-9 w-full rounded-[var(--radius-buttons)] border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2.5 text-[13px] text-[var(--color-foreground)] focus:border-[var(--color-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]";
-const labelClass = "mb-1 block text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-charcoal)]";
+const labelClass = "mb-1 block text-[12px] font-medium text-[var(--color-charcoal)]";
 
 function parseLocalDate(isoDate: string): Date | null {
   if (!isoDate) return null;
@@ -180,7 +180,7 @@ export function EditPatientModal({
           {/* Section 1: Dating & Schedule Recalculation */}
           <div className="rounded-xl border-2 border-[var(--color-primary)]/20 bg-[var(--color-surface-1)] p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-[12px] font-bold uppercase tracking-wider text-[var(--color-primary)] flex items-center gap-1.5">
+              <span className="text-[12px] font-bold text-[var(--color-primary)] flex items-center gap-1.5">
                 <Calendar size={15} weight="bold" />
                 Pregnancy Dating & Schedule Calibration
               </span>
@@ -252,7 +252,7 @@ export function EditPatientModal({
 
           {/* Section 2: Patient Identity */}
           <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-4 space-y-3">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-charcoal)] block border-b border-[var(--color-border)] pb-1.5">
+            <span className="text-[11px] font-bold text-[var(--color-charcoal)] block border-b border-[var(--color-border)] pb-1.5">
               Demographics & Contact
             </span>
 
@@ -340,7 +340,7 @@ export function EditPatientModal({
 
           {/* Section 3: Obstetric History & Blood Group */}
           <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-4 space-y-3">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-charcoal)] block border-b border-[var(--color-border)] pb-1.5">
+            <span className="text-[11px] font-bold text-[var(--color-charcoal)] block border-b border-[var(--color-border)] pb-1.5">
               Obstetric History & Blood Group
             </span>
 

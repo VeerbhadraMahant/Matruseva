@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { completeOnboarding, type ActionResult } from "../actions";
 import { SubmitButton } from "@/components/SubmitButton";
+import { AuthShell } from "@/components/auth/AuthShell";
 
 const initialState: ActionResult = { error: null };
 
@@ -10,9 +11,9 @@ export default function OnboardingPage() {
   const [state, formAction] = useActionState(completeOnboarding, initialState);
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-[var(--color-canvas)] px-4">
-      <div className="w-full max-w-sm border border-[var(--color-border-strong)] border-t-4 border-t-[var(--color-primary)] bg-[var(--color-background)] p-6">
-        <h1 className="mb-1 text-[20px] font-semibold tracking-tight text-[var(--color-foreground)]">
+    <AuthShell>
+      <div>
+        <h1 className="mb-1 text-[24px] font-semibold tracking-tight text-[var(--color-foreground)]">
           Set up your clinic
         </h1>
         <p className="mb-6 text-[14px] text-[var(--color-charcoal)]">
@@ -21,7 +22,7 @@ export default function OnboardingPage() {
 
         <form action={formAction} className="space-y-4" noValidate>
           <div>
-            <label htmlFor="clinicName" className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-charcoal)]">
+            <label htmlFor="clinicName" className="mb-1.5 block text-[13px] font-medium text-[var(--color-charcoal)]">
               Clinic name
             </label>
             <input
@@ -29,11 +30,11 @@ export default function OnboardingPage() {
               name="clinicName"
               type="text"
               required
-              className="min-h-10 w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 text-[15px] focus:border-[var(--color-primary)]"
+              className="min-h-11 w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 text-[15px]"
             />
           </div>
           <div>
-            <label htmlFor="doctorFullName" className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-charcoal)]">
+            <label htmlFor="doctorFullName" className="mb-1.5 block text-[13px] font-medium text-[var(--color-charcoal)]">
               Your name
             </label>
             <input
@@ -42,7 +43,7 @@ export default function OnboardingPage() {
               type="text"
               autoComplete="name"
               required
-              className="min-h-10 w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 text-[15px] focus:border-[var(--color-primary)]"
+              className="min-h-11 w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 text-[15px]"
             />
           </div>
 
@@ -55,6 +56,6 @@ export default function OnboardingPage() {
           <SubmitButton>Create clinic</SubmitButton>
         </form>
       </div>
-    </main>
+    </AuthShell>
   );
 }

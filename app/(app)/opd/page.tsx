@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/format";
 import { DocumentUploader } from "@/components/DocumentUploader";
-import { PageHeader, Panel, Tag, type Tone } from "@/components/ui";
+import { PageHeader, Panel, Tag, type Tone, pageBody } from "@/components/ui";
 
 const OCR_STATUS: Record<string, { label: string; tone: Tone }> = {
   pending: { label: "Reading…", tone: "neutral" },
@@ -45,9 +45,9 @@ export default async function OpdRegisterPage({ searchParams }: { searchParams: 
         title="OPD register"
         meta="Daily register and case-paper pages. Not tied to one patient — browse by date or search the text."
       />
-      <div className="space-y-4 p-4 md:p-6">
+      <div className={pageBody}>
         <Panel title="Capture pages">
-          <div className="p-3">
+          <div className="p-4 pt-1">
             <DocumentUploader clinicId={me.clinicId} folder="opd-register" fixedDocType="register_page" showDateInput />
           </div>
         </Panel>
@@ -56,7 +56,7 @@ export default async function OpdRegisterPage({ searchParams }: { searchParams: 
           title={searching ? `Results for “${q}”` : "Register"}
           count={list.length}
           action={
-            <form action="/opd" className="flex items-center border border-[var(--color-border-strong)] focus-within:border-[var(--color-primary)]">
+            <form action="/opd" className="flex items-center rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-background)] focus-within:border-[var(--color-primary)]">
               <MagnifyingGlass size={15} className="ml-2 text-[var(--color-charcoal)]" aria-hidden />
               <input
                 type="search"
@@ -64,7 +64,7 @@ export default async function OpdRegisterPage({ searchParams }: { searchParams: 
                 defaultValue={q ?? ""}
                 placeholder="Search register text"
                 aria-label="Search register text"
-                className="min-h-8 w-52 bg-transparent px-2 text-[13px] outline-none"
+                className="min-h-9 w-52 border-0 bg-transparent px-2 text-[13px] shadow-none outline-none focus:shadow-none"
               />
             </form>
           }
@@ -76,19 +76,19 @@ export default async function OpdRegisterPage({ searchParams }: { searchParams: 
           ) : (
             [...byDate.entries()].map(([date, datePages]) => (
               <div key={date}>
-                <p className="num border-b border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-1.5 text-[12px] font-semibold">
+                <p className="num px-4 pb-2 pt-3 text-[13px] font-semibold">
                   {date === "undated" ? "No date tagged" : formatDate(date)}
                   <span className="ml-2 font-normal text-[var(--color-charcoal)]">
                     {datePages.length} {datePages.length === 1 ? "page" : "pages"}
                   </span>
                 </p>
-                <ul className="grid grid-cols-2 gap-px bg-[var(--color-border)] sm:grid-cols-3 xl:grid-cols-5">
+                <ul className="grid grid-cols-2 gap-3 px-4 pb-4 sm:grid-cols-3 xl:grid-cols-5">
                   {datePages.map((p) => {
                     const url = urlByPath.get(p.storage_path) ?? null;
                     const isImage = /\.(jpe?g|png|webp)$/i.test(p.storage_path);
                     const status = OCR_STATUS[p.ocr_status ?? "pending"];
                     return (
-                      <li key={p.id} className="bg-[var(--color-background)]">
+                      <li key={p.id} className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-background)]">
                         <a href={url ?? undefined} target="_blank" rel="noreferrer" className="block hover:opacity-90">
                           {url && isImage ? (
                             // eslint-disable-next-line @next/next/no-img-element -- private signed URL, not an optimizable static asset

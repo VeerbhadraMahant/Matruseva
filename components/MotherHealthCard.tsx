@@ -139,7 +139,7 @@ export function MotherHealthCardModal({
                   <p className="text-[13px] font-bold tracking-tight text-[#1c1528] leading-tight">
                     {patient.clinicName || "MatruSetu Maternal Health"}
                   </p>
-                  <p className="text-[10px] font-medium uppercase tracking-wider text-[#645a70]">
+                  <p className="text-[10px] font-medium text-[#645a70]">
                     Mother & Child Health Pass
                   </p>
                 </div>
@@ -161,7 +161,7 @@ export function MotherHealthCardModal({
               {/* Left Details */}
               <div className="flex-1 min-w-0 space-y-2">
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#645a70]">Mother&apos;s Name</p>
+                  <p className="text-[10px] font-semibold text-[#645a70]">Mother&apos;s Name</p>
                   <h3 className="truncate text-[17px] font-bold tracking-tight text-[#1c1528] leading-snug">
                     {patient.name}
                   </h3>
@@ -222,7 +222,7 @@ export function MotherHealthCardModal({
                     <div className="h-28 w-28 animate-pulse rounded bg-[#f0ecf5]" />
                   )}
                 </div>
-                <span className="mt-1 text-[9px] font-bold uppercase tracking-wider text-[#523a6c]">
+                <span className="mt-1 text-[9px] font-bold text-[#523a6c]">
                   Scan at OPD Desk
                 </span>
               </div>

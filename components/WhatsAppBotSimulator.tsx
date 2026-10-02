@@ -180,7 +180,7 @@ export function WhatsAppBotSimulator({
                 <h3 className="text-[14px] font-semibold text-[var(--color-foreground)]">
                   WhatsApp Business Bot Simulator
                 </h3>
-                <span className="flex items-center gap-1 bg-[#E7F8EE] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#128C7E]">
+                <span className="flex items-center gap-1 bg-[#E7F8EE] px-1.5 py-0.5 text-[10px] font-bold text-[#128C7E]">
                   <ShieldCheck size={12} weight="bold" />
                   Meta Webhook Ready
                 </span>
@@ -207,7 +207,7 @@ export function WhatsAppBotSimulator({
             <select
               value={selectedPatientId}
               onChange={(e) => setSelectedPatientId(e.target.value)}
-              className="max-w-[260px] truncate border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2 py-1 text-[12px] font-medium"
+              className="rounded-xl max-w-[260px] truncate border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2 py-1 text-[12px] font-medium"
             >
               {patients.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -219,7 +219,7 @@ export function WhatsAppBotSimulator({
 
           <div className="flex items-center gap-1.5">
             <span className="font-semibold text-[var(--color-charcoal)]">Language:</span>
-            <div className="inline-flex border border-[var(--color-border-strong)] bg-[var(--color-background)] p-0.5">
+            <div className="rounded-xl inline-flex border border-[var(--color-border-strong)] bg-[var(--color-background)] p-0.5">
               {SUPPORTED_LANGUAGES.map((l) => (
                 <button
                   key={l.code}
@@ -303,7 +303,7 @@ export function WhatsAppBotSimulator({
           {/* Messages Feed */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             <div className="flex justify-center my-1">
-              <span className="rounded bg-white/80 px-2.5 py-0.5 text-[10px] font-semibold text-gray-600 shadow-xs uppercase tracking-wider">
+              <span className="rounded bg-white/80 px-2.5 py-0.5 text-[10px] font-semibold text-gray-600 shadow-xs">
                 TODAY · 256-BIT END-TO-END ENCRYPTED
               </span>
             </div>
@@ -344,7 +344,7 @@ export function WhatsAppBotSimulator({
 
           {/* Quick Simulated Response Chips */}
           <div className="border-t border-[#d1d7db] bg-[#f0f2f5] p-2">
-            <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">
+            <div className="mb-1 text-[10px] font-bold text-gray-500">
               Quick Patient Responses (Click to test):
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -402,7 +402,7 @@ export function WhatsAppBotSimulator({
           <button
             type="button"
             onClick={onClose}
-            className="border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 py-1 font-semibold text-[var(--color-foreground)] hover:bg-[var(--color-surface-2)]"
+            className="rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 py-1 font-semibold text-[var(--color-foreground)] hover:bg-[var(--color-surface-2)]"
           >
             Done
           </button>

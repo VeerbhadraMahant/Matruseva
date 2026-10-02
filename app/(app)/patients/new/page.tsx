@@ -3,14 +3,14 @@
 import { useActionState, useMemo, useState } from "react";
 import { createPatient, type ActionResult } from "../actions";
 import { SubmitButton } from "@/components/SubmitButton";
-import { PageHeader } from "@/components/ui";
+import { PageHeader, card, pageBody } from "@/components/ui";
 import { eddFromLmp, gestationalAge, formatGA, trimester } from "@/lib/pregnancy";
 
 const initialState: ActionResult = { error: null };
 
 const inputClass =
-  "min-h-10 w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2.5 text-[14px] focus:border-[var(--color-primary)]";
-const labelClass = "mb-1 block text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-charcoal)]";
+  "min-h-11 w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 text-[15px]";
+const labelClass = "mb-1.5 block text-[13px] font-medium text-[var(--color-charcoal)]";
 
 function parseLocalDate(isoDate: string): Date | null {
   if (!isoDate) return null;
@@ -32,12 +32,10 @@ function Field({ id, label, className = "", children }: { id: string; label: str
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <fieldset className="border border-[var(--color-border)] bg-[var(--color-background)]">
+    <fieldset className={card}>
       <legend className="sr-only">{title}</legend>
-      <p className="border-b border-[var(--color-border)] px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--color-charcoal)]">
-        {title}
-      </p>
-      <div className="grid grid-cols-2 gap-x-3 gap-y-3 p-3 sm:grid-cols-6">{children}</div>
+      <p className="px-5 pt-5 text-[16px] font-semibold text-[var(--color-foreground)]">{title}</p>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-4 p-5 sm:grid-cols-6">{children}</div>
     </fieldset>
   );
 }
@@ -61,7 +59,8 @@ export default function NewPatientPage() {
   return (
     <>
       <PageHeader title="Register patient" meta="The ANC schedule is generated from the LMP on save." />
-      <form action={formAction} className="max-w-3xl space-y-4 p-4 md:p-6" noValidate>
+      <div className={pageBody}>
+      <form action={formAction} className="max-w-3xl space-y-5" noValidate>
         <Section title="Identity & contact">
           <Field id="name" label="Full name *" className="col-span-2 sm:col-span-4">
             <input id="name" name="name" type="text" required autoFocus className={inputClass} />
@@ -100,7 +99,7 @@ export default function NewPatientPage() {
               ))}
             </select>
           </Field>
-          <label className="col-span-2 flex min-h-10 items-center gap-2 self-end border border-[var(--color-border-strong)] px-2.5 text-[14px]">
+          <label className="rounded-xl col-span-2 flex min-h-11 items-center gap-2 self-end border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 text-[14px]">
             <input type="checkbox" name="rhNegative" className="h-4 w-4 accent-[var(--color-primary)]" />
             Rh negative
           </label>
@@ -118,7 +117,7 @@ export default function NewPatientPage() {
               onChange={(e) => setLmp(e.target.value)}
             />
           </Field>
-          <div className="col-span-2 grid grid-cols-3 self-end border border-[var(--color-border)] sm:col-span-4">
+          <div className="col-span-2 grid grid-cols-3 self-end rounded-xl bg-[var(--color-primary-surface)]/60 sm:col-span-4">
             {preview && "error" in preview ? (
               <p className="col-span-3 px-3 py-2 text-[13px] text-[var(--color-overdue)]">{preview.error}</p>
             ) : (
@@ -127,8 +126,8 @@ export default function NewPatientPage() {
                 ["GA today", preview?.ga],
                 ["Trimester", preview ? `T${preview.trimester}` : undefined],
               ].map(([label, value]) => (
-                <div key={label} className="border-r border-[var(--color-border)] px-3 py-1.5 last:border-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-charcoal)]">{label}</p>
+                <div key={label} className="px-3 py-2">
+                  <p className="text-[12px] font-medium text-[var(--color-charcoal)]">{label}</p>
                   <p className="num text-[14px] font-medium">{value ?? "—"}</p>
                 </div>
               ))
@@ -137,7 +136,7 @@ export default function NewPatientPage() {
         </Section>
 
         {state.error && (
-          <p role="alert" className="border-l-[3px] border-[var(--color-overdue)] bg-[var(--color-overdue-surface)] px-3 py-2 text-[13px] text-[var(--color-overdue)]">
+          <p role="alert" className="rounded-xl bg-[var(--color-overdue-surface)] px-4 py-3 text-[13px] text-[var(--color-overdue)]">
             {state.error}
           </p>
         )}
@@ -146,6 +145,7 @@ export default function NewPatientPage() {
           <SubmitButton>Register & generate schedule</SubmitButton>
         </div>
       </form>
+      </div>
     </>
   );
 }

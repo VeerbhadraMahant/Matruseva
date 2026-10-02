@@ -101,7 +101,7 @@ export function DocumentUploader({
   }
 
   return (
-    <div className="rounded-[var(--radius-cards)] border border-[var(--color-border)] p-[var(--space-21)]">
+    <div className="rounded-[var(--radius-cards)] border border-dashed border-[var(--color-border-strong)] bg-[var(--color-surface-1)]/60 p-5">
       <div className="mb-3 flex flex-wrap items-center gap-4">
         {!fixedDocType && (
           <div className="flex items-center gap-2">

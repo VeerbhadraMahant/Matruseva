@@ -12,7 +12,7 @@ function Button() {
     <button
       type="submit"
       disabled={pending}
-      className="min-h-8 whitespace-nowrap border border-[var(--color-border-strong)] px-2.5 text-[13px] font-medium hover:border-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-white disabled:cursor-wait disabled:opacity-60"
+      className="rounded-xl min-h-8 whitespace-nowrap border border-[var(--color-border-strong)] px-2.5 text-[13px] font-medium hover:border-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-white disabled:cursor-wait disabled:opacity-60"
     >
       {pending ? "Saving…" : "Mark done"}
     </button>

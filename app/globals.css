@@ -2,42 +2,44 @@
 @import "../design-system/tailwind.theme.css";
 
 /*
-  MatruSetu clinical UI layer. Dense, square, high-contrast: this is a
-  worklist tool used all day at an OPD desk, not a marketing page.
-  Overrides the botanical source tokens (unlayered :root beats @theme).
-  Light mode only.
+  MatruSetu UI layer — "Plum & Cream".
+  Calm, official, uncluttered: soft cream canvas, white rounded cards, one
+  plum accent. The legacy token names below are kept (900+ usages) but now
+  all resolve to the pc-* design tokens defined once further down.
+  Unlayered :root beats @theme. Light mode only.
 */
 :root {
-  --color-canvas: #f3f3f1;
-  --color-background: #ffffff;
-  --color-foreground: #141619;
-  --color-charcoal: #555a61; /* secondary text — 6.9:1 on white */
-  --color-surface-1: #f6f6f4;
-  --color-surface-2: #eeeeeb;
-  --color-surface-3: #e4e4e0;
-  --color-surface-4: #d9d9d4;
-  --color-border: #dcdbd6;
-  --color-border-strong: #b8b7b0;
-  --color-primary: #0f3e17;
-  --color-primary-hover: #0a2b10;
+  --color-canvas: var(--color-pc-canvas);
+  --color-background: var(--color-pc-card);
+  --color-foreground: var(--color-pc-ink);
+  --color-charcoal: var(--color-pc-muted); /* secondary text — 7.1:1 on white */
+  --color-surface-1: #f8f4ee; /* muted text 6.5:1 */
+  --color-surface-2: #f2ece4; /* muted text 6.0:1 */
+  --color-surface-3: #eae2d8;
+  --color-surface-4: #ded4c8;
+  --color-border: var(--color-pc-line);
+  --color-border-strong: #958aa0; /* form-control boundary — 3.3:1 on white */
+  --color-primary: var(--color-pc-plum);
+  --color-primary-hover: var(--color-pc-plum-hover);
   --color-primary-foreground: #ffffff;
+  --color-primary-surface: var(--color-pc-lilac);
 
-  --color-rail: #111613;
-  --color-rail-hover: #1b221d;
-  --color-rail-text: #c9cfca;
-  --color-rail-accent: #7cc47f;
+  --color-rail: var(--color-pc-plum);
+  --color-rail-hover: var(--color-pc-plum-hover);
+  --color-rail-text: #e6ddef;
+  --color-rail-accent: var(--color-pc-lilac);
 
   /* Status — never color alone; always paired with a text label */
-  --color-due: #7a4f00;
-  --color-due-surface: #fbf0d9;
-  --color-overdue: #a4241b;
-  --color-overdue-surface: #fbe9e7;
-  --color-on-track: #1d6531;
-  --color-on-track-surface: #e6f1e8;
-  --color-info: #1f4f86;
-  --color-info-surface: #e7eef7;
+  --color-due: var(--color-pc-risk);
+  --color-due-surface: var(--color-pc-risk-soft);
+  --color-overdue: var(--color-pc-overdue);
+  --color-overdue-surface: var(--color-pc-overdue-soft);
+  --color-on-track: var(--color-pc-active);
+  --color-on-track-surface: var(--color-pc-active-soft);
+  --color-info: var(--color-pc-delivered);
+  --color-info-surface: var(--color-pc-delivered-soft);
 
-  --text-heading: 22px;
+  --text-heading: 24px;
   --text-heading-sm: 20px;
   --text-subheading: 15px;
 
@@ -45,11 +47,11 @@
   --space-28: 16px;
   --space-21: 14px;
 
-  --radius-nav: 0px;
-  --radius-cards: 0px;
-  --radius-buttons: 0px;
-  --radius-badges: 0px;
-  --radius-sections: 0px;
+  --radius-nav: 10px;
+  --radius-cards: 18px;
+  --radius-buttons: 12px;
+  --radius-badges: 999px;
+  --radius-sections: 22px;
 }
 
 @theme inline {
@@ -61,31 +63,49 @@
 }
 
 body {
-  background: var(--color-canvas);
+  background:
+    radial-gradient(60rem 30rem at 100% -10%, color-mix(in srgb, var(--color-pc-lilac-strong) 50%, transparent), transparent 70%),
+    radial-gradient(40rem 24rem at -10% 110%, color-mix(in srgb, var(--color-pc-brass) 12%, transparent), transparent 70%),
+    linear-gradient(170deg, var(--color-pc-canvas) 0%, var(--color-pc-canvas-to) 100%);
+  background-attachment: fixed;
   color: var(--color-foreground);
   font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
   font-size: 14px;
-  line-height: 1.45;
+  line-height: 1.5;
 }
 
 h1, h2, h3, h4 {
   font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
   font-weight: 600;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
 }
 
+/* Figures: same face as body text, aligned digits. Mono only for codes. */
 .num {
-  font-family: var(--font-mono-face), ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
 }
 
 :focus-visible {
   outline: 2px solid var(--color-primary);
-  outline-offset: 1px;
+  outline-offset: 2px;
 }
 
-input, select, textarea, button {
-  border-radius: 0;
+/* Soft corners by default; in the base layer so rounded-* utilities still win. */
+@layer base {
+  button, input, select, textarea {
+    border-radius: var(--radius-buttons);
+  }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea {
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus, select:focus, textarea:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-pc-lilac-strong) 70%, transparent);
+    outline: none;
+  }
+  input[type="checkbox"], input[type="radio"] {
+    accent-color: var(--color-primary);
+  }
 }
 
 @keyframes pulse-bar {
@@ -94,6 +114,7 @@ input, select, textarea, button {
 }
 .skeleton {
   background: var(--color-surface-2);
+  border-radius: 8px;
   animation: pulse-bar 1.2s ease-in-out infinite;
 }
 
@@ -137,19 +158,7 @@ input, select, textarea, button {
 }
 
 .pc-scope {
-  background:
-    radial-gradient(60rem 30rem at 100% -10%, color-mix(in srgb, var(--color-pc-lilac-strong) 55%, transparent), transparent 70%),
-    radial-gradient(40rem 24rem at -10% 110%, color-mix(in srgb, var(--color-pc-brass) 14%, transparent), transparent 70%),
-    linear-gradient(170deg, var(--color-pc-canvas) 0%, var(--color-pc-canvas-to) 100%);
   color: var(--color-pc-ink);
-}
-/* The global square-corner reset is unlayered; hand radius back to utilities here. */
-.pc-scope :is(button, input, select, textarea) {
-  border-radius: revert-layer;
-}
-.pc-scope :focus-visible {
-  outline: 2px solid var(--color-pc-plum);
-  outline-offset: 2px;
 }
 
 @keyframes pc-rise {
@@ -173,5 +182,6 @@ input, select, textarea, button {
 
 @media (prefers-reduced-motion: reduce) {
   .pc-rise, .pc-skeleton { animation: none; }
-  .pc-scope *, .pc-scope *::before, .pc-scope *::after { transition-duration: 0.01ms !important; }
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+  .skeleton { animation: none; }
 }

@@ -109,11 +109,11 @@ export function CommandPalette() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 px-4 pt-[12vh]"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-[rgb(34_27_43/0.35)] px-4 pt-[12vh] backdrop-blur-sm"
       onMouseDown={(e) => e.target === e.currentTarget && setOpen(false)}
     >
-      <div role="dialog" aria-modal="true" aria-label="Find patient or page" className="w-full max-w-xl border border-[var(--color-border-strong)] bg-[var(--color-background)] shadow-[0_12px_40px_rgba(0,0,0,0.25)]">
-        <div className="flex items-center gap-2 border-b border-[var(--color-border)] px-3">
+      <div role="dialog" aria-modal="true" aria-label="Find patient or page" className="w-full max-w-xl overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-background)] shadow-[0_30px_60px_-20px_rgb(62_42_92/0.45)]">
+        <div className="flex items-center gap-2 border-b border-[var(--color-border)] px-4">
           <MagnifyingGlass size={18} className="text-[var(--color-charcoal)]" aria-hidden />
           <input
             ref={inputRef}
@@ -134,11 +134,11 @@ export function CommandPalette() {
             }}
             placeholder="Name, phone number, or page…"
             aria-label="Search"
-            className="min-h-12 flex-1 bg-transparent text-[15px] outline-none"
+            className="min-h-14 flex-1 rounded-none border-0 bg-transparent text-[16px] shadow-none outline-none focus:shadow-none"
           />
-          <kbd className="num border border-[var(--color-border)] px-1 text-[10px] text-[var(--color-charcoal)]">Esc</kbd>
+          <kbd className="rounded-md num border border-[var(--color-border)] px-1 text-[10px] text-[var(--color-charcoal)]">Esc</kbd>
         </div>
-        <ul className="max-h-[50vh] overflow-y-auto py-1" role="listbox">
+        <ul className="max-h-[50vh] overflow-y-auto p-2" role="listbox">
           {patients === null && <li className="px-3 py-2 text-[13px] text-[var(--color-charcoal)]">Loading patients…</li>}
           {items.map((item, i) => (
             <li key={item.id} role="option" aria-selected={i === cursor}>
@@ -146,7 +146,7 @@ export function CommandPalette() {
                 type="button"
                 onMouseEnter={() => setCursor(i)}
                 onClick={() => go(item)}
-                className={`flex min-h-10 w-full items-center gap-3 px-3 text-left ${i === cursor ? "bg-[var(--color-surface-2)]" : ""}`}
+                className={`flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left ${i === cursor ? "bg-[var(--color-primary-surface)] text-[var(--color-primary)]" : ""}`}
               >
                 {item.kind === "action" ? (
                   <UserPlus size={16} aria-hidden />

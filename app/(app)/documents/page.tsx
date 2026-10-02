@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatShortDate } from "@/lib/format";
 import { DocumentUploader } from "@/components/DocumentUploader";
 import { AssignDocumentForm } from "@/components/AssignDocumentForm";
-import { PageHeader, Panel, Tag, type Tone } from "@/components/ui";
+import { PageHeader, Panel, Tag, type Tone, pageBody } from "@/components/ui";
 
 const OCR_STATUS: Record<string, { label: string; tone: Tone }> = {
   pending: { label: "Reading…", tone: "neutral" },
@@ -35,9 +35,9 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
     <>
       <PageHeader title="Documents" meta="Photograph or upload case papers, reports and WhatsApp images, then file them to a patient." />
 
-      <div className="space-y-4 p-4 md:p-6">
+      <div className={pageBody}>
         <Panel title="Upload">
-          <div className="p-3">
+          <div className="p-4 pt-1">
             <DocumentUploader clinicId={me.clinicId} />
           </div>
         </Panel>
@@ -46,7 +46,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
           title={searching ? `Results for “${q}”` : "Inbox · unfiled"}
           count={docs.length}
           action={
-            <form action="/documents" className="flex items-center border border-[var(--color-border-strong)] focus-within:border-[var(--color-primary)]">
+            <form action="/documents" className="flex items-center rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-background)] focus-within:border-[var(--color-primary)]">
               <MagnifyingGlass size={15} className="ml-2 text-[var(--color-charcoal)]" aria-hidden />
               <input
                 type="search"
@@ -54,7 +54,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
                 defaultValue={q ?? ""}
                 placeholder="Search text in all documents"
                 aria-label="Search document text"
-                className="min-h-8 w-56 bg-transparent px-2 text-[13px] outline-none"
+                className="min-h-9 w-56 border-0 bg-transparent px-2 text-[13px] shadow-none outline-none focus:shadow-none"
               />
             </form>
           }
@@ -64,14 +64,14 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
               {searching ? "No documents matched." : "Inbox is clear — nothing waiting to be filed."}
             </p>
           ) : (
-            <ul className="grid gap-px bg-[var(--color-border)] sm:grid-cols-2 xl:grid-cols-3">
+            <ul className="grid gap-3 px-4 pb-4 sm:grid-cols-2 xl:grid-cols-3">
               {docs.map((doc) => {
                 const url = urlByPath.get(doc.storage_path) ?? null;
                 const isImage = /\.(jpe?g|png|webp)$/i.test(doc.storage_path);
                 const status = OCR_STATUS[doc.ocr_status ?? "pending"];
                 const patientName = (doc.patients as { name: string } | null)?.name;
                 return (
-                  <li key={doc.id} className="flex flex-col bg-[var(--color-background)]">
+                  <li key={doc.id} className="flex flex-col overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-background)]">
                     <a href={url ?? undefined} target="_blank" rel="noreferrer" className="block">
                       {url && isImage ? (
                         // eslint-disable-next-line @next/next/no-img-element -- private signed URL, not an optimizable static asset

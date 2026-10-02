@@ -10,7 +10,7 @@ import {
   type ReminderReason,
   type MessageTemplates,
 } from "@/lib/whatsapp";
-import { PageHeader } from "@/components/ui";
+import { PageHeader, pageBody } from "@/components/ui";
 import { CallQueue, type CallFilter, type CallRow } from "@/components/CallQueue";
 import type { ContactOutcome } from "@/lib/supabase/enums";
 
@@ -92,7 +92,7 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
           </>
         }
       />
-      <div className="p-4 md:p-6">
+      <div className={pageBody}>
         <CallQueue rows={queue} initialFilter={initialFilter} defaultLang={defaultLang} />
       </div>
     </>

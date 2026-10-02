@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Montserrat } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -21,12 +20,6 @@ import {
   CtaBackdrop,
   WaveDivider,
 } from "@/components/marketing/Backdrops";
-
-const montserrat = Montserrat({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  variable: "--font-landing",
-});
 
 export const metadata: Metadata = {
   title: "MatruSetu — Antenatal care, organised",
@@ -72,7 +65,7 @@ const SHOWCASE = [
     src: "/marketing/screenshot-today.jpg",
     title: "Today",
     caption:
-      "A dense, at-a-glance dashboard of the clinic's day — stat tiles and a worklist of every overdue patient, ready when staff walk in.",
+      "A calm view of the clinic's day — patients due today, a week strip, and a worklist of everyone who needs follow-up, ready when staff walk in.",
   },
   {
     src: "/marketing/screenshot-calls.jpg",
@@ -97,11 +90,10 @@ const SHOWCASE = [
 export default function LandingPage() {
   return (
     <div
-      className={`${montserrat.variable} bg-[#f8f3eb] text-[#080331]`}
-      style={{ fontFamily: "var(--font-landing), sans-serif" }}
+      className="bg-[#faf6ec] text-[#221b2b]"
     >
       {/* Nav */}
-      <header className="sticky top-0 z-40 border-b border-[#080331]/10 bg-[#f8f3eb]/90 backdrop-blur-sm">
+      <header className="sticky top-0 z-40 border-b border-[#221b2b]/10 bg-[#faf6ec]/90 backdrop-blur-sm">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <span className="text-[20px] font-bold tracking-tight">
             MatruSetu
@@ -109,13 +101,13 @@ export default function LandingPage() {
           <nav className="flex items-center gap-2 sm:gap-3">
             <Link
               href="/login"
-              className="rounded-full px-4 py-2 text-[14px] font-medium text-[#080331] transition-colors hover:bg-[#080331]/5"
+              className="rounded-full px-4 py-2 text-[14px] font-medium text-[#221b2b] transition-colors hover:bg-[#221b2b]/5"
             >
               Sign in
             </Link>
             <Link
               href="/signup"
-              className="rounded-full bg-[#0f3e17] px-5 py-2 text-[14px] font-semibold text-white shadow-[0_8px_16px_0_rgba(15,62,23,0.25)] transition-colors hover:bg-[#0a2b10]"
+              className="rounded-full bg-[#3e2a5c] px-5 py-2 text-[14px] font-semibold text-white shadow-[0_8px_16px_0_rgba(62,42,92,0.28)] transition-colors hover:bg-[#2e1f46]"
             >
               Get started
             </Link>
@@ -128,14 +120,14 @@ export default function LandingPage() {
         <section className="relative mx-auto max-w-6xl px-4 pt-16 pb-20 sm:px-6 sm:pt-24 sm:pb-28">
           <HeroBackdrop />
           <Reveal className="mx-auto max-w-3xl text-center">
-            <span className="inline-flex items-center rounded-full bg-[#e6f1e8] px-4 py-1.5 text-[13px] font-semibold text-[#0f3e17]">
+            <span className="inline-flex items-center rounded-full bg-[#ebe1f1] px-4 py-1.5 text-[13px] font-semibold text-[#3e2a5c]">
               Built for OB-GYN clinics in India
             </span>
             <h1 className="mt-6 text-[36px] font-bold leading-[1.1] tracking-tight sm:text-[48px] lg:text-[56px]">
               Every pregnancy, tracked. Every follow-up,
-              <span className="text-[#0f3e17]"> caught.</span>
+              <span className="text-[#3e2a5c]"> caught.</span>
             </h1>
-            <p className="mx-auto mt-6 max-w-2xl text-[16px] leading-[1.6] text-[#333333] sm:text-[18px]">
+            <p className="mx-auto mt-6 max-w-2xl text-[16px] leading-[1.6] text-[#4a4354] sm:text-[18px]">
               MatruSetu is the clinical worklist for OB-GYN practices —
               automatic ANC schedules from LMP, a risk score for patients who
               are drifting away, and a digitised OPD register your staff can
@@ -144,13 +136,13 @@ export default function LandingPage() {
             <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
                 href="/signup"
-                className="w-full rounded-full bg-[#0f3e17] px-7 py-3.5 text-center text-[16px] font-semibold text-white shadow-[0_12px_24px_0_rgba(15,62,23,0.25)] transition-colors hover:bg-[#0a2b10] sm:w-auto"
+                className="w-full rounded-full bg-[#3e2a5c] px-7 py-3.5 text-center text-[16px] font-semibold text-white shadow-[0_12px_24px_0_rgba(62,42,92,0.28)] transition-colors hover:bg-[#2e1f46] sm:w-auto"
               >
                 Create your clinic account
               </Link>
               <Link
                 href="/login"
-                className="w-full rounded-full border border-[#080331]/15 bg-white px-7 py-3.5 text-center text-[16px] font-semibold text-[#080331] transition-colors hover:bg-[#080331]/5 sm:w-auto"
+                className="w-full rounded-full border border-[#221b2b]/15 bg-white px-7 py-3.5 text-center text-[16px] font-semibold text-[#221b2b] transition-colors hover:bg-[#221b2b]/5 sm:w-auto"
               >
                 Sign in
               </Link>
@@ -162,7 +154,7 @@ export default function LandingPage() {
             <BrowserFrame>
               <Image
                 src="/marketing/screenshot-today.jpg"
-                alt="MatruSetu Today dashboard showing clinic stat tiles and a worklist of overdue patients"
+                alt="MatruSetu Today dashboard showing patients due today, a week strip and the follow-up worklist"
                 width={958}
                 height={958}
                 priority
@@ -175,7 +167,7 @@ export default function LandingPage() {
         {/* Feature grid */}
         <section
           id="features"
-          className="relative border-t border-[#080331]/10 bg-white py-20 sm:py-28"
+          className="relative border-t border-[#221b2b]/10 bg-white py-20 sm:py-28"
         >
           <FeatureBackdrop />
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
@@ -183,7 +175,7 @@ export default function LandingPage() {
               <h2 className="text-[28px] font-bold tracking-tight sm:text-[32px]">
                 Everything an OPD desk needs, nothing it doesn&apos;t
               </h2>
-              <p className="mt-4 text-[16px] leading-[1.6] text-[#333333]">
+              <p className="mt-4 text-[16px] leading-[1.6] text-[#4a4354]">
                 MatruSetu replaces the register and the spreadsheet with one
                 worklist doctors and staff both trust.
               </p>
@@ -192,14 +184,14 @@ export default function LandingPage() {
             <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {FEATURES.map(({ icon: Icon, title, body }, i) => (
                 <Reveal key={title} delay={(i % 3) * 80}>
-                  <div className="h-full rounded-2xl border border-[#080331]/10 bg-[#f8f3eb] p-8 shadow-[rgba(75,68,57,0.05)_0px_4px_4px_0px,rgba(75,68,57,0.08)_0px_32px_16px_0px]">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#0f3e17]/10 text-[#0f3e17]">
+                  <div className="h-full rounded-2xl border border-[#221b2b]/10 bg-[#faf6ec] p-8 shadow-[rgba(62,42,92,0.05)_0px_4px_4px_0px,rgba(62,42,92,0.08)_0px_32px_16px_0px]">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#3e2a5c]/10 text-[#3e2a5c]">
                       <Icon size={22} weight="bold" aria-hidden />
                     </div>
                     <h3 className="mt-5 text-[18px] font-semibold tracking-tight">
                       {title}
                     </h3>
-                    <p className="mt-2 text-[14px] leading-[1.6] text-[#333333]">
+                    <p className="mt-2 text-[14px] leading-[1.6] text-[#4a4354]">
                       {body}
                     </p>
                   </div>
@@ -212,7 +204,7 @@ export default function LandingPage() {
         {/* Product showcase */}
         <section
           id="product"
-          className="relative border-t border-[#080331]/10 py-20 sm:py-28"
+          className="relative border-t border-[#221b2b]/10 py-20 sm:py-28"
         >
           <ShowcaseBackdrop />
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
@@ -220,7 +212,7 @@ export default function LandingPage() {
               <h2 className="text-[28px] font-bold tracking-tight sm:text-[32px]">
                 A worklist built for how a clinic actually runs
               </h2>
-              <p className="mt-4 text-[16px] leading-[1.6] text-[#333333]">
+              <p className="mt-4 text-[16px] leading-[1.6] text-[#4a4354]">
                 Four screens your doctors and staff will live in every day.
               </p>
             </Reveal>
@@ -241,7 +233,7 @@ export default function LandingPage() {
                   <h3 className="mt-6 text-[18px] font-semibold tracking-tight">
                     {item.title}
                   </h3>
-                  <p className="mt-2 text-[14px] leading-[1.6] text-[#333333]">
+                  <p className="mt-2 text-[14px] leading-[1.6] text-[#4a4354]">
                     {item.caption}
                   </p>
                 </Reveal>
@@ -250,10 +242,10 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <WaveDivider from="#f8f3eb" to="#0f3e17" />
+        <WaveDivider from="#faf6ec" to="#3e2a5c" />
 
         {/* Trust / how it works strip */}
-        <section className="relative bg-[#0f3e17] py-20 text-white sm:py-24">
+        <section className="relative bg-[#3e2a5c] py-20 text-white sm:py-24">
           <TrustBackdrop />
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="grid grid-cols-1 gap-10 sm:grid-cols-3">
@@ -261,7 +253,7 @@ export default function LandingPage() {
                 <MagnifyingGlass
                   size={28}
                   weight="bold"
-                  className="text-[#7cc47f]"
+                  className="text-[#8c78b3]"
                   aria-hidden
                 />
                 <h3 className="mt-4 text-[18px] font-semibold">
@@ -276,7 +268,7 @@ export default function LandingPage() {
                 <ShieldWarning
                   size={28}
                   weight="bold"
-                  className="text-[#7cc47f]"
+                  className="text-[#8c78b3]"
                   aria-hidden
                 />
                 <h3 className="mt-4 text-[18px] font-semibold">
@@ -291,7 +283,7 @@ export default function LandingPage() {
                 <DeviceMobile
                   size={28}
                   weight="bold"
-                  className="text-[#7cc47f]"
+                  className="text-[#8c78b3]"
                   aria-hidden
                 />
                 <h3 className="mt-4 text-[18px] font-semibold">
@@ -306,7 +298,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <WaveDivider from="#0f3e17" to="#f8f3eb" />
+        <WaveDivider from="#3e2a5c" to="#faf6ec" />
 
         {/* Final CTA */}
         <section className="relative py-20 sm:py-28">
@@ -315,20 +307,20 @@ export default function LandingPage() {
             <h2 className="text-[28px] font-bold tracking-tight sm:text-[32px]">
               Bring your OPD onto one worklist
             </h2>
-            <p className="mt-4 text-[16px] leading-[1.6] text-[#333333]">
+            <p className="mt-4 text-[16px] leading-[1.6] text-[#4a4354]">
               Set up your clinic in minutes. Doctors and staff sign in with
               their own accounts from day one.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
                 href="/signup"
-                className="w-full rounded-full bg-[#0f3e17] px-7 py-3.5 text-center text-[16px] font-semibold text-white shadow-[0_12px_24px_0_rgba(15,62,23,0.25)] transition-colors hover:bg-[#0a2b10] sm:w-auto"
+                className="w-full rounded-full bg-[#3e2a5c] px-7 py-3.5 text-center text-[16px] font-semibold text-white shadow-[0_12px_24px_0_rgba(62,42,92,0.28)] transition-colors hover:bg-[#2e1f46] sm:w-auto"
               >
                 Create your clinic account
               </Link>
               <Link
                 href="/login"
-                className="w-full rounded-full border border-[#080331]/15 bg-white px-7 py-3.5 text-center text-[16px] font-semibold text-[#080331] transition-colors hover:bg-[#080331]/5 sm:w-auto"
+                className="w-full rounded-full border border-[#221b2b]/15 bg-white px-7 py-3.5 text-center text-[16px] font-semibold text-[#221b2b] transition-colors hover:bg-[#221b2b]/5 sm:w-auto"
               >
                 Sign in
               </Link>
@@ -337,8 +329,8 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer className="border-t border-[#080331]/10 py-8">
-        <div className="mx-auto max-w-6xl px-4 text-[13px] text-[#333333] sm:px-6">
+      <footer className="border-t border-[#221b2b]/10 py-8">
+        <div className="mx-auto max-w-6xl px-4 text-[13px] text-[#4a4354] sm:px-6">
           MatruSetu — antenatal care and OPD digitisation for OB-GYN clinics.
         </div>
       </footer>
@@ -348,11 +340,11 @@ export default function LandingPage() {
 
 function BrowserFrame({ children }: { children: React.ReactNode }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-[#080331]/10 bg-white shadow-[rgba(75,68,57,0.1)_0px_12px_24px_0px,rgba(75,68,57,0.1)_0px_48px_48px_0px]">
-      <div className="flex items-center gap-1.5 border-b border-[#080331]/10 bg-[#f8f3eb] px-4 py-3">
-        <span className="h-2.5 w-2.5 rounded-full bg-[#ff6d39]" />
-        <span className="h-2.5 w-2.5 rounded-full bg-[#f098d7]" />
-        <span className="h-2.5 w-2.5 rounded-full bg-[#328a3b]" />
+    <div className="overflow-hidden rounded-2xl border border-[#221b2b]/10 bg-white shadow-[rgba(62,42,92,0.1)_0px_12px_24px_0px,rgba(62,42,92,0.1)_0px_48px_48px_0px]">
+      <div className="flex items-center gap-1.5 border-b border-[#221b2b]/10 bg-[#faf6ec] px-4 py-3">
+        <span className="h-2.5 w-2.5 rounded-full bg-[#d9c9e6]" />
+        <span className="h-2.5 w-2.5 rounded-full bg-[#c9b8dc]" />
+        <span className="h-2.5 w-2.5 rounded-full bg-[#8c78b3]" />
       </div>
       {children}
     </div>

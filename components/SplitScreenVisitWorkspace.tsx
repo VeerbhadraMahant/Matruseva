@@ -40,7 +40,7 @@ interface SplitScreenVisitWorkspaceProps {
 const initialState: ActionResult = { error: null };
 const inputClass =
   "num min-h-9 w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2 py-1 text-[14px] focus:border-[var(--color-primary)]";
-const labelClass = "mb-1 block text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-charcoal)]";
+const labelClass = "mb-1 block text-[12px] font-medium text-[var(--color-charcoal)]";
 
 const DOC_TYPE_LABEL: Record<string, string> = {
   report: "Lab Report",
@@ -158,7 +158,7 @@ export function SplitScreenVisitWorkspace({
           {/* Document selection bar */}
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2">
             <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-charcoal)]">
+              <span className="text-[12px] font-medium text-[var(--color-charcoal)]">
                 Document:
               </span>
               {documents.length > 0 ? (
@@ -168,7 +168,7 @@ export function SplitScreenVisitWorkspace({
                     setSelectedDocId(e.target.value);
                     setZoom(1);
                   }}
-                  className="min-h-8 border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2 text-[13px] font-medium text-[var(--color-foreground)] flex-1 max-w-xs"
+                  className="rounded-xl min-h-8 border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2 text-[13px] font-medium text-[var(--color-foreground)] flex-1 max-w-xs"
                 >
                   {documents.map((d) => (
                     <option key={d.id} value={d.id}>
@@ -208,7 +208,7 @@ export function SplitScreenVisitWorkspace({
                     <button
                       type="button"
                       onClick={() => setZoom(1)}
-                      className="h-8 px-2 border border-[var(--color-border)] bg-[var(--color-background)] hover:bg-[var(--color-surface-1)] text-[11px] text-[var(--color-charcoal)]"
+                      className="rounded-xl h-8 px-2 border border-[var(--color-border)] bg-[var(--color-background)] hover:bg-[var(--color-surface-1)] text-[11px] text-[var(--color-charcoal)]"
                       title="Reset Zoom"
                     >
                       Reset
@@ -276,9 +276,9 @@ export function SplitScreenVisitWorkspace({
 
             {/* Collapsible OCR Text Panel Drawer */}
             {showOcr && currentDoc?.ocr_text && (
-              <div className="absolute inset-x-3 bottom-3 top-auto max-h-[45%] border border-[var(--color-border-strong)] bg-[var(--color-background)] shadow-xl p-3 z-10 flex flex-col">
+              <div className="rounded-xl absolute inset-x-3 bottom-3 top-auto max-h-[45%] border border-[var(--color-border-strong)] bg-[var(--color-background)] shadow-xl p-3 z-10 flex flex-col">
                 <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-1.5 mb-2">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-foreground)] flex items-center gap-1.5">
+                  <span className="text-[12px] font-medium text-[var(--color-foreground)] flex items-center gap-1.5">
                     <FileText size={14} className="text-[var(--color-primary)]" />
                     Indexed OCR Text Layer
                   </span>
@@ -323,7 +323,7 @@ export function SplitScreenVisitWorkspace({
 
           {/* Real-time Clinical Alerts Banner */}
           {(currentBpAlert || currentHbAlert || currentFhrAlert) && (
-            <div className="mb-4 p-2.5 border border-[var(--color-overdue)] bg-[var(--color-overdue-surface)] text-[12px] space-y-1">
+            <div className="rounded-xl mb-4 p-2.5 border border-[var(--color-overdue)] bg-[var(--color-overdue-surface)] text-[12px] space-y-1">
               <div className="font-semibold text-[var(--color-overdue)] flex items-center gap-1.5">
                 <Warning size={15} weight="fill" />
                 Abnormal Vitals Detected in Form:
@@ -479,7 +479,7 @@ export function SplitScreenVisitWorkspace({
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Ultrasound biometric observations, lab report findings, prescribed supplements (IFA, Calcium), patient complaints..."
-                className="w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] p-2 text-[13px] font-sans focus:border-[var(--color-primary)] outline-none"
+                className="rounded-xl w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] p-2 text-[13px] font-sans focus:border-[var(--color-primary)] outline-none"
               />
             </div>
 
@@ -493,7 +493,7 @@ export function SplitScreenVisitWorkspace({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-3 py-2 border border-[var(--color-border-strong)] text-[13px] font-medium hover:bg-[var(--color-surface-1)]"
+                className="rounded-xl px-3 py-2 border border-[var(--color-border-strong)] text-[13px] font-medium hover:bg-[var(--color-surface-1)]"
               >
                 Cancel
               </button>

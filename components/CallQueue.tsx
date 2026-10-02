@@ -11,10 +11,11 @@ import {
   ArrowsLeftRight,
   Translate,
   Robot,
+  CaretDown,
   UsersThree,
   Warning,
 } from "@phosphor-icons/react";
-import { Tag, SEVERITY_TONE, type Tone, buttonPrimary, buttonSecondary } from "@/components/ui";
+import { Tag, SEVERITY_TONE, type Tone, buttonPrimary, buttonSecondary, card, chipClass, chipCountClass } from "@/components/ui";
 import { ContactLogForm } from "@/components/ContactLogForm";
 import { quickLogContact, logBatchContacts } from "@/app/(app)/calls/actions";
 import { WhatsAppBotSimulator } from "@/components/WhatsAppBotSimulator";
@@ -172,11 +173,11 @@ export function CallQueue({
 
   return (
     <>
-      <div className="border border-[var(--color-border)] bg-[var(--color-background)]">
+      <div className={`overflow-hidden ${card}`}>
         {/* Filter and Language Toolbar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-border)] p-3 bg-[var(--color-surface-1)]">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-border)] p-4">
           {/* Worklist Filter Tabs */}
-          <div className="flex flex-wrap gap-px bg-[var(--color-border)] p-px" role="tablist" aria-label="Filter queue">
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-0.5 lg:mx-0 lg:px-0" role="tablist" aria-label="Filter queue">
             {FILTERS.map((f) => (
               <button
                 key={f.id}
@@ -184,13 +185,9 @@ export function CallQueue({
                 role="tab"
                 aria-selected={filter === f.id}
                 onClick={() => setFilter(f.id)}
-                className={`min-h-8 px-2.5 text-[13px] ${
-                  filter === f.id
-                    ? "bg-[var(--color-foreground)] font-medium text-white"
-                    : "bg-[var(--color-background)] hover:bg-[var(--color-surface-2)]"
-                }`}
+                className={chipClass(filter === f.id)}
               >
-                {f.label} <span className="num text-[11px] opacity-70">{counts[f.id]}</span>
+                {f.label} <span className={chipCountClass(filter === f.id)}>{counts[f.id]}</span>
               </button>
             ))}
           </div>
@@ -200,29 +197,30 @@ export function CallQueue({
             <button
               type="button"
               onClick={() => setSimulatorPatientId(visible[0]?.id || rows[0]?.id || null)}
-              className="flex items-center gap-1.5 min-h-8 border border-[#128C7E]/40 bg-[#E7F8EE] px-2.5 text-[12px] font-semibold text-[#128C7E] hover:bg-[#128C7E] hover:text-white transition-colors cursor-pointer"
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-background)] px-3.5 text-[13px] font-medium text-[var(--color-foreground)] transition-colors hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
               title="Open WhatsApp Business Bot Simulator to test 2-way patient conversations"
             >
               <Robot size={15} weight="bold" />
-              <span>Automated WhatsApp Bot</span>
+              <span>WhatsApp bot</span>
             </button>
 
             {/* WhatsApp Language Switcher */}
             <div className="flex items-center gap-2">
-              <span className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-charcoal)]">
+              <span className="flex items-center gap-1 text-[12px] font-medium text-[var(--color-charcoal)]">
                 <Translate size={14} className="text-[var(--color-primary)]" />
                 <span>Language:</span>
               </span>
-              <div className="inline-flex border border-[var(--color-border-strong)] bg-[var(--color-background)] p-0.5">
+              <div className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface-1)] p-1">
                 {SUPPORTED_LANGUAGES.map((l) => (
                   <button
                     key={l.code}
                     type="button"
+                    aria-pressed={selectedLang === l.code}
                     onClick={() => setSelectedLang(l.code)}
-                    className={`px-2.5 py-0.5 text-[12px] font-medium transition-colors ${
+                    className={`min-h-8 rounded-full px-3 text-[13px] font-medium transition-colors ${
                       selectedLang === l.code
                         ? "bg-[var(--color-primary)] text-white font-semibold"
-                        : "text-[var(--color-foreground)] hover:bg-[var(--color-surface-1)]"
+                        : "text-[var(--color-foreground)] hover:bg-[var(--color-background)]"
                     }`}
                   >
                     {l.nativeLabel}
@@ -234,7 +232,7 @@ export function CallQueue({
         </div>
 
         {/* Mobile Gestures Hint */}
-        <div className="lg:hidden flex items-center justify-between px-3 py-1.5 bg-[var(--color-surface-2)] border-b border-[var(--color-border)] text-[11px] text-[var(--color-charcoal)]">
+        <div className="lg:hidden flex items-center justify-between px-4 py-2 bg-[var(--color-surface-1)] border-b border-[var(--color-border)] text-[12px] text-[var(--color-charcoal)]">
           <span className="flex items-center gap-1.5">
             <ArrowsLeftRight size={13} aria-hidden />
             <span>Swipe: Right for Call · Left for WhatsApp</span>
@@ -273,7 +271,7 @@ export function CallQueue({
 
         {/* Batch Selection Header Toolbar */}
         {visible.length > 0 && (
-          <div className="flex items-center justify-between px-3 py-2 bg-[var(--color-surface-1)] border-b border-[var(--color-border)] text-xs text-[var(--color-charcoal)]">
+          <div className="flex items-center justify-between px-4 py-2.5 bg-[var(--color-surface-1)] border-b border-[var(--color-border)] text-[13px] text-[var(--color-charcoal)]">
             <label className="flex items-center gap-2 cursor-pointer font-medium text-[var(--color-foreground)] select-none">
               <input
                 type="checkbox"
@@ -352,7 +350,7 @@ export function CallQueue({
           aria-modal="true"
           className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4 backdrop-blur-xs"
         >
-          <div className="w-full max-w-lg border border-[var(--color-border-strong)] bg-[var(--color-background)] p-4 shadow-2xl animate-in slide-in-from-bottom duration-150">
+          <div className="rounded-2xl w-full max-w-lg border border-[var(--color-border-strong)] bg-[var(--color-background)] p-4 shadow-2xl animate-in slide-in-from-bottom duration-150">
             <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-3">
               <div className="flex items-center gap-2">
                 {quickLogTarget.channel === "call" ? (
@@ -381,9 +379,9 @@ export function CallQueue({
 
             {/* If WhatsApp, show language used and message preview */}
             {quickLogTarget.channel === "whatsapp" && quickLogTarget.messagesByLang && (
-              <div className="my-3 p-2.5 bg-[var(--color-surface-1)] border border-[var(--color-border)] text-[12px]">
+              <div className="rounded-xl my-3 p-2.5 bg-[var(--color-surface-1)] border border-[var(--color-border)] text-[12px]">
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[11px] font-semibold uppercase text-[var(--color-charcoal)]">
+                  <span className="text-[11px] font-medium text-[var(--color-charcoal)]">
                     WhatsApp Message Preview:
                   </span>
                   <div className="inline-flex gap-1">
@@ -416,7 +414,7 @@ export function CallQueue({
               </div>
             ) : (
               <div className="space-y-3 pt-2">
-                <p className="text-[12px] font-medium uppercase tracking-[0.06em] text-[var(--color-charcoal)]">
+                <p className="text-[12px] font-medium text-[var(--color-charcoal)]">
                   Select Contact Outcome:
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -424,7 +422,7 @@ export function CallQueue({
                     type="button"
                     disabled={isPending}
                     onClick={() => handleQuickSubmit("will_visit", "Patient confirmed visit")}
-                    className="flex items-center justify-between p-2.5 text-left border border-[var(--color-on-track)] bg-[var(--color-on-track-surface)] text-[var(--color-on-track)] hover:opacity-90 font-medium text-[13px]"
+                    className="rounded-xl flex items-center justify-between p-2.5 text-left border border-[var(--color-on-track)] bg-[var(--color-on-track-surface)] text-[var(--color-on-track)] hover:opacity-90 font-medium text-[13px]"
                   >
                     <span>✓ Will visit / Scheduled</span>
                     <span className="text-[11px] opacity-75">Coming in</span>
@@ -434,7 +432,7 @@ export function CallQueue({
                     type="button"
                     disabled={isPending}
                     onClick={() => handleQuickSubmit("reached", "Spoke with patient")}
-                    className="flex items-center justify-between p-2.5 text-left border border-[var(--color-border-strong)] bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-2)] text-[var(--color-foreground)] font-medium text-[13px]"
+                    className="rounded-xl flex items-center justify-between p-2.5 text-left border border-[var(--color-border-strong)] bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-2)] text-[var(--color-foreground)] font-medium text-[13px]"
                   >
                     <span>Reached / Informed</span>
                     <span className="text-[11px] text-[var(--color-charcoal)]">Spoke</span>
@@ -444,7 +442,7 @@ export function CallQueue({
                     type="button"
                     disabled={isPending}
                     onClick={() => handleQuickSubmit("no_answer", "Ringing, no response")}
-                    className="flex items-center justify-between p-2.5 text-left border border-[var(--color-due)] bg-[var(--color-due-surface)] text-[var(--color-due)] hover:opacity-90 font-medium text-[13px]"
+                    className="rounded-xl flex items-center justify-between p-2.5 text-left border border-[var(--color-due)] bg-[var(--color-due-surface)] text-[var(--color-due)] hover:opacity-90 font-medium text-[13px]"
                   >
                     <span>⚠ No answer / Busy</span>
                     <span className="text-[11px] opacity-75">Unanswered</span>
@@ -454,7 +452,7 @@ export function CallQueue({
                     type="button"
                     disabled={isPending}
                     onClick={() => handleQuickSubmit("wrong_number", "Wrong number or switched off")}
-                    className="flex items-center justify-between p-2.5 text-left border border-[var(--color-overdue)] bg-[var(--color-overdue-surface)] text-[var(--color-overdue)] hover:opacity-90 font-medium text-[13px]"
+                    className="rounded-xl flex items-center justify-between p-2.5 text-left border border-[var(--color-overdue)] bg-[var(--color-overdue-surface)] text-[var(--color-overdue)] hover:opacity-90 font-medium text-[13px]"
                   >
                     <span>✕ Wrong number / Out of service</span>
                     <span className="text-[11px] opacity-75">Invalid</span>
@@ -464,7 +462,7 @@ export function CallQueue({
                     type="button"
                     disabled={isPending}
                     onClick={() => handleQuickSubmit("refused", "Patient declined follow-up")}
-                    className="sm:col-span-2 flex items-center justify-between p-2 text-left border border-[var(--color-border)] text-[var(--color-charcoal)] hover:bg-[var(--color-surface-1)] text-[12px]"
+                    className="rounded-xl sm:col-span-2 flex items-center justify-between p-2 text-left border border-[var(--color-border)] text-[var(--color-charcoal)] hover:bg-[var(--color-surface-1)] text-[12px]"
                   >
                     <span>Refused care / Shifted elsewhere</span>
                     <span className="text-[11px]">Closed</span>
@@ -521,7 +519,7 @@ export function CallQueue({
                   id="batch-outcome"
                   value={batchOutcome}
                   onChange={(e) => setBatchOutcome(e.target.value as ContactOutcome | "automated_reminder")}
-                  className="min-h-9 border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2.5 py-1 text-xs font-medium focus:ring-1 focus:ring-[var(--color-primary)]"
+                  className="rounded-xl min-h-9 border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2.5 py-1 text-xs font-medium focus:ring-1 focus:ring-[var(--color-primary)]"
                 >
                   <option value="no_answer">No answer / Ringing</option>
                   <option value="reached">Reached / Informed</option>
@@ -537,7 +535,7 @@ export function CallQueue({
                 value={batchNotes}
                 onChange={(e) => setBatchNotes(e.target.value)}
                 placeholder="Optional notes for selected..."
-                className="min-h-9 border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2.5 text-xs max-w-xs focus:ring-1 focus:ring-[var(--color-primary)]"
+                className="rounded-xl min-h-9 border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2.5 text-xs max-w-xs focus:ring-1 focus:ring-[var(--color-primary)]"
               />
 
               <button
@@ -561,7 +559,7 @@ export function CallQueue({
           aria-labelledby="batch-confirm-title"
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs"
         >
-          <div className="w-full max-w-md border border-[var(--color-border-strong)] bg-[var(--color-background)] p-5 shadow-2xl space-y-3">
+          <div className="rounded-2xl w-full max-w-md border border-[var(--color-border-strong)] bg-[var(--color-background)] p-5 shadow-2xl space-y-3">
             <h3 id="batch-confirm-title" className="text-[15px] font-bold text-[var(--color-foreground)]">
               Confirm Batch Contact Logging
             </h3>
@@ -625,6 +623,7 @@ function SwipeableCallCard({
 }) {
   const [offsetX, setOffsetX] = useState(0);
   const [swiping, setSwiping] = useState(false);
+  const [showLog, setShowLog] = useState(false);
   const startXRef = useRef(0);
   const currentXRef = useRef(0);
 
@@ -700,7 +699,7 @@ function SwipeableCallCard({
           transform: `translateX(${offsetX}px)`,
           transition: swiping ? "none" : "transform 0.2s ease-out",
         }}
-        className={`relative z-1 bg-[var(--color-background)] grid gap-3 px-3 py-3 grid-cols-[auto_minmax(0,1fr)] lg:grid-cols-[1.5rem_2rem_minmax(0,1.3fr)_minmax(0,1fr)_auto] lg:items-center ${
+        className={`relative z-1 bg-[var(--color-background)] grid gap-3 px-4 py-4 grid-cols-[auto_minmax(0,1fr)] lg:grid-cols-[1.5rem_2rem_minmax(0,1.3fr)_minmax(0,1fr)_auto] lg:items-center ${
           calledToday ? "bg-[var(--color-surface-1)]" : ""
         } ${isSelected ? "ring-1 ring-[var(--color-primary)] bg-[var(--color-surface-1)]" : ""}`}
       >
@@ -748,7 +747,7 @@ function SwipeableCallCard({
           </div>
         </div>
 
-        <div className="text-[13px]">
+        <div className="col-start-2 text-[13px] lg:col-start-auto">
           {r.lastContact ? (
             <div className="flex flex-wrap items-center gap-1.5">
               {calledToday && (
@@ -767,12 +766,12 @@ function SwipeableCallCard({
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="col-start-2 flex flex-wrap items-center gap-2 lg:col-start-auto">
           {r.tel && (
             <button
               type="button"
               onClick={onTriggerCall}
-              className="inline-flex min-h-9 items-center gap-1.5 bg-[var(--color-primary)] px-3 text-[13px] font-semibold text-white hover:bg-[var(--color-primary-hover)] cursor-pointer"
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-[var(--color-primary)] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[var(--color-primary-hover)] cursor-pointer"
             >
               <Phone size={15} weight="fill" aria-hidden /> Call
             </button>
@@ -781,32 +780,40 @@ function SwipeableCallCard({
             <button
               type="button"
               onClick={onTriggerWhatsApp}
-              className="inline-flex min-h-9 items-center gap-1.5 border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2.5 text-[13px] font-medium hover:border-[var(--color-foreground)] cursor-pointer"
+              className="rounded-xl inline-flex min-h-10 items-center gap-1.5 border border-[var(--color-border)] bg-[var(--color-background)] px-3 text-[13px] font-medium transition-colors hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] cursor-pointer"
               title={`Send WhatsApp reminder in ${SUPPORTED_LANGUAGES.find((l) => l.code === selectedLang)?.nativeLabel}`}
             >
               <WhatsappLogo size={15} aria-hidden />
               <span>WhatsApp</span>
-              <span className="text-[10px] text-[var(--color-charcoal)] uppercase font-semibold">
-                ({selectedLang})
-              </span>
             </button>
           )}
           {onTriggerBot && (
             <button
               type="button"
               onClick={onTriggerBot}
-              className="inline-flex min-h-9 items-center gap-1.5 border border-[#128C7E]/40 bg-[#E7F8EE]/60 text-[#128C7E] px-2 text-[13px] font-medium hover:bg-[#128C7E] hover:text-white transition-colors cursor-pointer"
+              className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-xl text-[var(--color-charcoal)] transition-colors hover:bg-[var(--color-primary-surface)] hover:text-[var(--color-primary)] cursor-pointer"
               title="Test 2-way automated WhatsApp Bot for this patient"
+              aria-label={`Open WhatsApp bot simulator for ${r.name}`}
             >
-              <Robot size={15} weight="bold" aria-hidden />
-              <span className="hidden md:inline">Bot</span>
+              <Robot size={18} aria-hidden />
             </button>
           )}
-          <div className="hidden sm:block">
-            <ContactLogForm patientId={r.id} />
-          </div>
+          <button
+            type="button"
+            onClick={() => setShowLog((v) => !v)}
+            aria-expanded={showLog}
+            className="hidden min-h-10 items-center gap-1 rounded-xl px-2.5 text-[13px] font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary-surface)] sm:inline-flex"
+          >
+            Log outcome
+            <CaretDown size={13} aria-hidden className={`transition-transform ${showLog ? "rotate-180" : ""}`} />
+          </button>
         </div>
       </div>
+      {showLog && (
+        <div className="relative z-1 hidden justify-end border-t border-dashed border-[var(--color-border)] bg-[var(--color-surface-1)] px-4 py-3 sm:flex">
+          <ContactLogForm patientId={r.id} />
+        </div>
+      )}
     </li>
   );
 }

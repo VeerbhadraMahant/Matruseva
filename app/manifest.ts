@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Assistive pregnancy tracking and OPD digitisation for OB-GYN practices.",
     start_url: "/today",
     display: "standalone",
-    background_color: "#fffefc",
-    theme_color: "#0f3e17",
+    background_color: "#faf6ec",
+    theme_color: "#3e2a5c",
     icons: [
       {
         src: "/icon.svg",

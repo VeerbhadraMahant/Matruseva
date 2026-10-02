@@ -23,7 +23,7 @@ function playBeep() {
   }
 }
 
-export function ScanQRCardButton({ className = "" }: { className?: string }) {
+export function ScanQRCardButton({ className = "", primary = false }: { className?: string; primary?: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -31,10 +31,10 @@ export function ScanQRCardButton({ className = "" }: { className?: string }) {
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className={`${buttonSecondary} gap-1.5 ${className}`}
+        className={`${primary ? buttonPrimary : buttonSecondary} gap-1.5 ${className}`}
         title="Scan Mother's QR Health Card at Reception"
       >
-        <Camera size={16} weight="bold" className="text-[var(--color-primary)]" />
+        <Camera size={16} weight="bold" className={primary ? "" : "text-[var(--color-primary)]"} />
         <span>Scan Card</span>
       </button>
 

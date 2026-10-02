@@ -8,7 +8,7 @@ import { StaffInviteForm } from "@/components/settings/StaffInviteForm";
 import { RemoveStaffButton } from "@/components/settings/RemoveStaffButton";
 import { MessageTemplatesForm } from "@/components/settings/MessageTemplatesForm";
 import { ClinicalProtocolSignOff } from "@/components/settings/ClinicalProtocolSignOff";
-import { PageHeader, Panel, Tag } from "@/components/ui";
+import { PageHeader, Panel, Tag, pageBody } from "@/components/ui";
 import type { MessageTemplates } from "@/lib/whatsapp";
 
 export default async function SettingsPage() {
@@ -32,16 +32,16 @@ export default async function SettingsPage() {
   return (
     <>
       <PageHeader title="Settings" meta={clinic.name} />
-      <div className="grid gap-4 p-4 md:p-6 xl:grid-cols-2">
-        <div className="space-y-4">
+      <div className={`${pageBody} grid grid-cols-[minmax(0,1fr)] gap-5 space-y-0 xl:grid-cols-2`}>
+        <div className="space-y-5">
           <Panel title="Clinic details">
-            <div className="p-3">
+            <div className="p-4 pt-1">
               <ClinicDetailsForm name={clinic.name} city={clinic.city} phone={clinic.phone} />
             </div>
           </Panel>
 
           <Panel title="Follow-up thresholds">
-            <div className="p-3">
+            <div className="p-4 pt-1">
               <RiskThresholdsForm atRiskDays={clinic.risk_at_risk_days} lostDays={clinic.risk_lost_days} />
             </div>
           </Panel>
@@ -49,7 +49,7 @@ export default async function SettingsPage() {
           <Panel title="Staff" count={(staff ?? []).length}>
             <ul>
               {(staff ?? []).map((s) => (
-                <li key={s.id} className="flex min-h-11 items-center justify-between border-b border-[var(--color-border)] px-3 text-[14px]">
+                <li key={s.id} className="flex min-h-12 items-center justify-between border-t border-[var(--color-border)]/70 px-4 text-[14px]">
                   <span className="flex items-center gap-2">
                     {s.full_name}
                     <Tag tone={s.role === "doctor" ? "info" : "neutral"}>{s.role}</Tag>
@@ -59,25 +59,25 @@ export default async function SettingsPage() {
                 </li>
               ))}
             </ul>
-            <div className="p-3">
+            <div className="p-4 pt-1">
               <StaffInviteForm />
             </div>
           </Panel>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-5">
           <Panel title="Clinical Lead Protocol Sign-Off (FOGSI / MoHFW)">
-            <div className="p-3">
+            <div className="p-4 pt-1">
               <ClinicalProtocolSignOff />
             </div>
           </Panel>
 
           <Panel title="ANC schedule template" count={items.length}>
-            <p className="border-b border-[var(--color-border)] px-3 py-2 text-[13px] text-[var(--color-charcoal)]">
+            <p className="px-4 pb-2 text-[13px] text-[var(--color-charcoal)]">
               Due-date windows in weeks of pregnancy. Applies to newly registered patients and to schedules regenerated after an LMP
               correction.
             </p>
-            <div className="px-3">
+            <div className="px-4 pb-2">
               {items.map((item) => (
                 <ScheduleItemRow
                   key={item.id}
@@ -92,7 +92,7 @@ export default async function SettingsPage() {
           </Panel>
 
           <Panel title="Reminder message templates">
-            <div className="p-3">
+            <div className="p-4 pt-1">
               <MessageTemplatesForm templates={(clinic.message_templates ?? {}) as MessageTemplates} />
             </div>
           </Panel>

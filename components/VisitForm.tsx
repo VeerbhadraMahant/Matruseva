@@ -7,7 +7,7 @@ import { SubmitButton } from "@/components/SubmitButton";
 const initialState: ActionResult = { error: null };
 const inputClass =
   "num min-h-9 w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2 py-1 text-[14px] focus:border-[var(--color-primary)]";
-const labelClass = "mb-1 block text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-charcoal)]";
+const labelClass = "mb-1 block text-[12px] font-medium text-[var(--color-charcoal)]";
 
 export function VisitForm({ patientId }: { patientId: string }) {
   const action = recordVisit.bind(null, patientId);

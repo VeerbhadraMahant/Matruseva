@@ -23,7 +23,7 @@ import { ClosePregnancyForm } from "@/components/ClosePregnancyForm";
 import { EditPatientButton } from "@/components/EditPatientModal";
 import { VitalsTrendCharts } from "@/components/VitalsTrendCharts";
 import { PatientDetailInteractive } from "@/components/PatientDetailInteractive";
-import { Panel, Tag, Empty, SEVERITY_TONE, buttonPrimary, buttonSecondary, th, td, type Tone } from "@/components/ui";
+import { Panel, Tag, Empty, SEVERITY_TONE, buttonPrimary, buttonSecondary, card, pageBody, th, td, type Tone } from "@/components/ui";
 import type { CareEventStatus, ContactOutcome, FollowUpRisk } from "@/lib/supabase/enums";
 import { getDemoPatientDetail } from "@/lib/demo-data";
 
@@ -60,9 +60,9 @@ const DOC_TYPE: Record<string, string> = {
 
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="border-r border-b border-[var(--color-border)] px-3 py-2">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-charcoal)]">{label}</p>
-      <div className="num mt-0.5 text-[15px] font-medium">{children}</div>
+    <div className="min-w-0 px-4 py-3">
+      <p className="text-[12px] font-medium text-[var(--color-charcoal)]">{label}</p>
+      <div className="num mt-1 text-[15px] font-semibold">{children}</div>
     </div>
   );
 }
@@ -249,17 +249,30 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
 
   return (
     <>
-      <header className="border-b border-[var(--color-border)] bg-[var(--color-background)]">
-        <div className="flex flex-wrap items-start justify-between gap-3 px-6 pt-4 pb-3">
-          <div>
-            <p className="text-[12px] text-[var(--color-charcoal)]">
-              <Link href="/patients" className="hover:underline">
-                Patients
-              </Link>{" "}
-              /{patient.clinic_patient_no ? <span className="num"> #{patient.clinic_patient_no}</span> : null}
-            </p>
-            <h1 className="text-[24px] leading-8">{patient.name}</h1>
-            <p className="num text-[13px] text-[var(--color-charcoal)]">
+      <header className="mx-auto w-full max-w-6xl px-4 pt-6 md:px-8 md:pt-8">
+        <nav aria-label="Breadcrumb" className="mb-3 text-[13px] text-[var(--color-charcoal)]">
+          <Link href="/patients" className="font-medium text-[var(--color-primary)] hover:underline">
+            Patients
+          </Link>
+          {patient.clinic_patient_no ? <span className="num"> / #{patient.clinic_patient_no}</span> : null}
+        </nav>
+        <div className={`overflow-hidden ${card}`}>
+        <div className="flex flex-wrap items-start justify-between gap-4 bg-[linear-gradient(135deg,color-mix(in_srgb,var(--color-pc-lilac)_70%,transparent)_0%,transparent_55%)] p-5">
+          <div className="flex min-w-0 items-center gap-4">
+            <span
+              aria-hidden
+              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[var(--color-primary)] text-[18px] font-semibold text-white"
+            >
+              {patient.name
+                .split(/\s+/)
+                .map((p) => p[0])
+                .slice(0, 2)
+                .join("")
+                .toUpperCase()}
+            </span>
+            <div className="min-w-0">
+            <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em]">{patient.name}</h1>
+            <p className="num mt-0.5 text-[13px] text-[var(--color-charcoal)]">
               {[
                 patient.age ? `${patient.age} y` : null,
                 formatGravidaPara(patient.gravida, patient.para),
@@ -270,6 +283,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
                 .filter(Boolean)
                 .join("  ·  ")}
             </p>
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <EditPatientButton
@@ -337,7 +351,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
           </div>
         </div>
 
-        <div className="grid grid-cols-2 border-t border-l border-[var(--color-border)] sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid grid-cols-2 divide-[var(--color-border)] border-t border-[var(--color-border)] sm:grid-cols-3 lg:grid-cols-6 lg:divide-x">
           <Fact label="Gestational age">
             {(patient.status === "delivered" || patient.status === "closed" || patient.pregnancy_status === "delivered" || patient.pregnancy_status === "closed") ? (
               <span className="font-semibold text-[var(--color-on-track)]">Delivered</span>
@@ -384,19 +398,20 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
             {openCount > 0 && <span className="ml-1.5 text-[12px] text-[var(--color-overdue)]">{openCount} overdue</span>}
           </Fact>
         </div>
+        </div>
       </header>
 
-      <div className="space-y-4 p-4 md:p-6 pb-20 md:pb-6">
+      <div className={pageBody}>
         {(patient.status === "delivered" || patient.status === "closed" || patient.pregnancy_status === "delivered" || patient.pregnancy_status === "closed") && (
-          <div className="border border-[var(--color-on-track)] bg-[var(--color-on-track-surface)] p-4 text-[var(--color-foreground)]">
+          <div className="rounded-[var(--radius-cards)] border border-[var(--color-on-track)]/40 bg-[var(--color-on-track-surface)] p-5 text-[var(--color-foreground)]">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--color-on-track)]/30 pb-2.5">
               <div className="flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center bg-[var(--color-on-track)] text-white">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--color-on-track)] text-white">
                   <Baby size={16} weight="bold" />
                 </div>
                 <div>
-                  <h3 className="text-[14px] font-bold text-[var(--color-on-track)] uppercase tracking-wider">
-                    Delivery Outcome & Pregnancy Closed
+                  <h3 className="text-[15px] font-semibold text-[var(--color-on-track)]">
+                    Delivery outcome · pregnancy closed
                   </h3>
                   <p className="text-[12px] text-[var(--color-charcoal)]">
                     Active ANC schedule closed on {patient.closed_at ? formatShortDate(patient.closed_at) : (patient.delivery_date ? formatShortDate(patient.delivery_date) : "record")}
@@ -408,27 +423,27 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-3 text-[13px]">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-charcoal)]">Delivery Date</p>
+                <p className="text-[12px] font-medium text-[var(--color-charcoal)]">Delivery Date</p>
                 <p className="font-semibold mt-0.5">{patient.delivery_date ? formatDate(patient.delivery_date) : "Recorded"}</p>
               </div>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-charcoal)]">Delivery Mode</p>
+                <p className="text-[12px] font-medium text-[var(--color-charcoal)]">Delivery Mode</p>
                 <p className="font-semibold mt-0.5">{patient.delivery_mode === "LSCS" ? "LSCS (Cesarean Section)" : "NVD (Normal Vaginal Delivery)"}</p>
               </div>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-charcoal)]">Birth Weight</p>
-                <p className="font-semibold font-mono mt-0.5">{patient.birth_weight_kg ? `${patient.birth_weight_kg} kg` : "—"}</p>
+                <p className="text-[12px] font-medium text-[var(--color-charcoal)]">Birth Weight</p>
+                <p className="num font-semibold mt-0.5">{patient.birth_weight_kg ? `${patient.birth_weight_kg} kg` : "—"}</p>
               </div>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-charcoal)]">Status</p>
+                <p className="text-[12px] font-medium text-[var(--color-charcoal)]">Status</p>
                 <p className="font-semibold text-[var(--color-on-track)] mt-0.5">Discharged from ANC</p>
               </div>
             </div>
           </div>
         )}
         {flags.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5 border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2">
-            <span className="mr-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-charcoal)]">Alerts</span>
+          <div className={`flex flex-wrap items-center gap-2 px-4 py-3 ${card}`}>
+            <span className="mr-1 text-[13px] font-semibold text-[var(--color-foreground)]">Clinical alerts</span>
             {flags.map((f) => (
               <Tag key={f.code} tone={SEVERITY_TONE[f.severity]}>
                 {f.label}
@@ -450,8 +465,8 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
           patientName={patient.name}
         />
 
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-          <div className="space-y-4">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-5 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+          <div className="space-y-5">
             <Panel title="ANC schedule" count={events.length}>
               {events.length === 0 ? (
                 <Empty>No schedule generated for this patient.</Empty>
@@ -543,7 +558,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
                             <td className={td}>{v.hb ? <Abn abnormal={hbFlag(v.hb) !== null}>{v.hb}</Abn> : "—"}</td>
                             <td className={td}>{v.fhr ? <Abn abnormal={fhrFlag(v.fhr) !== null}>{v.fhr}</Abn> : "—"}</td>
                             <td className={td}>{v.fundal_height ?? "—"}</td>
-                            <td className={`${td} min-w-40 font-sans text-[13px]`}>{v.notes ?? ""}</td>
+                            <td className={`${td} min-w-40 text-[13px]`}>{v.notes ?? ""}</td>
                           </tr>
                         );
                       })}
@@ -554,9 +569,9 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
             </Panel>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-5">
             <Panel title="Record visit" className="scroll-mt-4" >
-              <div id="record-visit" className="p-3">
+              <div id="record-visit" className="p-4 pt-1">
                 <PatientDetailInteractive
                   patientId={id}
                   patientName={patient.name}
@@ -579,7 +594,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
               ) : (
                 <ul>
                   {(contacts ?? []).map((c) => (
-                    <li key={c.id} className="flex items-center justify-between gap-2 border-b border-[var(--color-border)] px-3 py-2 text-[13px] last:border-0">
+                    <li key={c.id} className="flex items-center justify-between gap-2 border-t border-[var(--color-border)]/70 px-4 py-3 text-[13px]">
                       <span>
                         {c.channel === "whatsapp" ? "WhatsApp" : "Call"} ·{" "}
                         <span className="font-medium">{OUTCOME[c.outcome as ContactOutcome] ?? c.outcome}</span>
@@ -611,12 +626,12 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
               {docs.length === 0 ? (
                 <Empty>No documents filed yet.</Empty>
               ) : (
-                <ul className="grid grid-cols-2 gap-px bg-[var(--color-border)]">
+                <ul className="grid grid-cols-2 gap-3 p-4 pt-1">
                   {docs.map((doc) => {
                     const url = urlByPath.get(doc.storage_path) ?? null;
                     const isImage = /\.(jpe?g|png|webp)$/i.test(doc.storage_path);
                     return (
-                      <li key={doc.id} className="bg-[var(--color-background)]">
+                      <li key={doc.id} className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-background)]">
                         <a href={url ?? undefined} target="_blank" rel="noreferrer" className="block hover:opacity-90">
                           {url && isImage ? (
                             // eslint-disable-next-line @next/next/no-img-element -- private signed URL, not an optimizable static asset

@@ -29,6 +29,22 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+function BrandMark() {
+  return (
+    <span
+      aria-hidden
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[linear-gradient(140deg,var(--color-pc-plum)_0%,var(--color-pc-plum-mid)_130%)] text-[15px] font-semibold text-white shadow-[0_6px_14px_-6px_rgb(62_42_92/0.6)]"
+    >
+      M
+    </span>
+  );
+}
+
+function initials(name: string): string {
+  const parts = name.replace(/^dr\.?\s+/i, "").trim().split(/\s+/);
+  return ((parts[0]?.[0] ?? "") + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase();
+}
+
 export function AppSidebar({
   clinicName,
   userName,
@@ -42,23 +58,26 @@ export function AppSidebar({
   const items = isDoctor ? [...NAV_ITEMS, { href: "/settings", label: "Settings", icon: Gear }] : NAV_ITEMS;
 
   return (
-    <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col bg-[var(--color-rail)] text-[var(--color-rail-text)] md:flex">
-      <div className="border-b border-white/10 px-4 py-4">
-        <p className="text-[15px] font-semibold tracking-tight text-white">MatruSetu</p>
-        <p className="mt-0.5 truncate text-[12px]">{clinicName}</p>
+    <aside className="pc-glass sticky top-0 hidden h-dvh w-64 shrink-0 flex-col !rounded-none !border-y-0 !border-l-0 md:flex">
+      <div className="flex items-center gap-3 px-5 pb-4 pt-6">
+        <BrandMark />
+        <div className="min-w-0">
+          <p className="text-[16px] font-semibold tracking-tight text-[var(--color-foreground)]">MatruSetu</p>
+          <p className="truncate text-[12px] text-[var(--color-charcoal)]">{clinicName}</p>
+        </div>
       </div>
 
       <button
         type="button"
         onClick={openCommandPalette}
-        className="mx-3 mt-3 flex min-h-9 items-center gap-2 border border-white/15 px-2.5 text-left text-[13px] hover:border-white/40 hover:text-white"
+        className="mx-4 mt-1 flex min-h-10 items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] px-3 text-left text-[13px] text-[var(--color-charcoal)] transition-colors hover:border-[var(--color-primary)]"
       >
-        <MagnifyingGlass size={15} aria-hidden />
+        <MagnifyingGlass size={16} aria-hidden />
         <span className="flex-1">Find patient…</span>
-        <kbd className="num border border-white/20 px-1 text-[10px]">Ctrl K</kbd>
+        <kbd className="rounded-md bg-[var(--color-surface-2)] px-1.5 py-0.5 text-[11px] font-medium">Ctrl K</kbd>
       </button>
 
-      <nav className="mt-3 flex flex-1 flex-col" aria-label="Primary">
+      <nav className="mt-5 flex flex-1 flex-col gap-1 px-3" aria-label="Primary">
         {items.map(({ href, label, icon: Icon }) => {
           const active = isActive(pathname, href);
           return (
@@ -66,25 +85,37 @@ export function AppSidebar({
               key={href}
               href={href}
               aria-current={active ? "page" : undefined}
-              className={`relative flex min-h-10 items-center gap-3 px-4 text-[14px] ${
-                active ? "bg-[var(--color-rail-hover)] font-medium text-white" : "hover:bg-[var(--color-rail-hover)] hover:text-white"
+              className={`flex min-h-11 items-center gap-3 rounded-xl px-3 text-[14px] transition-colors duration-150 ${
+                active
+                  ? "bg-[var(--color-primary)] font-semibold text-white shadow-[0_8px_18px_-10px_rgb(62_42_92/0.7)]"
+                  : "text-[var(--color-charcoal)] hover:bg-[var(--color-primary-surface)] hover:text-[var(--color-primary)]"
               }`}
             >
-              {active && <span className="absolute inset-y-0 left-0 w-[3px] bg-[var(--color-rail-accent)]" aria-hidden />}
-              <Icon size={18} weight={active ? "fill" : "regular"} aria-hidden />
+              <Icon size={19} weight={active ? "fill" : "regular"} aria-hidden />
               {label}
             </Link>
           );
         })}
       </nav>
 
-      <div className="flex items-center justify-between gap-2 border-t border-white/10 px-4 py-3">
-        <div className="min-w-0">
-          <p className="truncate text-[13px] text-white">{userName}</p>
-          <p className="text-[11px] uppercase tracking-[0.06em]">{isDoctor ? "Doctor" : "Staff"}</p>
+      <div className="m-3 flex items-center gap-3 rounded-2xl bg-[var(--color-surface-1)] p-3">
+        <span
+          aria-hidden
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-surface)] text-[12px] font-semibold text-[var(--color-primary)]"
+        >
+          {initials(userName)}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[13px] font-medium text-[var(--color-foreground)]">{userName}</p>
+          <p className="text-[12px] text-[var(--color-charcoal)]">{isDoctor ? "Doctor" : "Staff"}</p>
         </div>
         <form action={logout}>
-          <button type="submit" className="flex min-h-9 min-w-9 items-center justify-center hover:text-white" aria-label="Sign out" title="Sign out">
+          <button
+            type="submit"
+            className="flex min-h-9 min-w-9 items-center justify-center rounded-lg text-[var(--color-charcoal)] transition-colors hover:bg-[var(--color-primary-surface)] hover:text-[var(--color-primary)]"
+            aria-label="Sign out"
+            title="Sign out"
+          >
             <SignOut size={18} aria-hidden />
           </button>
         </form>
@@ -95,15 +126,18 @@ export function AppSidebar({
 
 export function AppMobileHeader() {
   return (
-    <header className="sticky top-0 z-20 flex items-center justify-between bg-[var(--color-rail)] px-4 py-2 text-white md:hidden">
-      <span className="text-[15px] font-semibold">MatruSetu</span>
-      <div className="flex items-center">
+    <header className="pc-glass sticky top-0 z-20 flex items-center justify-between !rounded-none !border-x-0 !border-t-0 px-4 py-1.5 md:hidden">
+      <span className="flex items-center gap-2.5">
+        <BrandMark />
+        <span className="text-[16px] font-semibold tracking-tight">MatruSetu</span>
+      </span>
+      <div className="flex items-center text-[var(--color-charcoal)]">
         <button type="button" onClick={openCommandPalette} className="flex min-h-11 min-w-11 items-center justify-center" aria-label="Find patient">
-          <MagnifyingGlass size={20} aria-hidden />
+          <MagnifyingGlass size={21} aria-hidden />
         </button>
         <form action={logout}>
           <button type="submit" className="flex min-h-11 min-w-11 items-center justify-center" aria-label="Sign out">
-            <SignOut size={20} aria-hidden />
+            <SignOut size={21} aria-hidden />
           </button>
         </form>
       </div>
@@ -116,7 +150,7 @@ export function AppBottomNav() {
   return (
     <nav
       aria-label="Primary"
-      className="fixed inset-x-0 bottom-0 z-20 flex border-t border-[var(--color-border-strong)] bg-[var(--color-background)] md:hidden"
+      className="pc-glass fixed inset-x-0 bottom-0 z-20 flex !rounded-none !border-x-0 !border-b-0 px-1 pb-[env(safe-area-inset-bottom)] md:hidden"
     >
       {NAV_ITEMS.map(({ href, label, short, icon: Icon }) => {
         const active = isActive(pathname, href);
@@ -125,12 +159,17 @@ export function AppBottomNav() {
             key={href}
             href={href}
             aria-current={active ? "page" : undefined}
-            className={`relative flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] ${
+            className={`flex min-h-16 flex-1 flex-col items-center justify-center gap-1 text-[11px] ${
               active ? "font-semibold text-[var(--color-primary)]" : "text-[var(--color-charcoal)]"
             }`}
           >
-            {active && <span className="absolute inset-x-0 top-0 h-[3px] bg-[var(--color-primary)]" aria-hidden />}
-            <Icon size={22} weight={active ? "fill" : "regular"} aria-hidden />
+            <span
+              className={`flex h-7 w-12 items-center justify-center rounded-full transition-colors ${
+                active ? "bg-[var(--color-primary-surface)]" : ""
+              }`}
+            >
+              <Icon size={21} weight={active ? "fill" : "regular"} aria-hidden />
+            </span>
             {short ?? label}
           </Link>
         );

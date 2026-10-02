@@ -12,6 +12,7 @@ import {
   WarningOctagon,
 } from "@phosphor-icons/react";
 import { formatShortDate, parseLocalDate } from "@/lib/format";
+import { card } from "@/components/ui";
 import { gestationalAge, formatGA } from "@/lib/pregnancy";
 
 export interface VisitDataPoint {
@@ -194,24 +195,24 @@ export function VitalsTrendCharts({ visits, lmp, patientName }: VitalsTrendChart
   }, [weightVisits, fhrVisits]);
 
   return (
-    <div className="border border-[var(--color-border)] bg-[var(--color-background)]">
+    <div className={`overflow-hidden ${card}`}>
       {/* Header bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--color-border)] px-4 py-3 bg-[var(--color-surface-1)]">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-4 pb-2 pt-4">
         <div>
-          <h2 className="text-[13px] font-semibold uppercase tracking-[0.06em] text-[var(--color-foreground)] flex items-center gap-2">
-            <span>Antenatal Vitals & Partograph Trajectory</span>
+          <h2 className="text-[15px] font-semibold text-[var(--color-foreground)] flex items-center gap-2">
+            <span>Vitals trends</span>
             <span className="num font-normal text-[12px] text-[var(--color-charcoal)]">
               ({parsedVisits.length} {parsedVisits.length === 1 ? "visit" : "visits"} recorded)
             </span>
           </h2>
           <p className="text-[12px] text-[var(--color-charcoal)] mt-0.5">
-            Clinical trend monitoring for early detection of pre-eclampsia, fetal growth restriction (IUGR), and gestational anemia.
+            Early signs of pre-eclampsia, growth restriction (IUGR) and anaemia.
           </p>
         </div>
       </div>
 
       {/* KPI Overview Tabs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 border-b border-[var(--color-border)] bg-[var(--color-surface-1)] divide-x divide-y md:divide-y-0 divide-[var(--color-border)]">
+      <div className="grid grid-cols-2 gap-2 px-4 pb-3 md:grid-cols-4">
         {/* Tab 1: Blood Pressure */}
         <button
           type="button"
@@ -219,14 +220,14 @@ export function VitalsTrendCharts({ visits, lmp, patientName }: VitalsTrendChart
             setActiveTab("bp");
             setHoveredIndex(null);
           }}
-          className={`p-3 text-left transition-colors relative ${
-            activeTab === "bp" ? "bg-[var(--color-background)]" : "hover:bg-[var(--color-surface-2)]"
+          aria-pressed={activeTab === "bp"}
+          className={`relative rounded-xl border p-3 text-left transition-colors ${
+            activeTab === "bp"
+              ? "border-[var(--color-primary)] bg-[var(--color-primary-surface)]/50 shadow-[0_0_0_1px_var(--color-primary)]"
+              : "border-[var(--color-border)] bg-[var(--color-surface-1)] hover:border-[var(--color-primary)]"
           }`}
         >
-          {activeTab === "bp" && (
-            <div className="absolute top-0 left-0 right-0 h-[3px] bg-[var(--color-primary)]" />
-          )}
-          <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-charcoal)] mb-1">
+          <div className="flex items-center justify-between text-[12px] font-medium text-[var(--color-charcoal)] mb-1">
             <span className="flex items-center gap-1.5">
               <Heartbeat size={15} className="text-[var(--color-info)]" aria-hidden />
               Blood Pressure
@@ -262,14 +263,14 @@ export function VitalsTrendCharts({ visits, lmp, patientName }: VitalsTrendChart
             setActiveTab("sfh");
             setHoveredIndex(null);
           }}
-          className={`p-3 text-left transition-colors relative ${
-            activeTab === "sfh" ? "bg-[var(--color-background)]" : "hover:bg-[var(--color-surface-2)]"
+          aria-pressed={activeTab === "sfh"}
+          className={`relative rounded-xl border p-3 text-left transition-colors ${
+            activeTab === "sfh"
+              ? "border-[var(--color-primary)] bg-[var(--color-primary-surface)]/50 shadow-[0_0_0_1px_var(--color-primary)]"
+              : "border-[var(--color-border)] bg-[var(--color-surface-1)] hover:border-[var(--color-primary)]"
           }`}
         >
-          {activeTab === "sfh" && (
-            <div className="absolute top-0 left-0 right-0 h-[3px] bg-[var(--color-primary)]" />
-          )}
-          <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-charcoal)] mb-1">
+          <div className="flex items-center justify-between text-[12px] font-medium text-[var(--color-charcoal)] mb-1">
             <span className="flex items-center gap-1.5">
               <Ruler size={15} className="text-[var(--color-on-track)]" aria-hidden />
               Fundal Ht (SFH)
@@ -309,14 +310,14 @@ export function VitalsTrendCharts({ visits, lmp, patientName }: VitalsTrendChart
             setActiveTab("hb");
             setHoveredIndex(null);
           }}
-          className={`p-3 text-left transition-colors relative ${
-            activeTab === "hb" ? "bg-[var(--color-background)]" : "hover:bg-[var(--color-surface-2)]"
+          aria-pressed={activeTab === "hb"}
+          className={`relative rounded-xl border p-3 text-left transition-colors ${
+            activeTab === "hb"
+              ? "border-[var(--color-primary)] bg-[var(--color-primary-surface)]/50 shadow-[0_0_0_1px_var(--color-primary)]"
+              : "border-[var(--color-border)] bg-[var(--color-surface-1)] hover:border-[var(--color-primary)]"
           }`}
         >
-          {activeTab === "hb" && (
-            <div className="absolute top-0 left-0 right-0 h-[3px] bg-[var(--color-primary)]" />
-          )}
-          <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-charcoal)] mb-1">
+          <div className="flex items-center justify-between text-[12px] font-medium text-[var(--color-charcoal)] mb-1">
             <span className="flex items-center gap-1.5">
               <Drop size={15} className="text-[var(--color-overdue)]" aria-hidden />
               Hemoglobin (Hb)
@@ -361,14 +362,14 @@ export function VitalsTrendCharts({ visits, lmp, patientName }: VitalsTrendChart
             setActiveTab("weight_fhr");
             setHoveredIndex(null);
           }}
-          className={`p-3 text-left transition-colors relative ${
-            activeTab === "weight_fhr" ? "bg-[var(--color-background)]" : "hover:bg-[var(--color-surface-2)]"
+          aria-pressed={activeTab === "weight_fhr"}
+          className={`relative rounded-xl border p-3 text-left transition-colors ${
+            activeTab === "weight_fhr"
+              ? "border-[var(--color-primary)] bg-[var(--color-primary-surface)]/50 shadow-[0_0_0_1px_var(--color-primary)]"
+              : "border-[var(--color-border)] bg-[var(--color-surface-1)] hover:border-[var(--color-primary)]"
           }`}
         >
-          {activeTab === "weight_fhr" && (
-            <div className="absolute top-0 left-0 right-0 h-[3px] bg-[var(--color-primary)]" />
-          )}
-          <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-charcoal)] mb-1">
+          <div className="flex items-center justify-between text-[12px] font-medium text-[var(--color-charcoal)] mb-1">
             <span className="flex items-center gap-1.5">
               <Scales size={15} className="text-[var(--color-charcoal)]" aria-hidden />
               Weight & FHR
@@ -656,7 +657,7 @@ function BpChart({
         {/* Floating Tooltip Box */}
         {activePoint && hoveredIndex !== null && (
           <div
-            className="absolute top-2 right-2 bg-[var(--color-background)] border border-[var(--color-border-strong)] p-2.5 shadow-sm text-[12px] z-10 max-w-xs animate-in fade-in duration-100"
+            className="rounded-xl absolute top-2 right-2 bg-[var(--color-background)] border border-[var(--color-border-strong)] p-2.5 shadow-sm text-[12px] z-10 max-w-xs animate-in fade-in duration-100"
           >
             <div className="flex items-center justify-between gap-3 border-b border-[var(--color-border)] pb-1 mb-1.5">
               <span className="font-semibold text-[var(--color-foreground)]">{activePoint.dateLabel}</span>
@@ -681,7 +682,7 @@ function BpChart({
       </div>
 
       {/* Clinical Guidance Interpretation Box */}
-      <div className="p-3 border border-[var(--color-border)] bg-[var(--color-surface-1)] text-[12px] leading-relaxed">
+      <div className="rounded-xl p-3 border border-[var(--color-border)] bg-[var(--color-surface-1)] text-[12px] leading-relaxed">
         <div className="flex items-start gap-2">
           {isRapidRise || latest.bpSys! >= 140 || latest.bpDia! >= 90 ? (
             <Warning size={16} className="text-[var(--color-overdue)] shrink-0 mt-0.5" />
@@ -935,7 +936,7 @@ function SfhChart({
         {/* Floating Tooltip Box */}
         {activePoint && hoveredIndex !== null && (
           <div
-            className="absolute top-2 right-2 bg-[var(--color-background)] border border-[var(--color-border-strong)] p-2.5 shadow-sm text-[12px] z-10 max-w-xs animate-in fade-in duration-100"
+            className="rounded-xl absolute top-2 right-2 bg-[var(--color-background)] border border-[var(--color-border-strong)] p-2.5 shadow-sm text-[12px] z-10 max-w-xs animate-in fade-in duration-100"
           >
             <div className="flex items-center justify-between gap-3 border-b border-[var(--color-border)] pb-1 mb-1.5">
               <span className="font-semibold text-[var(--color-foreground)]">{activePoint.dateLabel}</span>
@@ -970,7 +971,7 @@ function SfhChart({
       </div>
 
       {/* Clinical Guidance Interpretation Box */}
-      <div className="p-3 border border-[var(--color-border)] bg-[var(--color-surface-1)] text-[12px] leading-relaxed">
+      <div className="rounded-xl p-3 border border-[var(--color-border)] bg-[var(--color-surface-1)] text-[12px] leading-relaxed">
         <div className="flex items-start gap-2">
           {isIugr ? (
             <Warning size={16} className="text-[var(--color-overdue)] shrink-0 mt-0.5" />
@@ -1238,7 +1239,7 @@ function HbChart({
         {/* Floating Tooltip Box */}
         {activePoint && hoveredIndex !== null && (
           <div
-            className="absolute top-2 right-2 bg-[var(--color-background)] border border-[var(--color-border-strong)] p-2.5 shadow-sm text-[12px] z-10 max-w-xs animate-in fade-in duration-100"
+            className="rounded-xl absolute top-2 right-2 bg-[var(--color-background)] border border-[var(--color-border-strong)] p-2.5 shadow-sm text-[12px] z-10 max-w-xs animate-in fade-in duration-100"
           >
             <div className="flex items-center justify-between gap-3 border-b border-[var(--color-border)] pb-1 mb-1.5">
               <span className="font-semibold text-[var(--color-foreground)]">{activePoint.dateLabel}</span>
@@ -1273,7 +1274,7 @@ function HbChart({
       </div>
 
       {/* Clinical Guidance Interpretation Box */}
-      <div className="p-3 border border-[var(--color-border)] bg-[var(--color-surface-1)] text-[12px] leading-relaxed">
+      <div className="rounded-xl p-3 border border-[var(--color-border)] bg-[var(--color-surface-1)] text-[12px] leading-relaxed">
         <div className="flex items-start gap-2">
           {isSevere ? (
             <WarningOctagon size={16} className="text-[var(--color-overdue)] shrink-0 mt-0.5" />
@@ -1507,7 +1508,7 @@ function WeightFhrChart({
         {/* Floating Tooltip Box */}
         {activePoint && hoveredIndex !== null && (
           <div
-            className="absolute top-2 right-2 bg-[var(--color-background)] border border-[var(--color-border-strong)] p-2.5 shadow-sm text-[12px] z-10 max-w-xs animate-in fade-in duration-100"
+            className="rounded-xl absolute top-2 right-2 bg-[var(--color-background)] border border-[var(--color-border-strong)] p-2.5 shadow-sm text-[12px] z-10 max-w-xs animate-in fade-in duration-100"
           >
             <div className="flex items-center justify-between gap-3 border-b border-[var(--color-border)] pb-1 mb-1.5">
               <span className="font-semibold text-[var(--color-foreground)]">{activePoint.dateLabel}</span>
@@ -1540,7 +1541,7 @@ function WeightFhrChart({
       </div>
 
       {/* Clinical Guidance Interpretation Box */}
-      <div className="p-3 border border-[var(--color-border)] bg-[var(--color-surface-1)] text-[12px] leading-relaxed">
+      <div className="rounded-xl p-3 border border-[var(--color-border)] bg-[var(--color-surface-1)] text-[12px] leading-relaxed">
         <div className="flex items-start gap-2">
           <CheckCircle size={16} className="text-[var(--color-on-track)] shrink-0 mt-0.5" />
           <div className="space-y-1">
@@ -1570,7 +1571,7 @@ function WeightFhrChart({
 
 function EmptyChartState({ title, message }: { title: string; message: string }) {
   return (
-    <div className="p-8 text-center border border-dashed border-[var(--color-border-strong)] bg-[var(--color-surface-1)]">
+    <div className="rounded-xl p-8 text-center border border-dashed border-[var(--color-border-strong)] bg-[var(--color-surface-1)]">
       <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-surface-2)] text-[var(--color-charcoal)] mb-2">
         <Info size={20} aria-hidden />
       </div>

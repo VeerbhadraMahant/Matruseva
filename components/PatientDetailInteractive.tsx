@@ -65,7 +65,7 @@ export function PatientDetailInteractive({
           <button
             type="button"
             onClick={() => handleOpenSplit()}
-            className="inline-flex items-center gap-1.5 border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2.5 py-1 text-[12px] font-semibold text-[var(--color-foreground)] hover:border-[var(--color-foreground)] cursor-pointer"
+            className="rounded-xl inline-flex items-center gap-1.5 border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2.5 py-1 text-[12px] font-semibold text-[var(--color-foreground)] hover:border-[var(--color-foreground)] cursor-pointer"
           >
             <span>Open Split-Screen Review</span>
           </button>
@@ -74,11 +74,11 @@ export function PatientDetailInteractive({
         {/* Multi-lingual WhatsApp Reminder Trigger */}
         {currentWaLink && (
           <div className="flex flex-wrap items-center gap-2">
-            <span className="flex items-center gap-1 text-[11px] font-semibold uppercase text-[var(--color-charcoal)]">
+            <span className="flex items-center gap-1 text-[11px] font-medium text-[var(--color-charcoal)]">
               <Translate size={13} className="text-[var(--color-primary)]" />
               <span>WA Language:</span>
             </span>
-            <div className="inline-flex border border-[var(--color-border-strong)] bg-[var(--color-background)] p-0.5">
+            <div className="rounded-xl inline-flex border border-[var(--color-border-strong)] bg-[var(--color-background)] p-0.5">
               {SUPPORTED_LANGUAGES.map((l) => (
                 <button
                   key={l.code}

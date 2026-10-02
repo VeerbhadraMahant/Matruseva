@@ -123,7 +123,7 @@ export function ClosePregnancyForm({ patient, todayIso }: ClosePregnancyFormProp
           aria-labelledby="close-pregnancy-title"
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs"
         >
-          <div className="relative w-full max-w-lg border border-[var(--color-border-strong)] bg-[var(--color-background)] p-6 shadow-2xl">
+          <div className="rounded-2xl relative w-full max-w-lg border border-[var(--color-border-strong)] bg-[var(--color-background)] p-6 shadow-2xl">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-3">
               <div className="flex items-center gap-2">
@@ -162,7 +162,7 @@ export function ClosePregnancyForm({ patient, todayIso }: ClosePregnancyFormProp
             ) : (
               <div className="mt-4">
                 {error && (
-                  <div className="mb-4 flex items-start gap-2 border border-[var(--color-overdue)] bg-[var(--color-overdue-surface)] p-2.5 text-xs text-[var(--color-overdue)]">
+                  <div className="rounded-xl mb-4 flex items-start gap-2 border border-[var(--color-overdue)] bg-[var(--color-overdue-surface)] p-2.5 text-xs text-[var(--color-overdue)]">
                     <Warning size={16} className="shrink-0 mt-0.5" />
                     <span>{error}</span>
                   </div>
@@ -172,7 +172,7 @@ export function ClosePregnancyForm({ patient, todayIso }: ClosePregnancyFormProp
                   <form onSubmit={handleProceedToConfirm} className="space-y-4">
                     {/* Delivery Date */}
                     <div>
-                      <label htmlFor="delivery-date" className="block text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--color-charcoal)]">
+                      <label htmlFor="delivery-date" className="block text-[12px] font-medium text-[var(--color-charcoal)]">
                         Delivery Date <span className="text-[var(--color-overdue)]">*</span>
                       </label>
                       <input
@@ -183,7 +183,7 @@ export function ClosePregnancyForm({ patient, todayIso }: ClosePregnancyFormProp
                         min={patient.lmp || undefined}
                         value={deliveryDate}
                         onChange={(e) => setDeliveryDate(e.target.value)}
-                        className="mt-1 w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+                        className="rounded-xl mt-1 w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
                       />
                       {patient.lmp && (
                         <p className="mt-1 text-[11px] text-[var(--color-charcoal)]">
@@ -194,7 +194,7 @@ export function ClosePregnancyForm({ patient, todayIso }: ClosePregnancyFormProp
 
                     {/* Delivery Mode */}
                     <div>
-                      <label htmlFor="delivery-mode" className="block text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--color-charcoal)]">
+                      <label htmlFor="delivery-mode" className="block text-[12px] font-medium text-[var(--color-charcoal)]">
                         Delivery Mode <span className="text-[var(--color-overdue)]">*</span>
                       </label>
                       <select
@@ -202,7 +202,7 @@ export function ClosePregnancyForm({ patient, todayIso }: ClosePregnancyFormProp
                         required
                         value={deliveryMode}
                         onChange={(e) => setDeliveryMode(e.target.value as "NVD" | "LSCS")}
-                        className="mt-1 w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+                        className="rounded-xl mt-1 w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
                       >
                         <option value="NVD">NVD — Normal Vaginal Delivery</option>
                         <option value="LSCS">LSCS — Lower Segment Cesarean Section</option>
@@ -211,7 +211,7 @@ export function ClosePregnancyForm({ patient, todayIso }: ClosePregnancyFormProp
 
                     {/* Birth Weight (kg) */}
                     <div>
-                      <label htmlFor="birth-weight" className="block text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--color-charcoal)]">
+                      <label htmlFor="birth-weight" className="block text-[12px] font-medium text-[var(--color-charcoal)]">
                         Birth Weight (kg) <span className="text-[var(--color-overdue)]">*</span>
                       </label>
                       <input
@@ -223,7 +223,7 @@ export function ClosePregnancyForm({ patient, todayIso }: ClosePregnancyFormProp
                         required
                         value={birthWeightKg}
                         onChange={(e) => setBirthWeightKg(e.target.value)}
-                        className="mt-1 w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+                        className="rounded-xl mt-1 w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
                         placeholder="e.g. 3.10"
                       />
                       <p className="mt-1 text-[11px] text-[var(--color-charcoal)]">
@@ -233,7 +233,7 @@ export function ClosePregnancyForm({ patient, todayIso }: ClosePregnancyFormProp
 
                     {/* Optional Notes */}
                     <div>
-                      <label htmlFor="closure-notes" className="block text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--color-charcoal)]">
+                      <label htmlFor="closure-notes" className="block text-[12px] font-medium text-[var(--color-charcoal)]">
                         Clinical Remarks / Neonatal Notes (Optional)
                       </label>
                       <textarea
@@ -242,7 +242,7 @@ export function ClosePregnancyForm({ patient, todayIso }: ClosePregnancyFormProp
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
                         placeholder="Baby sex, APGAR score, pediatrician remarks, etc."
-                        className="mt-1 w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+                        className="rounded-xl mt-1 w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
                       />
                     </div>
 
@@ -268,7 +268,7 @@ export function ClosePregnancyForm({ patient, todayIso }: ClosePregnancyFormProp
                 ) : (
                   /* Step 2: Confirmation */
                   <div className="space-y-4">
-                    <div className="border border-[var(--color-due)] bg-[var(--color-due-surface)] p-3 text-[13px] text-[var(--color-foreground)]">
+                    <div className="rounded-xl border border-[var(--color-due)] bg-[var(--color-due-surface)] p-3 text-[13px] text-[var(--color-foreground)]">
                       <div className="flex items-center gap-1.5 font-semibold text-[var(--color-due)]">
                         <Warning size={16} weight="fill" />
                         <span>Confirm Pregnancy Closure</span>
@@ -278,7 +278,7 @@ export function ClosePregnancyForm({ patient, todayIso }: ClosePregnancyFormProp
                       </p>
                     </div>
 
-                    <div className="border border-[var(--color-border)] bg-[var(--color-surface-1)] p-3 space-y-2 text-[13px]">
+                    <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] p-3 space-y-2 text-[13px]">
                       <div className="flex justify-between border-b border-[var(--color-border)] pb-1.5">
                         <span className="text-[var(--color-charcoal)]">Patient:</span>
                         <span className="font-semibold">{patient.name}</span>

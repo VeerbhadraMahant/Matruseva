@@ -36,7 +36,7 @@ export function ClinicalProtocolSignOff() {
   return (
     <div className="space-y-3.5">
       {/* Accreditation Header Card */}
-      <div className="border border-[var(--color-primary)]/40 bg-[var(--color-primary-surface)] p-3.5">
+      <div className="rounded-xl border border-[var(--color-primary)]/40 bg-[var(--color-primary-surface)] p-3.5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-start gap-2.5">
             <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center bg-[var(--color-primary)] text-white">
@@ -47,7 +47,7 @@ export function ClinicalProtocolSignOff() {
                 <h4 className="text-[13px] font-semibold text-[var(--color-foreground)]">
                   Clinical Lead Protocol Sign-Off
                 </h4>
-                <span className="flex items-center gap-1 bg-white px-2 py-0.5 text-[11px] font-bold text-[var(--color-primary)] border border-[var(--color-primary)]/30">
+                <span className="rounded-xl flex items-center gap-1 bg-white px-2 py-0.5 text-[11px] font-bold text-[var(--color-primary)] border border-[var(--color-primary)]/30">
                   <CheckCircle size={13} weight="fill" />
                   {CLINICAL_SIGN_OFF_METADATA.signOffStatus}
                 </span>
@@ -74,7 +74,7 @@ export function ClinicalProtocolSignOff() {
             type="button"
             disabled={isPending}
             onClick={handleApplyCertifiedSchedule}
-            className="flex items-center gap-1.5 border border-[var(--color-primary)] bg-[var(--color-primary)] px-3 py-1.5 text-[12px] font-semibold text-white shadow-xs hover:bg-[var(--color-primary-hover)] disabled:opacity-50 transition-colors cursor-pointer"
+            className="rounded-xl flex items-center gap-1.5 border border-[var(--color-primary)] bg-[var(--color-primary)] px-3 py-1.5 text-[12px] font-semibold text-white shadow-xs hover:bg-[var(--color-primary-hover)] disabled:opacity-50 transition-colors cursor-pointer"
           >
             <ArrowsClockwise size={14} className={isPending ? "animate-spin" : ""} />
             <span>Apply Certified FOGSI Windows</span>
@@ -82,7 +82,7 @@ export function ClinicalProtocolSignOff() {
         </div>
 
         {statusMessage && (
-          <div className="mt-3 border border-[#16a34a]/30 bg-[#F0FDF4] p-2 text-[12px] font-medium text-[#166534]">
+          <div className="rounded-xl mt-3 border border-[#16a34a]/30 bg-[#F0FDF4] p-2 text-[12px] font-medium text-[#166534]">
             {statusMessage}
           </div>
         )}
@@ -90,7 +90,7 @@ export function ClinicalProtocolSignOff() {
 
       {/* Protocol Pillars Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[12px]">
-        <div className="border border-[var(--color-border)] bg-[var(--color-surface-1)] p-2.5">
+        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] p-2.5">
           <div className="flex items-center gap-1.5 font-semibold text-[var(--color-foreground)] mb-1">
             <CalendarCheck size={15} className="text-[var(--color-primary)]" />
             <span>ANC Schedule Governance</span>
@@ -101,7 +101,7 @@ export function ClinicalProtocolSignOff() {
           </p>
         </div>
 
-        <div className="border border-[var(--color-border)] bg-[var(--color-surface-1)] p-2.5">
+        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] p-2.5">
           <div className="flex items-center gap-1.5 font-semibold text-[var(--color-foreground)] mb-1">
             <Stethoscope size={15} className="text-[var(--color-primary)]" />
             <span>Risk Threshold Justification</span>

@@ -50,7 +50,7 @@ function WeekStrip({
                 : "text-pc-muted hover:bg-pc-card/80 motion-safe:hover:-translate-y-0.5"
             }`}
           >
-            <span className="text-[11px] font-semibold uppercase tracking-[0.08em]">{d.isToday ? "Today" : d.weekday}</span>
+            <span className="text-[12px] font-medium">{d.isToday ? "Today" : d.weekday}</span>
             <span className={`text-[19px] font-semibold leading-none tabular-nums ${active ? "" : "text-pc-ink"}`}>
               {d.dayOfMonth}
             </span>

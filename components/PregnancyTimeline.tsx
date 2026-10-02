@@ -6,7 +6,7 @@ const TOTAL_DAYS = 42 * 7;
 const BAR: Record<CareEventStatus, string> = {
   done: "bg-[var(--color-on-track)]",
   skipped: "bg-[var(--color-surface-4)]",
-  upcoming: "bg-[var(--color-border-strong)]",
+  upcoming: "bg-[var(--color-pc-lilac-strong)]",
   due: "bg-[var(--color-due)]",
   overdue: "bg-[var(--color-overdue)]",
 };
@@ -47,9 +47,9 @@ export function PregnancyTimeline({ lmp, gaDays, events }: { lmp: string; gaDays
   const LANE_H = 16;
 
   return (
-    <div className="overflow-x-auto px-3 pt-2 pb-3">
+    <div className="overflow-x-auto px-4 pt-1 pb-4">
       <div className="relative min-w-[640px]">
-        <div className="relative flex h-6 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-charcoal)]">
+        <div className="relative flex h-6 text-[12px] font-medium text-[var(--color-charcoal)]">
           <div className="border-l border-[var(--color-border-strong)] pl-1" style={{ width: pct(13 * 7) }}>
             T1
           </div>
@@ -62,7 +62,7 @@ export function PregnancyTimeline({ lmp, gaDays, events }: { lmp: string; gaDays
           <div className="flex-1 border-l border-[var(--color-border-strong)] pl-1">Term+</div>
         </div>
 
-        <div className="relative border-y border-[var(--color-border)] bg-[var(--color-surface-1)]" style={{ height: laneCount * LANE_H + 8 }}>
+        <div className="relative rounded-xl bg-[var(--color-surface-1)]" style={{ height: laneCount * LANE_H + 8 }}>
           {[13, 27, 40].map((w) => (
             <div key={w} className="absolute inset-y-0 w-px bg-[var(--color-border-strong)]" style={{ left: pct(w * 7) }} aria-hidden />
           ))}
@@ -70,7 +70,7 @@ export function PregnancyTimeline({ lmp, gaDays, events }: { lmp: string; gaDays
             <div
               key={s.id}
               title={`${s.name} · wk ${Math.floor(s.start / 7)}–${Math.floor(s.end / 7)} · ${s.status}`}
-              className={`absolute h-[10px] ${BAR[s.status]}`}
+              className={`absolute h-[10px] rounded-full ${BAR[s.status]}`}
               style={{
                 left: pct(s.start),
                 width: `calc(${pct(s.end)} - ${pct(s.start)})`,
@@ -78,7 +78,7 @@ export function PregnancyTimeline({ lmp, gaDays, events }: { lmp: string; gaDays
               }}
             />
           ))}
-          <div className="absolute -top-1 -bottom-1 w-[2px] bg-[var(--color-foreground)]" style={{ left: pct(gaDays) }} aria-hidden />
+          <div className="absolute -top-1 -bottom-1 w-[2px] rounded-full bg-[var(--color-primary)]" style={{ left: pct(gaDays) }} aria-hidden />
         </div>
 
         <div className="num relative h-5 text-[11px] text-[var(--color-charcoal)]">
@@ -88,7 +88,7 @@ export function PregnancyTimeline({ lmp, gaDays, events }: { lmp: string; gaDays
             </span>
           ))}
           <span
-            className="absolute -translate-x-1/2 bg-[var(--color-foreground)] px-1 font-medium text-white"
+            className="absolute -translate-x-1/2 rounded-full bg-[var(--color-primary)] px-2 font-medium text-white"
             style={{ left: pct(gaDays), top: 2 }}
           >
             Today {Math.floor(gaDays / 7)}w{gaDays % 7}d
@@ -98,7 +98,7 @@ export function PregnancyTimeline({ lmp, gaDays, events }: { lmp: string; gaDays
         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-[var(--color-charcoal)]">
           {(["done", "due", "overdue", "upcoming"] as const).map((s) => (
             <span key={s} className="inline-flex items-center gap-1.5 capitalize">
-              <span className={`h-2.5 w-2.5 ${BAR[s]}`} aria-hidden /> {s === "due" ? "Due now" : s}
+              <span className={`h-2.5 w-2.5 rounded-full ${BAR[s]}`} aria-hidden /> {s === "due" ? "Due now" : s}
             </span>
           ))}
         </div>
