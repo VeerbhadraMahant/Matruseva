@@ -132,9 +132,12 @@ export function MotherHealthCardModal({
             {/* Top Clinic Branding */}
             <div className="flex items-center justify-between border-b border-[#e2d9ec] pb-3 mb-3.5">
               <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#523a6c] text-white font-bold text-xs shadow-xs">
-                  MS
-                </div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/logo.jpg"
+                  alt="MatruSetu"
+                  className="h-8 w-8 rounded-xl object-cover shadow-xs border border-[#baadca]/40"
+                />
                 <div>
                   <p className="text-[13px] font-bold tracking-tight text-[#1c1528] leading-tight">
                     {patient.clinicName || "MatruSetu Maternal Health"}

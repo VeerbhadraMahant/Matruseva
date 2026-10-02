@@ -29,8 +29,13 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
         />
 
         <Link href="/" className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 text-[17px] font-semibold">M</span>
-          <span className="text-[18px] font-semibold tracking-tight">MatruSetu</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.jpg"
+            alt="MatruSetu"
+            className="h-11 w-11 shrink-0 rounded-2xl object-cover shadow-[0_4px_16px_rgba(0,0,0,0.2)] border border-white/25"
+          />
+          <span className="text-[20px] font-bold tracking-tight">MatruSetu</span>
         </Link>
 
         <div>
@@ -53,13 +58,28 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="flex flex-1 flex-col items-center justify-center px-4 py-10">
-        <Link href="/" className="mb-8 flex items-center gap-2.5 md:hidden">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--color-primary)] text-[15px] font-semibold text-white">
-            M
-          </span>
-          <span className="text-[17px] font-semibold tracking-tight">MatruSetu</span>
+        <Link href="/" className="mb-6 flex items-center gap-2.5 md:hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.jpg"
+            alt="MatruSetu"
+            className="h-10 w-10 shrink-0 rounded-xl object-cover shadow-sm border border-[var(--color-border)]"
+          />
+          <span className="text-[18px] font-bold tracking-tight">MatruSetu</span>
         </Link>
         <div className="w-full max-w-md rounded-[var(--radius-sections)] border border-[var(--color-border)] bg-[var(--color-background)] p-8 shadow-[0_1px_2px_rgb(34_27_43/0.04),0_24px_48px_-24px_rgb(62_42_92/0.25)]">
+          <div className="mb-6 flex items-center gap-3 border-b border-[var(--color-border)] pb-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo.jpg"
+              alt="MatruSetu"
+              className="h-12 w-12 shrink-0 rounded-2xl object-cover shadow-[0_4px_12px_rgba(62,42,92,0.15)] border border-[var(--color-border)]"
+            />
+            <div>
+              <p className="text-[17px] font-bold tracking-tight text-[var(--color-foreground)]">MatruSetu</p>
+              <p className="text-[12px] text-[var(--color-charcoal)]">Maternal & Child Health</p>
+            </div>
+          </div>
           {children}
         </div>
       </div>

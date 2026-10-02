@@ -101,6 +101,7 @@ export function AppTopBar({
             <House size={22} weight="fill" aria-hidden />
           </button>
           <Link href="/today" className="flex min-w-0 items-center gap-2.5">
+            <BrandMark />
             <span className="text-[17px] font-semibold tracking-tight text-[var(--color-foreground)]">MatruSetu</span>
             <span className="hidden truncate text-[13px] text-[var(--color-charcoal)] sm:inline">· {clinicName}</span>
           </Link>
