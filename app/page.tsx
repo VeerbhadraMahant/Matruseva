@@ -95,9 +95,13 @@ export default function LandingPage() {
       {/* Nav */}
       <header className="sticky top-0 z-40 border-b border-[#221b2b]/10 bg-[#faf6ec]/90 backdrop-blur-sm">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-          <span className="text-[20px] font-bold tracking-tight">
-            MatruSetu
-          </span>
+          <div className="flex items-center gap-2.5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.jpg" alt="MatruSetu" className="h-9 w-9 rounded-xl object-cover shadow-[0_2px_8px_rgba(62,42,92,0.15)]" />
+            <span className="text-[20px] font-bold tracking-tight">
+              MatruSetu
+            </span>
+          </div>
           <nav className="flex items-center gap-2 sm:gap-3">
             <Link
               href="/login"

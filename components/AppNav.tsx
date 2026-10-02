@@ -34,12 +34,12 @@ function isActive(pathname: string, href: string) {
 
 function BrandMark() {
   return (
-    <span
-      aria-hidden
-      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[linear-gradient(140deg,var(--color-pc-plum)_0%,var(--color-pc-plum-mid)_130%)] text-[15px] font-semibold text-white shadow-[0_6px_14px_-6px_rgb(62_42_92/0.6)]"
-    >
-      M
-    </span>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/logo.jpg"
+      alt="MatruSetu"
+      className="h-9 w-9 shrink-0 rounded-xl object-cover shadow-[0_4px_12px_-4px_rgba(62,42,92,0.4)] border border-white/20"
+    />
   );
 }
 
