@@ -1,8 +1,5 @@
-"use client";
-
-import { useId } from "react";
-import { ChartPieSlice, CheckCircle, PhoneCall, Baby, Users, Info } from "@phosphor-icons/react";
-import { Panel, Tag } from "@/components/ui";
+import { ChartPieSlice, CheckCircle, ClipboardText, PhoneCall, Users } from "@phosphor-icons/react/dist/ssr";
+import { CountUp } from "@/components/today/CountUp";
 
 /**
  * =========================================================================
@@ -39,6 +36,50 @@ export interface ClinicAnalyticsProps {
   deliveriesThisMonth: number;
 }
 
+function Ring({ pct, colorClass, label }: { pct: number; colorClass: string; label: string }) {
+  const r = 22;
+  const c = 2 * Math.PI * r;
+  const clamped = Math.max(0, Math.min(100, pct));
+  return (
+    <svg viewBox="0 0 56 56" className="h-14 w-14 -rotate-90" role="img" aria-label={label}>
+      <circle cx="28" cy="28" r={r} fill="none" strokeWidth="6" className="stroke-pc-lilac" />
+      <circle
+        cx="28"
+        cy="28"
+        r={r}
+        fill="none"
+        strokeWidth="6"
+        strokeLinecap="round"
+        strokeDasharray={c}
+        strokeDashoffset={c * (1 - clamped / 100)}
+        className={`${colorClass} transition-[stroke-dashoffset] duration-700 ease-out`}
+      />
+    </svg>
+  );
+}
+
+function Card({
+  title,
+  icon,
+  children,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="pc-glass flex min-h-[148px] flex-col justify-between gap-3 rounded-[22px] p-4 transition-[transform,box-shadow] duration-200 hover:shadow-[0_18px_40px_-20px_rgb(62_42_92/0.35)] motion-safe:hover:-translate-y-0.5">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-[12px] font-semibold uppercase tracking-[0.1em] text-pc-muted">{title}</h3>
+        <span aria-hidden className="text-pc-plum">
+          {icon}
+        </span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
 export function ClinicAnalyticsSummary({
   totalActive,
   compliantCount,
@@ -54,213 +95,95 @@ export function ClinicAnalyticsSummary({
   const t2Pct = totalActive > 0 ? Math.round((trimester.t2 / totalActive) * 100) : 0;
   const t3Pct = totalActive > 0 ? Math.max(0, 100 - t1Pct - t2Pct) : 0;
 
-  const complianceId = useId();
-
   return (
-    <Panel
-      title="Clinic Compliance & Macro Analytics"
-      action={
-        <div className="flex items-center gap-1.5 text-[11px] text-[var(--color-charcoal)]">
-          <Info size={14} className="text-[var(--color-primary)]" />
-          <span>Real-time ANC Performance</span>
+    <section aria-labelledby="analytics-title" className="space-y-3">
+      <h2 id="analytics-title" className="px-1 text-[17px] font-semibold">
+        Clinic overview
+      </h2>
+
+      {totalActive === 0 ? (
+        <div className="pc-glass rounded-[22px] p-6 text-center">
+          <Users size={28} className="mx-auto mb-2 text-pc-muted" aria-hidden />
+          <p className="text-[15px] font-medium">No active pregnancies</p>
+          <p className="mx-auto mt-1 max-w-sm text-[13px] text-pc-muted">
+            Register patients to see visit compliance, trimester mix and outreach results here.
+          </p>
         </div>
-      }
-    >
-      <div className="p-4 space-y-4">
-        {/* Top Macro Metric Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* 1. Overall ANC Compliance */}
-          <div className="border border-[var(--color-border)] bg-[var(--color-surface-1)] p-3 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-charcoal)]">
-                ANC Compliance
-              </span>
-              <CheckCircle size={16} weight="fill" className="text-[var(--color-on-track)]" />
-            </div>
-            <div className="my-2">
-              <div className="flex items-baseline gap-1.5">
-                <span className="num text-[28px] font-bold text-[var(--color-foreground)] leading-none">
-                  {complianceRate}%
-                </span>
-                <span className="text-[12px] text-[var(--color-charcoal)]">on-schedule</span>
+      ) : (
+        <div className="grid grid-cols-2 gap-3">
+          <Card title="ANC compliance" icon={<CheckCircle size={18} />}>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <Ring pct={complianceRate} colorClass="stroke-pc-plum" label={`${complianceRate}% on schedule`} />
+              <div>
+                <p className="text-[28px] font-semibold leading-none tabular-nums">
+                  <CountUp value={complianceRate} />%
+                </p>
+                <p className="mt-1 text-[12px] text-pc-muted">
+                  {compliantCount} of {totalActive} up to date
+                </p>
               </div>
-              <p className="mt-1 text-[11px] text-[var(--color-charcoal)]">
-                {compliantCount} of {totalActive} active mothers up-to-date
-              </p>
             </div>
-            {/* Compliance mini progress bar */}
-            <div className="w-full bg-[var(--color-border)] h-1.5 rounded-full overflow-hidden">
+          </Card>
+
+          <Card title="Contact success" icon={<PhoneCall size={18} />}>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <Ring pct={contactSuccessRate} colorClass="stroke-pc-active" label={`${contactSuccessRate}% reached`} />
+              <div>
+                <p className="text-[28px] font-semibold leading-none tabular-nums">
+                  <CountUp value={contactSuccessRate} />%
+                </p>
+                <p className="mt-1 text-[12px] text-pc-muted">
+                  {contactsReached} of {contactsAttempted} reached
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          <Card title="Active cohort" icon={<ChartPieSlice size={18} />}>
+            <div>
+              <p className="text-[28px] font-semibold leading-none tabular-nums">
+                <CountUp value={totalActive} />
+                <span className="ml-1.5 text-[13px] font-normal text-pc-muted">mothers</span>
+              </p>
               <div
-                className="bg-[var(--color-on-track)] h-full transition-all duration-500"
-                style={{ width: `${complianceRate}%` }}
-                role="progressbar"
-                aria-valuenow={complianceRate}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-labelledby={complianceId}
-              />
-            </div>
-          </div>
-
-          {/* 2. Trimester Distribution Summary */}
-          <div className="border border-[var(--color-border)] bg-[var(--color-surface-1)] p-3 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-charcoal)]">
-                Active Cohort
-              </span>
-              <ChartPieSlice size={16} weight="fill" className="text-[var(--color-primary)]" />
-            </div>
-            <div className="my-2">
-              <div className="flex items-baseline gap-1.5">
-                <span className="num text-[28px] font-bold text-[var(--color-foreground)] leading-none">
-                  {totalActive}
-                </span>
-                <span className="text-[12px] text-[var(--color-charcoal)]">mothers</span>
+                className="mt-3 flex h-2 overflow-hidden rounded-full bg-pc-lilac"
+                role="img"
+                aria-label={`Trimester 1: ${trimester.t1}, trimester 2: ${trimester.t2}, trimester 3: ${trimester.t3}`}
+              >
+                <div style={{ width: `${t1Pct}%` }} className="bg-pc-lilac-strong" />
+                <div style={{ width: `${t2Pct}%` }} className="bg-pc-plum-mid" />
+                <div style={{ width: `${t3Pct}%` }} className="bg-pc-plum" />
               </div>
-              <p className="mt-1 text-[11px] text-[var(--color-charcoal)] font-mono">
-                T1: {trimester.t1} · T2: {trimester.t2} · T3: {trimester.t3}
+              <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-pc-muted">
+                <li className="flex items-center gap-1.5">
+                  <span aria-hidden className="h-2 w-2 rounded-full bg-pc-lilac-strong" />
+                  T1 <span className="font-semibold text-pc-ink tabular-nums">{trimester.t1}</span>
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <span aria-hidden className="h-2 w-2 rounded-full bg-pc-plum-mid" />
+                  T2 <span className="font-semibold text-pc-ink tabular-nums">{trimester.t2}</span>
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <span aria-hidden className="h-2 w-2 rounded-full bg-pc-plum" />
+                  T3 <span className="font-semibold text-pc-ink tabular-nums">{trimester.t3}</span>
+                </li>
+              </ul>
+            </div>
+          </Card>
+
+          <Card title="Deliveries this month" icon={<ClipboardText size={18} />}>
+            <div>
+              <p className="text-[28px] font-semibold leading-none tabular-nums">
+                <CountUp value={deliveriesThisMonth} />
+                <span className="ml-1.5 text-[13px] font-normal text-pc-muted">delivered</span>
               </p>
-            </div>
-            {/* Trimester composite bar */}
-            <div className="w-full bg-[var(--color-border)] h-1.5 rounded-full flex overflow-hidden">
-              <div style={{ width: `${t1Pct}%` }} className="bg-emerald-600 h-full" title={`T1: ${t1Pct}%`} />
-              <div style={{ width: `${t2Pct}%` }} className="bg-teal-500 h-full" title={`T2: ${t2Pct}%`} />
-              <div style={{ width: `${t3Pct}%` }} className="bg-amber-500 h-full" title={`T3: ${t3Pct}%`} />
-            </div>
-          </div>
-
-          {/* 3. Follow-Up Outreach Success */}
-          <div className="border border-[var(--color-border)] bg-[var(--color-surface-1)] p-3 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-charcoal)]">
-                Contact Success
-              </span>
-              <PhoneCall size={16} weight="fill" className="text-[#25D366]" />
-            </div>
-            <div className="my-2">
-              <div className="flex items-baseline gap-1.5">
-                <span className="num text-[28px] font-bold text-[var(--color-foreground)] leading-none">
-                  {contactSuccessRate}%
-                </span>
-                <span className="text-[12px] text-[var(--color-charcoal)]">reached</span>
-              </div>
-              <p className="mt-1 text-[11px] text-[var(--color-charcoal)]">
-                {contactsReached} of {contactsAttempted} calls/messages
-              </p>
-            </div>
-            <div className="w-full bg-[var(--color-border)] h-1.5 rounded-full overflow-hidden">
-              <div
-                className="bg-[#25D366] h-full transition-all duration-500"
-                style={{ width: `${contactSuccessRate}%` }}
-              />
-            </div>
-          </div>
-
-          {/* 4. Deliveries This Month */}
-          <div className="border border-[var(--color-border)] bg-[var(--color-surface-1)] p-3 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-charcoal)]">
-                Deliveries (Month)
-              </span>
-              <Baby size={16} weight="bold" className="text-[var(--color-primary)]" />
-            </div>
-            <div className="my-2">
-              <div className="flex items-baseline gap-1.5">
-                <span className="num text-[28px] font-bold text-[var(--color-foreground)] leading-none">
-                  {deliveriesThisMonth}
-                </span>
-                <span className="text-[12px] text-[var(--color-charcoal)]">delivered</span>
-              </div>
-              <p className="mt-1 text-[11px] text-[var(--color-charcoal)]">
+              <p className="mt-2 text-[12px] text-pc-muted">
                 {overdueCount > 0 ? `${overdueCount} active with overdue items` : "All active visits on track"}
               </p>
             </div>
-            <div className="text-[11px] font-medium text-[var(--color-on-track)]">
-              Closed from active queue
-            </div>
-          </div>
+          </Card>
         </div>
-
-        {/* Detailed Visual Panels */}
-        {totalActive === 0 ? (
-          <div className="border border-dashed border-[var(--color-border-strong)] p-6 text-center">
-            <Users size={28} className="mx-auto text-[var(--color-charcoal)] mb-2" />
-            <h4 className="text-[14px] font-bold text-[var(--color-foreground)]">No Active Pregnancies</h4>
-            <p className="text-[12px] text-[var(--color-charcoal)] mt-1 max-w-sm mx-auto">
-              Register new patients to view trimester breakdowns, visit compliance percentages, and outreach stats.
-            </p>
-          </div>
-        ) : (
-          <div className="border border-[var(--color-border)] p-4 bg-[var(--color-background)]">
-            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-              <div>
-                <h4 className="text-[13px] font-bold text-[var(--color-foreground)] uppercase tracking-wide">
-                  Trimester Cohort Distribution
-                </h4>
-                <p className="text-[11px] text-[var(--color-charcoal)]">
-                  Active pregnancies categorized by gestational age milestones
-                </p>
-              </div>
-              <div className="flex items-center gap-3 text-[12px]">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block" />
-                  <span>Trimester 1 (1–12w)</span>
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-teal-500 inline-block" />
-                  <span>Trimester 2 (13–27w)</span>
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
-                  <span>Trimester 3 (28w+)</span>
-                </span>
-              </div>
-            </div>
-
-            {/* Trimester visual breakdown cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="border border-l-4 border-l-emerald-600 border-[var(--color-border)] p-3 bg-[var(--color-surface-1)]">
-                <div className="flex items-center justify-between">
-                  <span className="text-[12px] font-semibold text-emerald-800">1st Trimester</span>
-                  <Tag tone="ok">{t1Pct}%</Tag>
-                </div>
-                <div className="num mt-2 text-[22px] font-bold text-[var(--color-foreground)] leading-none">
-                  {trimester.t1} <span className="text-[12px] font-normal text-[var(--color-charcoal)]">mothers</span>
-                </div>
-                <p className="mt-1 text-[11px] text-[var(--color-charcoal)]">
-                  Booking visits, dating scans & early lab panels
-                </p>
-              </div>
-
-              <div className="border border-l-4 border-l-teal-500 border-[var(--color-border)] p-3 bg-[var(--color-surface-1)]">
-                <div className="flex items-center justify-between">
-                  <span className="text-[12px] font-semibold text-teal-800">2nd Trimester</span>
-                  <Tag tone="info">{t2Pct}%</Tag>
-                </div>
-                <div className="num mt-2 text-[22px] font-bold text-[var(--color-foreground)] leading-none">
-                  {trimester.t2} <span className="text-[12px] font-normal text-[var(--color-charcoal)]">mothers</span>
-                </div>
-                <p className="mt-1 text-[11px] text-[var(--color-charcoal)]">
-                  TIFFA anomaly scans, OGTT & Td injections
-                </p>
-              </div>
-
-              <div className="border border-l-4 border-l-amber-500 border-[var(--color-border)] p-3 bg-[var(--color-surface-1)]">
-                <div className="flex items-center justify-between">
-                  <span className="text-[12px] font-semibold text-amber-800">3rd Trimester</span>
-                  <Tag tone="warning">{t3Pct}%</Tag>
-                </div>
-                <div className="num mt-2 text-[22px] font-bold text-[var(--color-foreground)] leading-none">
-                  {trimester.t3} <span className="text-[12px] font-normal text-[var(--color-charcoal)]">mothers</span>
-                </div>
-                <p className="mt-1 text-[11px] text-[var(--color-charcoal)]">
-                  Growth scans, NST monitoring & delivery planning
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </Panel>
+      )}
+    </section>
   );
 }

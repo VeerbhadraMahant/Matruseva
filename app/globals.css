@@ -96,3 +96,82 @@ input, select, textarea, button {
   background: var(--color-surface-2);
   animation: pulse-bar 1.2s ease-in-out infinite;
 }
+
+/* =========================================================================
+   "Plum & Cream" — Today page design tokens.
+   Scoped by name (pc-*) so the rest of the app keeps its current look until
+   it is migrated. Every text/background pair below meets WCAG AA (≥ 4.5:1).
+   ========================================================================= */
+@theme {
+  --color-pc-canvas: #faf6ec;
+  --color-pc-canvas-to: #f0e8f0;
+  --color-pc-card: #ffffff;
+  --color-pc-line: #e8dfcd;
+  --color-pc-ink: #221b2b; /* 16.7:1 on card */
+  --color-pc-muted: #5d5567; /* 7.1:1 on card */
+  --color-pc-plum: #3e2a5c; /* 12.4:1 with white */
+  --color-pc-plum-hover: #2e1f46;
+  --color-pc-plum-mid: #8c78b3; /* decorative / chart only */
+  --color-pc-lilac: #ebe1f1; /* plum text on lilac 9.8:1 */
+  --color-pc-lilac-strong: #d9c9e6; /* decorative / chart only */
+  --color-pc-brass: #c9a46a; /* decorative only */
+
+  --color-pc-risk: #874900;
+  --color-pc-risk-soft: #fae8cc;
+  --color-pc-overdue: #9e211b;
+  --color-pc-overdue-soft: #f9e1de;
+  --color-pc-active: #2a644a;
+  --color-pc-active-soft: #dfeee5;
+  --color-pc-delivered: #30528a;
+  --color-pc-delivered-soft: #e1e8f5;
+}
+
+@utility pc-glass {
+  background-color: color-mix(in srgb, var(--color-pc-card) 74%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-pc-line) 65%, white);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+  box-shadow:
+    0 1px 2px rgb(34 27 43 / 0.04),
+    0 14px 36px -18px rgb(62 42 92 / 0.22);
+}
+
+.pc-scope {
+  background:
+    radial-gradient(60rem 30rem at 100% -10%, color-mix(in srgb, var(--color-pc-lilac-strong) 55%, transparent), transparent 70%),
+    radial-gradient(40rem 24rem at -10% 110%, color-mix(in srgb, var(--color-pc-brass) 14%, transparent), transparent 70%),
+    linear-gradient(170deg, var(--color-pc-canvas) 0%, var(--color-pc-canvas-to) 100%);
+  color: var(--color-pc-ink);
+}
+/* The global square-corner reset is unlayered; hand radius back to utilities here. */
+.pc-scope :is(button, input, select, textarea) {
+  border-radius: revert-layer;
+}
+.pc-scope :focus-visible {
+  outline: 2px solid var(--color-pc-plum);
+  outline-offset: 2px;
+}
+
+@keyframes pc-rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.pc-rise {
+  animation: pc-rise 0.32s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes pc-shimmer {
+  from { background-position: 150% 0; }
+  to { background-position: -50% 0; }
+}
+.pc-skeleton {
+  background: linear-gradient(90deg, #efe7ef 0%, #f8f3f6 50%, #efe7ef 100%);
+  background-size: 200% 100%;
+  animation: pc-shimmer 1.4s ease-in-out infinite;
+  border-radius: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pc-rise, .pc-skeleton { animation: none; }
+  .pc-scope *, .pc-scope *::before, .pc-scope *::after { transition-duration: 0.01ms !important; }
+}
