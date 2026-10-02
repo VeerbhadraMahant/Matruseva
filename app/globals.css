@@ -74,6 +74,26 @@ body {
   line-height: 1.5;
 }
 
+/*
+  Faint dot-grid texture behind all content. Fixed to the viewport, fades
+  out toward the bottom; cards and tables sit on solid surfaces above it.
+*/
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(circle, rgb(62 42 92 / 0.13) 1px, transparent 1.4px);
+  background-size: 22px 22px;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, rgb(0 0 0 / 0.55) 45%, transparent 90%);
+  mask-image: linear-gradient(to bottom, #000 0%, rgb(0 0 0 / 0.55) 45%, transparent 90%);
+}
+
+@media print {
+  body::before { display: none; }
+}
+
 h1, h2, h3, h4 {
   font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
   font-weight: 600;
