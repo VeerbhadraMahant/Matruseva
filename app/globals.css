@@ -137,6 +137,10 @@ h1, h2, h3, h4 {
   --color-pc-lilac-strong: #d9c9e6; /* decorative / chart only */
   --color-pc-brass: #c9a46a; /* decorative only */
 
+  /* Chart series — validated categorical pair (CVD ΔE 24, both ≥3:1 on white) */
+  --color-pc-chart-1: #5b4a8b;
+  --color-pc-chart-2: #b8752a;
+
   --color-pc-risk: #874900;
   --color-pc-risk-soft: #fae8cc;
   --color-pc-overdue: #9e211b;

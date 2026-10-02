@@ -13,6 +13,7 @@ import {
 } from "@phosphor-icons/react";
 import { formatShortDate, parseLocalDate } from "@/lib/format";
 import { card } from "@/components/ui";
+import { TrendChart, type TrendXMeta } from "@/components/charts/TrendChart";
 import { gestationalAge, formatGA } from "@/lib/pregnancy";
 
 export interface VisitDataPoint {
@@ -56,7 +57,6 @@ interface ParsedVisit {
 
 export function VitalsTrendCharts({ visits, lmp, patientName }: VitalsTrendChartsProps) {
   const [activeTab, setActiveTab] = useState<MetricTab>("bp");
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   // Chronological order (oldest to newest)
   const sortedVisits = useMemo(() => {
@@ -218,7 +218,6 @@ export function VitalsTrendCharts({ visits, lmp, patientName }: VitalsTrendChart
           type="button"
           onClick={() => {
             setActiveTab("bp");
-            setHoveredIndex(null);
           }}
           aria-pressed={activeTab === "bp"}
           className={`relative rounded-xl border p-3 text-left transition-colors ${
@@ -261,7 +260,6 @@ export function VitalsTrendCharts({ visits, lmp, patientName }: VitalsTrendChart
           type="button"
           onClick={() => {
             setActiveTab("sfh");
-            setHoveredIndex(null);
           }}
           aria-pressed={activeTab === "sfh"}
           className={`relative rounded-xl border p-3 text-left transition-colors ${
@@ -308,7 +306,6 @@ export function VitalsTrendCharts({ visits, lmp, patientName }: VitalsTrendChart
           type="button"
           onClick={() => {
             setActiveTab("hb");
-            setHoveredIndex(null);
           }}
           aria-pressed={activeTab === "hb"}
           className={`relative rounded-xl border p-3 text-left transition-colors ${
@@ -360,7 +357,6 @@ export function VitalsTrendCharts({ visits, lmp, patientName }: VitalsTrendChart
           type="button"
           onClick={() => {
             setActiveTab("weight_fhr");
-            setHoveredIndex(null);
           }}
           aria-pressed={activeTab === "weight_fhr"}
           className={`relative rounded-xl border p-3 text-left transition-colors ${
@@ -393,40 +389,76 @@ export function VitalsTrendCharts({ visits, lmp, patientName }: VitalsTrendChart
       </div>
 
       {/* Main Interactive Graph Area */}
-      <div className="p-4 bg-[var(--color-background)]">
+      <div className="px-4 pb-4 pt-2">
         {activeTab === "bp" && (
           <BpChart
             visits={bpVisits}
-            hoveredIndex={hoveredIndex}
-            onHover={setHoveredIndex}
           />
         )}
         {activeTab === "sfh" && (
           <SfhChart
             visits={sfhVisits}
-            hoveredIndex={hoveredIndex}
-            onHover={setHoveredIndex}
             patientName={patientName}
           />
         )}
         {activeTab === "hb" && (
           <HbChart
             visits={hbVisits}
-            hoveredIndex={hoveredIndex}
-            onHover={setHoveredIndex}
           />
         )}
         {activeTab === "weight_fhr" && (
           <WeightFhrChart
             weightVisits={weightVisits}
             fhrVisits={fhrVisits}
-            hoveredIndex={hoveredIndex}
-            onHover={setHoveredIndex}
           />
         )}
       </div>
     </div>
   );
+}
+
+const CHART_1 = "var(--color-pc-chart-1)";
+const CHART_2 = "var(--color-pc-chart-2)";
+
+/**
+ * x-axis for a set of visits: gestational weeks when every visit has a GA
+ * (so spacing reflects real time), otherwise plain visit order by date.
+ */
+function gaAxis(visits: ParsedVisit[], preferred?: [number, number]) {
+  const isGa = visits.length > 0 && visits.every((v) => v.gaWeeks !== null);
+  const byX = new Map<number, ParsedVisit>();
+  const x = (v: ParsedVisit, i: number) => (isGa ? Math.round(v.gaWeeks! * 7) / 7 : i);
+  visits.forEach((v, i) => byX.set(x(v, i), v));
+  const meta = (xv: number): TrendXMeta => {
+    const v = byX.get(xv);
+    return v ? { title: v.dateLabel, sub: v.gaLabel !== "—" ? `GA ${v.gaLabel}` : undefined } : { title: "" };
+  };
+
+  if (!isGa) {
+    const n = Math.max(1, visits.length);
+    return {
+      isGa,
+      x,
+      meta,
+      domain: [-0.5, n - 0.5] as [number, number],
+      ticks: visits.map((_, i) => i),
+      tickLabel: (t: number) => visits[t]?.dateLabel ?? "",
+    };
+  }
+
+  const gas = visits.map((v) => v.gaWeeks!);
+  let lo = Math.max(4, Math.floor((Math.min(...gas) - 2) / 2) * 2);
+  let hi = Math.min(42, Math.ceil((Math.max(...gas) + 2) / 2) * 2);
+  if (preferred) {
+    lo = Math.min(lo, preferred[0]);
+    hi = Math.max(hi, preferred[1]);
+  }
+  if (hi - lo < 8) hi = Math.min(42, lo + 8);
+  if (hi - lo < 8) lo = hi - 8;
+  const step = hi - lo > 16 ? 4 : 2;
+  const ticks: number[] = [];
+  for (let t = Math.ceil(lo / step) * step; t <= hi; t += step) ticks.push(t);
+  return { isGa, x, meta, domain: [lo, hi] as [number, number], ticks, tickLabel: (t: number) => `${t}w` };
 }
 
 /* =========================================================================
@@ -435,12 +467,8 @@ export function VitalsTrendCharts({ visits, lmp, patientName }: VitalsTrendChart
 
 function BpChart({
   visits,
-  hoveredIndex,
-  onHover,
 }: {
   visits: ParsedVisit[];
-  hoveredIndex: number | null;
-  onHover: (idx: number | null) => void;
 }) {
   if (visits.length === 0) {
     return (
@@ -451,37 +479,6 @@ function BpChart({
     );
   }
 
-  // Chart Dimensions
-  const W = 680;
-  const H = 240;
-  const P = { top: 25, right: 35, bottom: 35, left: 45 };
-  const innerW = W - P.left - P.right;
-  const innerH = H - P.top - P.bottom;
-
-  // Scale: BP from 50 to 180 mmHg
-  const minBP = 50;
-  const maxBP = 180;
-  const getY = (val: number) => P.top + innerH - ((val - minBP) / (maxBP - minBP)) * innerH;
-
-  // X Scale: evenly distribute points or spaced by date
-  const getX = (index: number) => {
-    if (visits.length === 1) return P.left + innerW / 2;
-    return P.left + (index / (visits.length - 1)) * innerW;
-  };
-
-  // Generate SVG path for Systolic and Diastolic
-  const sysPoints = visits.map((v, i) => `${getX(i)},${getY(v.bpSys!)}`);
-  const diaPoints = visits.map((v, i) => `${getX(i)},${getY(v.bpDia!)}`);
-  const sysPath = sysPoints.length > 1 ? `M ${sysPoints.join(" L ")}` : "";
-  const diaPath = diaPoints.length > 1 ? `M ${diaPoints.join(" L ")}` : "";
-
-  // Shaded area between Systolic and Diastolic
-  const areaPoints = [
-    ...sysPoints,
-    ...visits.map((_, i) => `${getX(visits.length - 1 - i)},${getY(visits[visits.length - 1 - i].bpDia!)}`),
-  ];
-  const pulseAreaPath = areaPoints.length > 2 ? `M ${areaPoints.join(" L ")} Z` : "";
-
   // Clinical alerts calculation
   const latest = visits[visits.length - 1];
   const baseline = visits[0];
@@ -489,197 +486,33 @@ function BpChart({
   const deltaSys = latest.bpSys! - baseline.bpSys!;
   const isRapidRise = (deltaDia >= 15 || deltaSys >= 30) && visits.length > 1;
 
-  const activePoint = hoveredIndex !== null && visits[hoveredIndex] ? visits[hoveredIndex] : null;
 
   return (
     <div className="space-y-3">
-      {/* Chart Legend & Thresholds */}
-      <div className="flex flex-wrap items-center justify-between text-[12px] gap-2 pb-1 border-b border-[var(--color-border)]">
-        <div className="flex items-center gap-4">
-          <span className="inline-flex items-center gap-1.5 font-medium text-[var(--color-info)]">
-            <span className="h-2.5 w-2.5 rounded-full bg-[var(--color-info)]" /> Systolic
-          </span>
-          <span className="inline-flex items-center gap-1.5 font-medium text-[var(--color-on-track)]">
-            <span className="h-2.5 w-2.5 rounded-sm bg-[var(--color-on-track)]" /> Diastolic
-          </span>
-          <span className="text-[var(--color-charcoal)] hidden sm:inline">
-            Shaded band = Pulse Pressure
-          </span>
-        </div>
-        <div className="flex items-center gap-3 num text-[11px] text-[var(--color-charcoal)]">
-          <span className="inline-flex items-center gap-1">
-            <span className="w-3 border-t-2 border-dashed border-[var(--color-overdue)]" />
-            140/90 HTN Threshold
-          </span>
-        </div>
-      </div>
-
-      {/* SVG Canvas */}
-      <div className="relative overflow-x-auto">
-        <svg
-          viewBox={`0 0 ${W} ${H}`}
-          className="w-full h-auto min-w-[540px] select-none"
-          style={{ maxHeight: "250px" }}
-        >
-          {/* Background HTN Alert Zone (Sys >= 140 or Dia >= 90) */}
-          <rect
-            x={P.left}
-            y={P.top}
-            width={innerW}
-            height={getY(140) - P.top}
-            fill="var(--color-overdue-surface)"
-            opacity={0.4}
+      {(() => {
+        const axis = gaAxis(visits);
+        const sys = visits.map((v) => v.bpSys!);
+        const dia = visits.map((v) => v.bpDia!);
+        return (
+          <TrendChart
+            ariaLabel="Blood pressure by visit"
+            unit="mmHg"
+            series={[
+              { key: "sys", label: "Systolic", color: CHART_1, points: visits.map((v, i) => ({ x: axis.x(v, i), y: v.bpSys! })) },
+              { key: "dia", label: "Diastolic", color: CHART_2, points: visits.map((v, i) => ({ x: axis.x(v, i), y: v.bpDia! })) },
+            ]}
+            refLines={[
+              { y: 140, label: "Hypertension threshold (140 / 90)" },
+              { y: 90, label: "Hypertension threshold (140 / 90)" },
+            ]}
+            yDomain={[Math.min(50, Math.floor((Math.min(...dia) - 10) / 10) * 10), Math.max(170, Math.ceil((Math.max(...sys) + 10) / 10) * 10)]}
+            xDomain={axis.domain}
+            xTicks={axis.ticks}
+            xTickLabel={axis.tickLabel}
+            xMeta={axis.meta}
           />
-
-          {/* Grid lines and Y-axis labels */}
-          {[60, 80, 90, 100, 120, 140, 160].map((val) => {
-            const y = getY(val);
-            const isThreshold = val === 140 || val === 90;
-            return (
-              <g key={val}>
-                <line
-                  x1={P.left}
-                  y1={y}
-                  x2={P.left + innerW}
-                  y2={y}
-                  stroke={isThreshold ? "var(--color-overdue)" : "var(--color-border)"}
-                  strokeWidth={isThreshold ? 1.2 : 0.8}
-                  strokeDasharray={isThreshold ? "4 4" : "2 2"}
-                />
-                <text
-                  x={P.left - 8}
-                  y={y + 3.5}
-                  textAnchor="end"
-                  className={`num text-[10px] ${
-                    isThreshold ? "fill-[var(--color-overdue)] font-semibold" : "fill-[var(--color-charcoal)]"
-                  }`}
-                >
-                  {val}
-                </text>
-              </g>
-            );
-          })}
-
-          {/* Pulse pressure area */}
-          {pulseAreaPath && (
-            <path d={pulseAreaPath} fill="var(--color-info-surface)" opacity={0.5} />
-          )}
-
-          {/* Systolic Line */}
-          {sysPath && (
-            <path
-              d={sysPath}
-              fill="none"
-              stroke="var(--color-info)"
-              strokeWidth={2.2}
-              strokeLinejoin="round"
-              strokeLinecap="round"
-            />
-          )}
-
-          {/* Diastolic Line */}
-          {diaPath && (
-            <path
-              d={diaPath}
-              fill="none"
-              stroke="var(--color-on-track)"
-              strokeWidth={2.2}
-              strokeLinejoin="round"
-              strokeLinecap="round"
-            />
-          )}
-
-          {/* Data Points */}
-          {visits.map((v, i) => {
-            const x = getX(i);
-            const ySys = getY(v.bpSys!);
-            const yDia = getY(v.bpDia!);
-            const isHovered = hoveredIndex === i;
-
-            return (
-              <g key={v.id} className="cursor-pointer" onMouseEnter={() => onHover(i)}>
-                {/* Vertical hover guide */}
-                {isHovered && (
-                  <line
-                    x1={x}
-                    y1={P.top}
-                    x2={x}
-                    y2={P.top + innerH}
-                    stroke="var(--color-foreground)"
-                    strokeWidth={1}
-                    strokeDasharray="2 2"
-                  />
-                )}
-
-                {/* Systolic point */}
-                <circle
-                  cx={x}
-                  cy={ySys}
-                  r={isHovered ? 6 : 4}
-                  fill="var(--color-background)"
-                  stroke="var(--color-info)"
-                  strokeWidth={2.5}
-                />
-
-                {/* Diastolic point */}
-                <rect
-                  x={x - (isHovered ? 5 : 3.5)}
-                  y={yDia - (isHovered ? 5 : 3.5)}
-                  width={isHovered ? 10 : 7}
-                  height={isHovered ? 10 : 7}
-                  fill="var(--color-background)"
-                  stroke="var(--color-on-track)"
-                  strokeWidth={2.5}
-                />
-
-                {/* X-axis date / GA label */}
-                <text
-                  x={x}
-                  y={P.top + innerH + 16}
-                  textAnchor="middle"
-                  className="num text-[10px] fill-[var(--color-foreground)] font-medium"
-                >
-                  {v.gaLabel}
-                </text>
-                <text
-                  x={x}
-                  y={P.top + innerH + 28}
-                  textAnchor="middle"
-                  className="num text-[9px] fill-[var(--color-charcoal)]"
-                >
-                  {v.dateLabel}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
-
-        {/* Floating Tooltip Box */}
-        {activePoint && hoveredIndex !== null && (
-          <div
-            className="rounded-xl absolute top-2 right-2 bg-[var(--color-background)] border border-[var(--color-border-strong)] p-2.5 shadow-sm text-[12px] z-10 max-w-xs animate-in fade-in duration-100"
-          >
-            <div className="flex items-center justify-between gap-3 border-b border-[var(--color-border)] pb-1 mb-1.5">
-              <span className="font-semibold text-[var(--color-foreground)]">{activePoint.dateLabel}</span>
-              <span className="num text-[var(--color-charcoal)] font-medium">{activePoint.gaLabel}</span>
-            </div>
-            <div className="space-y-1 num">
-              <div className="flex justify-between gap-4">
-                <span className="text-[var(--color-charcoal)]">Systolic:</span>
-                <span className="font-semibold text-[var(--color-info)]">{activePoint.bpSys} mmHg</span>
-              </div>
-              <div className="flex justify-between gap-4">
-                <span className="text-[var(--color-charcoal)]">Diastolic:</span>
-                <span className="font-semibold text-[var(--color-on-track)]">{activePoint.bpDia} mmHg</span>
-              </div>
-              <div className="flex justify-between gap-4">
-                <span className="text-[var(--color-charcoal)]">Mean Arterial (MAP):</span>
-                <span>{activePoint.map} mmHg</span>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+        );
+      })()}
 
       {/* Clinical Guidance Interpretation Box */}
       <div className="rounded-xl p-3 border border-[var(--color-border)] bg-[var(--color-surface-1)] text-[12px] leading-relaxed">
@@ -731,13 +564,9 @@ function BpChart({
 
 function SfhChart({
   visits,
-  hoveredIndex,
-  onHover,
   patientName,
 }: {
   visits: ParsedVisit[];
-  hoveredIndex: number | null;
-  onHover: (idx: number | null) => void;
   patientName: string;
 }) {
   if (visits.length === 0) {
@@ -749,226 +578,38 @@ function SfhChart({
     );
   }
 
-  // Chart Dimensions
-  const W = 680;
-  const H = 240;
-  const P = { top: 25, right: 35, bottom: 35, left: 45 };
-  const innerW = W - P.left - P.right;
-  const innerH = H - P.top - P.bottom;
-
-  // X: Gestational Weeks 16 to 40
-  const minW = 16;
-  const maxW = 40;
-  const getX = (w: number) => P.left + ((Math.max(minW, Math.min(maxW, w)) - minW) / (maxW - minW)) * innerW;
-
-  // Y: SFH cm 14 to 42 cm
-  const minSFH = 14;
-  const maxSFH = 42;
-  const getY = (sfh: number) => P.top + innerH - ((sfh - minSFH) / (maxSFH - minSFH)) * innerH;
-
-  // 10th and 90th percentile corridor (McDonald's rule: SFH roughly equals GA weeks +/- 2.5 cm)
-  const corridorTop = [
-    `${getX(16)},${getY(16 + 2.5)}`,
-    `${getX(24)},${getY(24 + 2.5)}`,
-    `${getX(32)},${getY(32 + 2.5)}`,
-    `${getX(36)},${getY(36 + 2.5)}`,
-    `${getX(40)},${getY(40 + 2.5)}`,
-  ];
-  const corridorBottom = [
-    `${getX(40)},${getY(40 - 2.5)}`,
-    `${getX(36)},${getY(36 - 2.5)}`,
-    `${getX(32)},${getY(32 - 2.5)}`,
-    `${getX(24)},${getY(24 - 2.5)}`,
-    `${getX(16)},${getY(16 - 2.5)}`,
-  ];
-  const corridorPath = `M ${[...corridorTop, ...corridorBottom].join(" L ")} Z`;
-
-  // Median line: y = x
-  const medianLine = `M ${getX(16)},${getY(16)} L ${getX(40)},${getY(40)}`;
-
-  // Patient curve
-  const patientPoints = visits.map((v) => `${getX(v.gaWeeks!)},${getY(v.sfh!)}`);
-  const patientPath = patientPoints.length > 1 ? `M ${patientPoints.join(" L ")}` : "";
-
   const latest = visits[visits.length - 1];
   const diff = latest.sfh! - latest.gaWeeks!;
   const isIugr = diff < -2.5;
   const isMacrosomia = diff > 2.5;
 
-  const activePoint = hoveredIndex !== null && visits[hoveredIndex] ? visits[hoveredIndex] : null;
 
   return (
     <div className="space-y-3">
-      {/* Legend & Guide */}
-      <div className="flex flex-wrap items-center justify-between text-[12px] gap-2 pb-1 border-b border-[var(--color-border)]">
-        <div className="flex items-center gap-4">
-          <span className="inline-flex items-center gap-1.5 font-medium text-[var(--color-primary)]">
-            <span className="h-2.5 w-2.5 rounded-full bg-[var(--color-primary)]" /> {patientName}&apos;s SFH
-          </span>
-          <span className="inline-flex items-center gap-1.5 text-[var(--color-charcoal)]">
-            <span className="h-3 w-4 bg-[var(--color-on-track-surface)] border border-[var(--color-border)]" /> Normal Corridor (10th–90th centile)
-          </span>
-          <span className="text-[var(--color-charcoal)] hidden sm:inline">
-            Dashed line = Expected 50th centile (SFH = GA)
-          </span>
-        </div>
-      </div>
-
-      {/* SVG Canvas */}
-      <div className="relative overflow-x-auto">
-        <svg
-          viewBox={`0 0 ${W} ${H}`}
-          className="w-full h-auto min-w-[540px] select-none"
-          style={{ maxHeight: "250px" }}
-        >
-          {/* Normal Corridor Band (Shaded) */}
-          <path d={corridorPath} fill="var(--color-on-track-surface)" opacity={0.6} />
-
-          {/* Grid lines & Y-axis (Fundal Height cm) */}
-          {[16, 20, 24, 28, 32, 36, 40].map((val) => {
-            const y = getY(val);
-            return (
-              <g key={val}>
-                <line
-                  x1={P.left}
-                  y1={y}
-                  x2={P.left + innerW}
-                  y2={y}
-                  stroke="var(--color-border)"
-                  strokeWidth={0.8}
-                  strokeDasharray="2 2"
-                />
-                <text
-                  x={P.left - 8}
-                  y={y + 3.5}
-                  textAnchor="end"
-                  className="num text-[10px] fill-[var(--color-charcoal)]"
-                >
-                  {val} cm
-                </text>
-              </g>
-            );
-          })}
-
-          {/* Grid lines & X-axis (Gestational Weeks) */}
-          {[16, 20, 24, 28, 32, 36, 40].map((wk) => {
-            const x = getX(wk);
-            return (
-              <g key={wk}>
-                <line
-                  x1={x}
-                  y1={P.top}
-                  x2={x}
-                  y2={P.top + innerH}
-                  stroke="var(--color-border)"
-                  strokeWidth={0.8}
-                  strokeDasharray="2 2"
-                />
-                <text
-                  x={x}
-                  y={P.top + innerH + 16}
-                  textAnchor="middle"
-                  className="num text-[10px] fill-[var(--color-charcoal)]"
-                >
-                  {wk}w
-                </text>
-              </g>
-            );
-          })}
-
-          {/* Median Expected Line (y = x) */}
-          <path
-            d={medianLine}
-            fill="none"
-            stroke="var(--color-charcoal)"
-            strokeWidth={1.5}
-            strokeDasharray="4 4"
-            opacity={0.7}
+      {(() => {
+        const axis = gaAxis(visits, [16, 40]);
+        const values = visits.map((v) => v.sfh!);
+        return (
+          <TrendChart
+            ariaLabel={`${patientName}'s symphysio-fundal height against gestational age`}
+            unit="cm"
+            series={[{ key: "sfh", label: "Fundal height", color: CHART_1, points: visits.map((v, i) => ({ x: axis.x(v, i), y: v.sfh! })) }]}
+            corridor={
+              axis.isGa
+                ? { lower: (x) => x - 2.5, upper: (x) => x + 2.5, mid: (x) => x, label: "Expected range (GA ± 2.5 cm)" }
+                : undefined
+            }
+            yDomain={[
+              Math.floor(Math.min(axis.domain[0] - 4, ...values) / 2) * 2,
+              Math.ceil(Math.max(axis.domain[1] + 4, ...values) / 2) * 2,
+            ]}
+            xDomain={axis.domain}
+            xTicks={axis.ticks}
+            xTickLabel={axis.tickLabel}
+            xMeta={axis.meta}
           />
-
-          {/* Patient SFH Line */}
-          {patientPath && (
-            <path
-              d={patientPath}
-              fill="none"
-              stroke="var(--color-primary)"
-              strokeWidth={2.5}
-              strokeLinejoin="round"
-              strokeLinecap="round"
-            />
-          )}
-
-          {/* Patient Data Points */}
-          {visits.map((v, i) => {
-            const x = getX(v.gaWeeks!);
-            const y = getY(v.sfh!);
-            const pointDiff = v.sfh! - v.gaWeeks!;
-            const isAbnormal = Math.abs(pointDiff) > 2.5;
-            const isHovered = hoveredIndex === i;
-
-            return (
-              <g key={v.id} className="cursor-pointer" onMouseEnter={() => onHover(i)}>
-                {isHovered && (
-                  <line
-                    x1={x}
-                    y1={P.top}
-                    x2={x}
-                    y2={P.top + innerH}
-                    stroke="var(--color-foreground)"
-                    strokeWidth={1}
-                    strokeDasharray="2 2"
-                  />
-                )}
-
-                <circle
-                  cx={x}
-                  cy={y}
-                  r={isHovered ? 6 : 4.5}
-                  fill={isAbnormal ? (pointDiff < 0 ? "var(--color-overdue)" : "var(--color-due)") : "var(--color-primary)"}
-                  stroke="var(--color-background)"
-                  strokeWidth={2}
-                />
-              </g>
-            );
-          })}
-        </svg>
-
-        {/* Floating Tooltip Box */}
-        {activePoint && hoveredIndex !== null && (
-          <div
-            className="rounded-xl absolute top-2 right-2 bg-[var(--color-background)] border border-[var(--color-border-strong)] p-2.5 shadow-sm text-[12px] z-10 max-w-xs animate-in fade-in duration-100"
-          >
-            <div className="flex items-center justify-between gap-3 border-b border-[var(--color-border)] pb-1 mb-1.5">
-              <span className="font-semibold text-[var(--color-foreground)]">{activePoint.dateLabel}</span>
-              <span className="num text-[var(--color-charcoal)] font-medium">{activePoint.gaLabel}</span>
-            </div>
-            <div className="space-y-1 num">
-              <div className="flex justify-between gap-4">
-                <span className="text-[var(--color-charcoal)]">Fundal Height:</span>
-                <span className="font-semibold text-[var(--color-primary)]">{activePoint.sfh} cm</span>
-              </div>
-              <div className="flex justify-between gap-4">
-                <span className="text-[var(--color-charcoal)]">Expected (Median):</span>
-                <span>{activePoint.gaWeeks ? `${Math.round(activePoint.gaWeeks)} cm` : "—"}</span>
-              </div>
-              <div className="flex justify-between gap-4">
-                <span className="text-[var(--color-charcoal)]">Variance:</span>
-                <span
-                  className={
-                    activePoint.sfh! - activePoint.gaWeeks! < -2.5
-                      ? "text-[var(--color-overdue)] font-semibold"
-                      : activePoint.sfh! - activePoint.gaWeeks! > 2.5
-                      ? "text-[var(--color-due)] font-semibold"
-                      : "text-[var(--color-on-track)] font-medium"
-                  }
-                >
-                  {(activePoint.sfh! - activePoint.gaWeeks!).toFixed(1)} cm
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+        );
+      })()}
 
       {/* Clinical Guidance Interpretation Box */}
       <div className="rounded-xl p-3 border border-[var(--color-border)] bg-[var(--color-surface-1)] text-[12px] leading-relaxed">
@@ -1023,12 +664,8 @@ function SfhChart({
 
 function HbChart({
   visits,
-  hoveredIndex,
-  onHover,
 }: {
   visits: ParsedVisit[];
-  hoveredIndex: number | null;
-  onHover: (idx: number | null) => void;
 }) {
   if (visits.length === 0) {
     return (
@@ -1039,239 +676,37 @@ function HbChart({
     );
   }
 
-  // Chart Dimensions
-  const W = 680;
-  const H = 240;
-  const P = { top: 25, right: 35, bottom: 35, left: 45 };
-  const innerW = W - P.left - P.right;
-  const innerH = H - P.top - P.bottom;
-
-  // Y Scale: Hb 5.0 to 15.0 g/dL
-  const minHb = 5.0;
-  const maxHb = 15.0;
-  const getY = (hb: number) => P.top + innerH - ((hb - minHb) / (maxHb - minHb)) * innerH;
-
-  // X Scale: evenly distributed visits
-  const getX = (index: number) => {
-    if (visits.length === 1) return P.left + innerW / 2;
-    return P.left + (index / (visits.length - 1)) * innerW;
-  };
-
-  const points = visits.map((v, i) => `${getX(i)},${getY(v.hb!)}`);
-  const hbPath = points.length > 1 ? `M ${points.join(" L ")}` : "";
-
   const latest = visits[visits.length - 1];
   const baseline = visits[0];
   const delta = Number((latest.hb! - baseline.hb!).toFixed(1));
   const isAnemic = latest.hb! < 11.0;
   const isSevere = latest.hb! < 7.0;
 
-  const activePoint = hoveredIndex !== null && visits[hoveredIndex] ? visits[hoveredIndex] : null;
 
   return (
     <div className="space-y-3">
-      {/* Legend & Guide */}
-      <div className="flex flex-wrap items-center justify-between text-[12px] gap-2 pb-1 border-b border-[var(--color-border)]">
-        <div className="flex items-center gap-3">
-          <span className="inline-flex items-center gap-1.5 font-medium text-[var(--color-foreground)]">
-            <span className="h-2.5 w-2.5 rounded-full bg-[var(--color-foreground)]" /> Hb Trend Line
-          </span>
-          <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--color-on-track)]">
-            <span className="h-2 w-2 rounded-xs bg-[var(--color-on-track-surface)] border border-[var(--color-on-track)]" /> ≥11.0 Safe Target
-          </span>
-          <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--color-due)]">
-            <span className="h-2 w-2 rounded-xs bg-[var(--color-due-surface)] border border-[var(--color-due)]" /> 10.0–10.9 Mild
-          </span>
-          <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--color-overdue)]">
-            <span className="h-2 w-2 rounded-xs bg-[var(--color-overdue-surface)] border border-[var(--color-overdue)]" /> &lt;10.0 Mod / Severe
-          </span>
-        </div>
-      </div>
-
-      {/* SVG Canvas */}
-      <div className="relative overflow-x-auto">
-        <svg
-          viewBox={`0 0 ${W} ${H}`}
-          className="w-full h-auto min-w-[540px] select-none"
-          style={{ maxHeight: "250px" }}
-        >
-          {/* Severity Bands Background */}
-          {/* Safe Zone (>=11.0) */}
-          <rect
-            x={P.left}
-            y={P.top}
-            width={innerW}
-            height={getY(11.0) - P.top}
-            fill="var(--color-on-track-surface)"
-            opacity={0.4}
+      {(() => {
+        const axis = gaAxis(visits);
+        const values = visits.map((v) => v.hb!);
+        return (
+          <TrendChart
+            ariaLabel="Haemoglobin by visit"
+            unit="g/dL"
+            decimals={1}
+            series={[{ key: "hb", label: "Haemoglobin", color: CHART_1, points: visits.map((v, i) => ({ x: axis.x(v, i), y: v.hb! })) }]}
+            bands={[
+              { from: 11, to: 20, label: "Normal (≥ 11)", tone: "ok" },
+              { from: 10, to: 11, label: "Mild (10–10.9)", tone: "warn" },
+              { from: 0, to: 10, label: "Moderate / severe (< 10)", tone: "bad" },
+            ]}
+            yDomain={[Math.min(6, Math.floor(Math.min(...values) - 1)), Math.max(14, Math.ceil(Math.max(...values) + 1))]}
+            xDomain={axis.domain}
+            xTicks={axis.ticks}
+            xTickLabel={axis.tickLabel}
+            xMeta={axis.meta}
           />
-          {/* Mild Anemia (10.0 - 11.0) */}
-          <rect
-            x={P.left}
-            y={getY(11.0)}
-            width={innerW}
-            height={getY(10.0) - getY(11.0)}
-            fill="var(--color-due-surface)"
-            opacity={0.4}
-          />
-          {/* Moderate Anemia (7.0 - 10.0) */}
-          <rect
-            x={P.left}
-            y={getY(10.0)}
-            width={innerW}
-            height={getY(7.0) - getY(10.0)}
-            fill="#fff3e0"
-            opacity={0.5}
-          />
-          {/* Severe Anemia (<7.0) */}
-          <rect
-            x={P.left}
-            y={getY(7.0)}
-            width={innerW}
-            height={P.top + innerH - getY(7.0)}
-            fill="var(--color-overdue-surface)"
-            opacity={0.4}
-          />
-
-          {/* Grid lines and Y-axis labels */}
-          {[6.0, 7.0, 8.0, 10.0, 11.0, 12.0, 14.0].map((val) => {
-            const y = getY(val);
-            const isBenchmark = val === 11.0 || val === 7.0;
-            return (
-              <g key={val}>
-                <line
-                  x1={P.left}
-                  y1={y}
-                  x2={P.left + innerW}
-                  y2={y}
-                  stroke={val === 11.0 ? "var(--color-on-track)" : val === 7.0 ? "var(--color-overdue)" : "var(--color-border)"}
-                  strokeWidth={isBenchmark ? 1.2 : 0.8}
-                  strokeDasharray={isBenchmark ? "4 4" : "2 2"}
-                />
-                <text
-                  x={P.left - 8}
-                  y={y + 3.5}
-                  textAnchor="end"
-                  className={`num text-[10px] ${
-                    val === 11.0
-                      ? "fill-[var(--color-on-track)] font-semibold"
-                      : val === 7.0
-                      ? "fill-[var(--color-overdue)] font-semibold"
-                      : "fill-[var(--color-charcoal)]"
-                  }`}
-                >
-                  {val.toFixed(1)}
-                </text>
-              </g>
-            );
-          })}
-
-          {/* Trend Line */}
-          {hbPath && (
-            <path
-              d={hbPath}
-              fill="none"
-              stroke="var(--color-foreground)"
-              strokeWidth={2.4}
-              strokeLinejoin="round"
-              strokeLinecap="round"
-            />
-          )}
-
-          {/* Data Points */}
-          {visits.map((v, i) => {
-            const x = getX(i);
-            const y = getY(v.hb!);
-            const isHovered = hoveredIndex === i;
-            const pointTone =
-              v.hb! < 7.0
-                ? "var(--color-overdue)"
-                : v.hb! < 10.0
-                ? "var(--color-due)"
-                : v.hb! < 11.0
-                ? "var(--color-due)"
-                : "var(--color-on-track)";
-
-            return (
-              <g key={v.id} className="cursor-pointer" onMouseEnter={() => onHover(i)}>
-                {isHovered && (
-                  <line
-                    x1={x}
-                    y1={P.top}
-                    x2={x}
-                    y2={P.top + innerH}
-                    stroke="var(--color-foreground)"
-                    strokeWidth={1}
-                    strokeDasharray="2 2"
-                  />
-                )}
-
-                <circle
-                  cx={x}
-                  cy={y}
-                  r={isHovered ? 6 : 4.5}
-                  fill={pointTone}
-                  stroke="var(--color-background)"
-                  strokeWidth={2}
-                />
-
-                <text
-                  x={x}
-                  y={P.top + innerH + 16}
-                  textAnchor="middle"
-                  className="num text-[10px] fill-[var(--color-foreground)] font-medium"
-                >
-                  {v.gaLabel}
-                </text>
-                <text
-                  x={x}
-                  y={P.top + innerH + 28}
-                  textAnchor="middle"
-                  className="num text-[9px] fill-[var(--color-charcoal)]"
-                >
-                  {v.dateLabel}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
-
-        {/* Floating Tooltip Box */}
-        {activePoint && hoveredIndex !== null && (
-          <div
-            className="rounded-xl absolute top-2 right-2 bg-[var(--color-background)] border border-[var(--color-border-strong)] p-2.5 shadow-sm text-[12px] z-10 max-w-xs animate-in fade-in duration-100"
-          >
-            <div className="flex items-center justify-between gap-3 border-b border-[var(--color-border)] pb-1 mb-1.5">
-              <span className="font-semibold text-[var(--color-foreground)]">{activePoint.dateLabel}</span>
-              <span className="num text-[var(--color-charcoal)] font-medium">{activePoint.gaLabel}</span>
-            </div>
-            <div className="space-y-1 num">
-              <div className="flex justify-between gap-4">
-                <span className="text-[var(--color-charcoal)]">Hemoglobin:</span>
-                <span
-                  className={`font-semibold ${
-                    activePoint.hb! < 11.0 ? "text-[var(--color-overdue)]" : "text-[var(--color-on-track)]"
-                  }`}
-                >
-                  {activePoint.hb} g/dL
-                </span>
-              </div>
-              <div className="flex justify-between gap-4">
-                <span className="text-[var(--color-charcoal)]">Status:</span>
-                <span className="font-medium text-[var(--color-foreground)]">
-                  {activePoint.hb! < 7.0
-                    ? "Severe Anemia"
-                    : activePoint.hb! < 10.0
-                    ? "Moderate Anemia"
-                    : activePoint.hb! < 11.0
-                    ? "Mild Anemia"
-                    : "Normal / Adequate"}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+        );
+      })()}
 
       {/* Clinical Guidance Interpretation Box */}
       <div className="rounded-xl p-3 border border-[var(--color-border)] bg-[var(--color-surface-1)] text-[12px] leading-relaxed">
@@ -1338,13 +773,9 @@ function HbChart({
 function WeightFhrChart({
   weightVisits,
   fhrVisits,
-  hoveredIndex,
-  onHover,
 }: {
   weightVisits: ParsedVisit[];
   fhrVisits: ParsedVisit[];
-  hoveredIndex: number | null;
-  onHover: (idx: number | null) => void;
 }) {
   if (weightVisits.length === 0 && fhrVisits.length === 0) {
     return (
@@ -1355,30 +786,6 @@ function WeightFhrChart({
     );
   }
 
-  // Combined visits having either weight or FHR
-  const visits = weightVisits.length >= fhrVisits.length ? weightVisits : fhrVisits;
-
-  // Chart Dimensions
-  const W = 680;
-  const H = 240;
-  const P = { top: 25, right: 35, bottom: 35, left: 45 };
-  const innerW = W - P.left - P.right;
-  const innerH = H - P.top - P.bottom;
-
-  // Scale for Weight: minW to maxW
-  const weights = weightVisits.map((v) => v.weight!);
-  const minWeight = Math.floor(Math.min(...(weights.length ? weights : [50])) - 2);
-  const maxWeight = Math.ceil(Math.max(...(weights.length ? weights : [70])) + 5);
-  const getYWeight = (w: number) => P.top + innerH - ((w - minWeight) / (maxWeight - minWeight)) * innerH;
-
-  const getX = (index: number) => {
-    if (visits.length === 1) return P.left + innerW / 2;
-    return P.left + (index / (visits.length - 1)) * innerW;
-  };
-
-  const weightPoints = weightVisits.map((v, i) => `${getX(i)},${getYWeight(v.weight!)}`);
-  const weightPath = weightPoints.length > 1 ? `M ${weightPoints.join(" L ")}` : "";
-
   const latestWeight = weightVisits[weightVisits.length - 1] ?? null;
   const baselineWeight = weightVisits[0] ?? null;
   const totalGain =
@@ -1386,158 +793,79 @@ function WeightFhrChart({
 
   const latestFhr = fhrVisits[fhrVisits.length - 1] ?? null;
 
-  const activePoint = hoveredIndex !== null && visits[hoveredIndex] ? visits[hoveredIndex] : null;
 
   return (
     <div className="space-y-3">
-      {/* Legend & Guide */}
-      <div className="flex flex-wrap items-center justify-between text-[12px] gap-2 pb-1 border-b border-[var(--color-border)]">
-        <div className="flex items-center gap-4">
-          <span className="inline-flex items-center gap-1.5 font-medium text-[var(--color-primary)]">
-            <span className="h-2.5 w-2.5 rounded-full bg-[var(--color-primary)]" /> Maternal Weight (kg)
-          </span>
-          <span className="text-[var(--color-charcoal)]">
-            Total Gain: <strong className="num text-[var(--color-foreground)]">{totalGain !== null ? `${totalGain > 0 ? "+" : ""}${totalGain} kg` : "—"}</strong>
-          </span>
-        </div>
-        <div className="flex items-center gap-2 num text-[11px] text-[var(--color-charcoal)]">
-          <span>Latest FHR:</span>
-          <strong className={`font-semibold ${latestFhr && (latestFhr.fhr! < 110 || latestFhr.fhr! > 160) ? "text-[var(--color-overdue)]" : "text-[var(--color-foreground)]"}`}>
-            {latestFhr ? `${latestFhr.fhr} bpm` : "—"}
-          </strong>
-        </div>
-      </div>
-
-      {/* SVG Canvas */}
-      <div className="relative overflow-x-auto">
-        <svg
-          viewBox={`0 0 ${W} ${H}`}
-          className="w-full h-auto min-w-[540px] select-none"
-          style={{ maxHeight: "250px" }}
-        >
-          {/* Grid lines and Y-axis labels for Weight */}
-          {[minWeight, Math.round((minWeight + maxWeight) / 2), maxWeight].map((val) => {
-            const y = getYWeight(val);
-            return (
-              <g key={val}>
-                <line
-                  x1={P.left}
-                  y1={y}
-                  x2={P.left + innerW}
-                  y2={y}
-                  stroke="var(--color-border)"
-                  strokeWidth={0.8}
-                  strokeDasharray="2 2"
+      {/* Two small charts, one scale each (never a dual-axis chart). */}
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-2">
+        <section aria-label="Maternal weight">
+          <h3 className="mb-2 flex flex-wrap items-baseline justify-between gap-2 text-[13px] font-semibold">
+            Maternal weight
+            <span className="text-[12px] font-normal text-[var(--color-charcoal)]">
+              Total gain{" "}
+              <strong className="tabular-nums text-[var(--color-foreground)]">
+                {totalGain !== null ? `${totalGain > 0 ? "+" : ""}${totalGain} kg` : "—"}
+              </strong>
+            </span>
+          </h3>
+          {weightVisits.length === 0 ? (
+            <p className="rounded-xl bg-[var(--color-surface-1)] px-4 py-8 text-center text-[13px] text-[var(--color-charcoal)]">No weight recorded yet.</p>
+          ) : (
+            (() => {
+              const axis = gaAxis(weightVisits);
+              const values = weightVisits.map((v) => v.weight!);
+              return (
+                <TrendChart
+                  ariaLabel="Maternal weight by visit"
+                  unit="kg"
+                  decimals={1}
+                  series={[{ key: "wt", label: "Weight", color: CHART_1, points: weightVisits.map((v, i) => ({ x: axis.x(v, i), y: v.weight! })) }]}
+                  yDomain={[Math.floor(Math.min(...values) - 3), Math.ceil(Math.max(...values) + 3)]}
+                  xDomain={axis.domain}
+                  xTicks={axis.ticks}
+                  xTickLabel={axis.tickLabel}
+                  xMeta={axis.meta}
                 />
-                <text
-                  x={P.left - 8}
-                  y={y + 3.5}
-                  textAnchor="end"
-                  className="num text-[10px] fill-[var(--color-charcoal)]"
-                >
-                  {val} kg
-                </text>
-              </g>
-            );
-          })}
-
-          {/* Weight Trend Line */}
-          {weightPath && (
-            <path
-              d={weightPath}
-              fill="none"
-              stroke="var(--color-primary)"
-              strokeWidth={2.4}
-              strokeLinejoin="round"
-              strokeLinecap="round"
-            />
+              );
+            })()
           )}
-
-          {/* Data Points */}
-          {visits.map((v, i) => {
-            const x = getX(i);
-            const isHovered = hoveredIndex === i;
-            const y = v.weight !== null ? getYWeight(v.weight) : null;
-
-            return (
-              <g key={v.id} className="cursor-pointer" onMouseEnter={() => onHover(i)}>
-                {isHovered && (
-                  <line
-                    x1={x}
-                    y1={P.top}
-                    x2={x}
-                    y2={P.top + innerH}
-                    stroke="var(--color-foreground)"
-                    strokeWidth={1}
-                    strokeDasharray="2 2"
-                  />
-                )}
-
-                {y !== null && (
-                  <circle
-                    cx={x}
-                    cy={y}
-                    r={isHovered ? 6 : 4.5}
-                    fill="var(--color-primary)"
-                    stroke="var(--color-background)"
-                    strokeWidth={2}
-                  />
-                )}
-
-                <text
-                  x={x}
-                  y={P.top + innerH + 16}
-                  textAnchor="middle"
-                  className="num text-[10px] fill-[var(--color-foreground)] font-medium"
-                >
-                  {v.gaLabel}
-                </text>
-                <text
-                  x={x}
-                  y={P.top + innerH + 28}
-                  textAnchor="middle"
-                  className="num text-[9px] fill-[var(--color-charcoal)]"
-                >
-                  {v.dateLabel}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
-
-        {/* Floating Tooltip Box */}
-        {activePoint && hoveredIndex !== null && (
-          <div
-            className="rounded-xl absolute top-2 right-2 bg-[var(--color-background)] border border-[var(--color-border-strong)] p-2.5 shadow-sm text-[12px] z-10 max-w-xs animate-in fade-in duration-100"
-          >
-            <div className="flex items-center justify-between gap-3 border-b border-[var(--color-border)] pb-1 mb-1.5">
-              <span className="font-semibold text-[var(--color-foreground)]">{activePoint.dateLabel}</span>
-              <span className="num text-[var(--color-charcoal)] font-medium">{activePoint.gaLabel}</span>
-            </div>
-            <div className="space-y-1 num">
-              {activePoint.weight !== null && (
-                <div className="flex justify-between gap-4">
-                  <span className="text-[var(--color-charcoal)]">Weight:</span>
-                  <span className="font-semibold text-[var(--color-primary)]">{activePoint.weight} kg</span>
-                </div>
-              )}
-              {activePoint.fhr !== null && (
-                <div className="flex justify-between gap-4">
-                  <span className="text-[var(--color-charcoal)]">Fetal Heart Rate:</span>
-                  <span
-                    className={`font-semibold ${
-                      activePoint.fhr < 110 || activePoint.fhr > 160
-                        ? "text-[var(--color-overdue)]"
-                        : "text-[var(--color-foreground)]"
-                    }`}
-                  >
-                    {activePoint.fhr} bpm
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        </section>
+        <section aria-label="Fetal heart rate">
+          <h3 className="mb-2 flex flex-wrap items-baseline justify-between gap-2 text-[13px] font-semibold">
+            Fetal heart rate
+            <span className="text-[12px] font-normal text-[var(--color-charcoal)]">
+              Latest{" "}
+              <strong
+                className={`tabular-nums ${
+                  latestFhr && (latestFhr.fhr! < 110 || latestFhr.fhr! > 160) ? "text-[var(--color-overdue)]" : "text-[var(--color-foreground)]"
+                }`}
+              >
+                {latestFhr ? `${latestFhr.fhr} bpm` : "—"}
+              </strong>
+            </span>
+          </h3>
+          {fhrVisits.length === 0 ? (
+            <p className="rounded-xl bg-[var(--color-surface-1)] px-4 py-8 text-center text-[13px] text-[var(--color-charcoal)]">No FHR recorded yet.</p>
+          ) : (
+            (() => {
+              const axis = gaAxis(fhrVisits);
+              const values = fhrVisits.map((v) => v.fhr!);
+              return (
+                <TrendChart
+                  ariaLabel="Fetal heart rate by visit"
+                  unit="bpm"
+                  series={[{ key: "fhr", label: "FHR", color: CHART_1, points: fhrVisits.map((v, i) => ({ x: axis.x(v, i), y: v.fhr! })) }]}
+                  bands={[{ from: 110, to: 160, label: "Normal (110–160)", tone: "ok" }]}
+                  yDomain={[Math.min(90, Math.floor(Math.min(...values) / 10) * 10 - 10), Math.max(180, Math.ceil(Math.max(...values) / 10) * 10 + 10)]}
+                  xDomain={axis.domain}
+                  xTicks={axis.ticks}
+                  xTickLabel={axis.tickLabel}
+                  xMeta={axis.meta}
+                />
+              );
+            })()
+          )}
+        </section>
       </div>
 
       {/* Clinical Guidance Interpretation Box */}
