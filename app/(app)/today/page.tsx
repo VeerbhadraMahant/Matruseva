@@ -1,11 +1,15 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { Phone, Plus } from "@phosphor-icons/react/dist/ssr";
 import { getCurrentUser } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 import { getClinicSnapshot, daysOverdue, needsFollowUp, followUpPriority, type PatientRow } from "@/lib/snapshot";
 import { formatGA, trimester } from "@/lib/pregnancy";
 import { daysBetween, formatShortDate, parseLocalDate, relativeDays } from "@/lib/format";
 import { telLink } from "@/lib/whatsapp";
 import { PageHeader, Panel, Stat, Tag, Empty, SEVERITY_TONE, buttonPrimary, buttonSecondary, th, td } from "@/components/ui";
+import { ClinicAnalyticsSummary } from "@/components/ClinicAnalyticsSummary";
+import { getDemoContactStats, getDemoDeliveriesThisMonthCount } from "@/lib/demo-data";
 
 function PatientCell({ row }: { row: PatientRow }) {
   return (
@@ -70,6 +74,50 @@ export default async function TodayPage() {
     .filter((r) => r.flags.some((f) => f.severity !== "info"))
     .sort((a, b) => followUpPriority(a, today) - followUpPriority(b, today));
 
+  const cookieStore = await cookies();
+  const isDemo = cookieStore.get("matrusetu_demo")?.value === "1";
+
+  let deliveriesThisMonth = 0;
+  let contactsAttempted = 0;
+  let contactsReached = 0;
+  let contactSuccessRate = 0;
+
+  if (isDemo) {
+    const cStats = getDemoContactStats();
+    contactsAttempted = cStats.total;
+    contactsReached = cStats.reached;
+    contactSuccessRate = cStats.successRate;
+    deliveriesThisMonth = getDemoDeliveriesThisMonthCount();
+  } else {
+    const supabase = await createClient();
+    const startOfMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
+    const [{ count: delivCount }, { data: contactRows }] = await Promise.all([
+      supabase
+        .from("patients")
+        .select("*", { count: "exact", head: true })
+        .gte("delivery_date", startOfMonth),
+      supabase
+        .from("contact_log")
+        .select("outcome")
+        .limit(2000),
+    ]);
+    deliveriesThisMonth = delivCount ?? 0;
+    contactsAttempted = (contactRows ?? []).length;
+    contactsReached = (contactRows ?? []).filter((c) => c.outcome === "reached" || c.outcome === "will_visit").length;
+    contactSuccessRate = contactsAttempted > 0 ? Math.round((contactsReached / contactsAttempted) * 100) : 0;
+  }
+
+  const trimesterCounts = {
+    t1: rows.filter((r) => r.ga && trimester(r.ga) === 1).length,
+    t2: rows.filter((r) => r.ga && trimester(r.ga) === 2).length,
+    t3: rows.filter((r) => r.ga && trimester(r.ga) === 3).length,
+  };
+
+  const totalActive = rows.length;
+  const overdueMothers = rows.filter((r) => r.overdue.length > 0).length;
+  const compliantCount = Math.max(0, totalActive - overdueMothers);
+  const complianceRate = totalActive > 0 ? Math.round((compliantCount / totalActive) * 100) : 0;
+
   const dateLabel = today.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
   return (
@@ -102,6 +150,18 @@ export default async function TodayPage() {
           <Stat label="Lost" value={lost.length} href="/calls?f=lost" tone="critical" />
           <Stat label="EDD ≤ 30 days" value={deliveries.length} href="/patients?f=term" tone="ok" />
         </div>
+
+        <ClinicAnalyticsSummary
+          totalActive={totalActive}
+          compliantCount={compliantCount}
+          complianceRate={complianceRate}
+          trimester={trimesterCounts}
+          contactsAttempted={contactsAttempted}
+          contactsReached={contactsReached}
+          contactSuccessRate={contactSuccessRate}
+          overdueCount={overduePatients.length}
+          deliveriesThisMonth={deliveriesThisMonth}
+        />
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
           <div className="space-y-4">

@@ -11,10 +11,12 @@ import {
   ArrowsLeftRight,
   Translate,
   Robot,
+  UsersThree,
+  Warning,
 } from "@phosphor-icons/react";
-import { Tag, SEVERITY_TONE, type Tone } from "@/components/ui";
+import { Tag, SEVERITY_TONE, type Tone, buttonPrimary, buttonSecondary } from "@/components/ui";
 import { ContactLogForm } from "@/components/ContactLogForm";
-import { quickLogContact } from "@/app/(app)/calls/actions";
+import { quickLogContact, logBatchContacts } from "@/app/(app)/calls/actions";
 import { WhatsAppBotSimulator } from "@/components/WhatsAppBotSimulator";
 import type { ClinicalFlag } from "@/lib/clinical";
 import type { ContactOutcome } from "@/lib/supabase/enums";
@@ -109,6 +111,65 @@ export function CallQueue({
     });
   };
 
+  // Batch contact logging state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [batchOutcome, setBatchOutcome] = useState<ContactOutcome | "automated_reminder">("no_answer");
+  const [batchNotes, setBatchNotes] = useState("");
+  const [showBatchConfirm, setShowBatchConfirm] = useState(false);
+  const [batchToast, setBatchToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [isBatchPending, startBatchTransition] = useTransition();
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (visible.length === 0) return;
+    const allSelected = visible.every((r) => selectedIds.has(r.id));
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(visible.map((r) => r.id)));
+    }
+  };
+
+  const getBatchOutcomeLabel = (out: ContactOutcome | "automated_reminder") => {
+    if (out === "automated_reminder") return "Automated reminder sent (WhatsApp)";
+    return OUTCOME[out as ContactOutcome]?.label ?? out;
+  };
+
+  const handleBatchSubmit = () => {
+    if (selectedIds.size === 0) return;
+    const ids = Array.from(selectedIds);
+    const outcomeToLog: ContactOutcome = batchOutcome === "automated_reminder" ? "reached" : batchOutcome;
+    const finalNotes =
+      batchOutcome === "automated_reminder"
+        ? (batchNotes.trim() ? `Automated reminder sent: ${batchNotes.trim()}` : "Automated WhatsApp reminder sent")
+        : (batchNotes.trim() || undefined);
+
+    startBatchTransition(async () => {
+      const res = await logBatchContacts(ids, outcomeToLog, finalNotes);
+      setShowBatchConfirm(false);
+      if (res.error) {
+        setBatchToast({ message: res.error, type: "error" });
+      } else {
+        const skippedMsg = res.skippedCount > 0 ? ` (${res.skippedCount} skipped as closed/delivered)` : "";
+        setBatchToast({
+          message: `Logged ${res.loggedCount} contact${res.loggedCount === 1 ? "" : "s"}${skippedMsg}`,
+          type: "success",
+        });
+        setSelectedIds(new Set());
+        setBatchNotes("");
+        setTimeout(() => setBatchToast(null), 4000);
+      }
+    });
+  };
+
   return (
     <>
       <div className="border border-[var(--color-border)] bg-[var(--color-background)]">
@@ -183,6 +244,62 @@ export function CallQueue({
           </span>
         </div>
 
+        {/* Batch Feedback Toast */}
+        {batchToast && (
+          <div
+            className={`flex items-center justify-between px-4 py-2.5 text-xs font-semibold ${
+              batchToast.type === "success"
+                ? "bg-[var(--color-on-track-surface)] border-b border-[var(--color-on-track)] text-[var(--color-on-track)]"
+                : "bg-[var(--color-overdue-surface)] border-b border-[var(--color-overdue)] text-[var(--color-overdue)]"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              {batchToast.type === "success" ? (
+                <CheckCircle size={16} weight="fill" />
+              ) : (
+                <Warning size={16} weight="fill" />
+              )}
+              <span>{batchToast.message}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setBatchToast(null)}
+              className="text-xs opacity-75 hover:opacity-100 cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        {/* Batch Selection Header Toolbar */}
+        {visible.length > 0 && (
+          <div className="flex items-center justify-between px-3 py-2 bg-[var(--color-surface-1)] border-b border-[var(--color-border)] text-xs text-[var(--color-charcoal)]">
+            <label className="flex items-center gap-2 cursor-pointer font-medium text-[var(--color-foreground)] select-none">
+              <input
+                type="checkbox"
+                checked={visible.length > 0 && visible.every((r) => selectedIds.has(r.id))}
+                onChange={toggleSelectAll}
+                ref={(el) => {
+                  if (el) {
+                    const someSelected = visible.some((r) => selectedIds.has(r.id));
+                    const allSelected = visible.every((r) => selectedIds.has(r.id));
+                    el.indeterminate = someSelected && !allSelected;
+                  }
+                }}
+                className="h-4 w-4 accent-[var(--color-primary)] rounded cursor-pointer"
+                aria-label="Select all patients in this list"
+              />
+              <span>Select all in queue ({visible.length})</span>
+            </label>
+
+            {selectedIds.size > 0 && (
+              <span className="font-semibold text-[var(--color-primary)]">
+                {selectedIds.size} selected
+              </span>
+            )}
+          </div>
+        )}
+
         <ol>
           {visible.map((r, i) => {
             const currentWaLink = r.whatsappByLang?.[selectedLang] ?? r.whatsapp;
@@ -193,6 +310,8 @@ export function CallQueue({
                 index={i}
                 selectedLang={selectedLang}
                 waLink={currentWaLink}
+                isSelected={selectedIds.has(r.id)}
+                onToggleSelect={() => toggleSelect(r.id)}
                 onTriggerCall={() => {
                   if (r.tel) window.location.href = r.tel;
                   setQuickLogTarget({
@@ -371,6 +490,110 @@ export function CallQueue({
           onClose={() => setSimulatorPatientId(null)}
         />
       )}
+      {/* Sticky Batch Contact Action Bar */}
+      {selectedIds.size > 0 && (
+        <div
+          role="region"
+          aria-label="Batch contact actions"
+          className="sticky bottom-0 z-40 border-t-2 border-[var(--color-primary)] bg-[var(--color-background)] p-3 shadow-2xl animate-in slide-in-from-bottom duration-200"
+        >
+          <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5 bg-[var(--color-primary)] text-white text-xs font-bold px-2.5 py-1">
+                <UsersThree size={16} weight="bold" />
+                <span>{selectedIds.size} selected</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedIds(new Set())}
+                className="text-xs text-[var(--color-charcoal)] hover:text-[var(--color-foreground)] underline cursor-pointer"
+              >
+                Clear selection
+              </button>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 flex-1 justify-end">
+              <div className="flex items-center gap-1.5">
+                <label htmlFor="batch-outcome" className="text-xs font-semibold text-[var(--color-charcoal)]">
+                  Outcome:
+                </label>
+                <select
+                  id="batch-outcome"
+                  value={batchOutcome}
+                  onChange={(e) => setBatchOutcome(e.target.value as ContactOutcome | "automated_reminder")}
+                  className="min-h-9 border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2.5 py-1 text-xs font-medium focus:ring-1 focus:ring-[var(--color-primary)]"
+                >
+                  <option value="no_answer">No answer / Ringing</option>
+                  <option value="reached">Reached / Informed</option>
+                  <option value="will_visit">Will visit / Scheduled</option>
+                  <option value="wrong_number">Wrong number / Invalid</option>
+                  <option value="refused">Refused care</option>
+                  <option value="automated_reminder">Automated reminder sent (WhatsApp)</option>
+                </select>
+              </div>
+
+              <input
+                type="text"
+                value={batchNotes}
+                onChange={(e) => setBatchNotes(e.target.value)}
+                placeholder="Optional notes for selected..."
+                className="min-h-9 border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2.5 text-xs max-w-xs focus:ring-1 focus:ring-[var(--color-primary)]"
+              />
+
+              <button
+                type="button"
+                onClick={() => setShowBatchConfirm(true)}
+                disabled={isBatchPending}
+                className={buttonPrimary}
+              >
+                <span>Log for {selectedIds.size} selected</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Batch Confirmation Modal */}
+      {showBatchConfirm && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="batch-confirm-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs"
+        >
+          <div className="w-full max-w-md border border-[var(--color-border-strong)] bg-[var(--color-background)] p-5 shadow-2xl space-y-3">
+            <h3 id="batch-confirm-title" className="text-[15px] font-bold text-[var(--color-foreground)]">
+              Confirm Batch Contact Logging
+            </h3>
+            <p className="text-xs text-[var(--color-charcoal)] leading-relaxed">
+              Log outcome <strong>&quot;{getBatchOutcomeLabel(batchOutcome)}&quot;</strong> for all{" "}
+              <strong>{selectedIds.size}</strong> selected patient(s)?
+            </p>
+            <p className="text-[11px] text-[var(--color-charcoal)]">
+              Closed or delivered pregnancies will be automatically skipped.
+            </p>
+
+            <div className="flex items-center justify-end gap-2 border-t border-[var(--color-border)] pt-3">
+              <button
+                type="button"
+                onClick={() => setShowBatchConfirm(false)}
+                disabled={isBatchPending}
+                className={buttonSecondary}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleBatchSubmit}
+                disabled={isBatchPending}
+                className={buttonPrimary}
+              >
+                {isBatchPending ? "Logging..." : "Yes, Log Contacts"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -384,6 +607,8 @@ function SwipeableCallCard({
   index: i,
   selectedLang,
   waLink,
+  isSelected,
+  onToggleSelect,
   onTriggerCall,
   onTriggerWhatsApp,
   onTriggerBot,
@@ -392,6 +617,8 @@ function SwipeableCallCard({
   index: number;
   selectedLang: SupportedLanguage;
   waLink: string | null;
+  isSelected: boolean;
+  onToggleSelect: () => void;
   onTriggerCall: () => void;
   onTriggerWhatsApp: () => void;
   onTriggerBot?: () => void;
@@ -473,10 +700,21 @@ function SwipeableCallCard({
           transform: `translateX(${offsetX}px)`,
           transition: swiping ? "none" : "transform 0.2s ease-out",
         }}
-        className={`relative z-1 bg-[var(--color-background)] grid gap-3 px-3 py-3 lg:grid-cols-[2rem_minmax(0,1.3fr)_minmax(0,1fr)_auto] lg:items-center ${
+        className={`relative z-1 bg-[var(--color-background)] grid gap-3 px-3 py-3 grid-cols-[auto_minmax(0,1fr)] lg:grid-cols-[1.5rem_2rem_minmax(0,1.3fr)_minmax(0,1fr)_auto] lg:items-center ${
           calledToday ? "bg-[var(--color-surface-1)]" : ""
-        }`}
+        } ${isSelected ? "ring-1 ring-[var(--color-primary)] bg-[var(--color-surface-1)]" : ""}`}
       >
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            id={`chk-${r.id}`}
+            checked={isSelected}
+            onChange={onToggleSelect}
+            className="h-4 w-4 rounded border-[var(--color-border-strong)] accent-[var(--color-primary)] cursor-pointer"
+            aria-label={`Select ${r.name} for batch contact logging`}
+          />
+        </div>
+
         <span className="num hidden text-[12px] text-[var(--color-charcoal)] lg:block">
           {String(i + 1).padStart(2, "0")}
         </span>

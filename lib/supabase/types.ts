@@ -317,11 +317,16 @@ export type Database = {
           address: string | null
           age: number | null
           alt_phone: string | null
+          birth_weight_kg: number | null
           blood_group: string | null
           clinic_id: string
           clinic_patient_no: string | null
+          closed_at: string | null
+          closed_by: string | null
           created_at: string
           created_by: string | null
+          delivery_date: string | null
+          delivery_mode: string | null
           edd: string | null
           edd_source: string
           gravida: number | null
@@ -330,6 +335,7 @@ export type Database = {
           name: string
           para: number | null
           phone: string | null
+          pregnancy_status: string
           rh_negative: boolean
           risk_flags: string[]
           status: string
@@ -339,11 +345,16 @@ export type Database = {
           address?: string | null
           age?: number | null
           alt_phone?: string | null
+          birth_weight_kg?: number | null
           blood_group?: string | null
           clinic_id: string
           clinic_patient_no?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
           created_at?: string
           created_by?: string | null
+          delivery_date?: string | null
+          delivery_mode?: string | null
           edd?: string | null
           edd_source?: string
           gravida?: number | null
@@ -352,6 +363,7 @@ export type Database = {
           name: string
           para?: number | null
           phone?: string | null
+          pregnancy_status?: string
           rh_negative?: boolean
           risk_flags?: string[]
           status?: string
@@ -361,11 +373,16 @@ export type Database = {
           address?: string | null
           age?: number | null
           alt_phone?: string | null
+          birth_weight_kg?: number | null
           blood_group?: string | null
           clinic_id?: string
           clinic_patient_no?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
           created_at?: string
           created_by?: string | null
+          delivery_date?: string | null
+          delivery_mode?: string | null
           edd?: string | null
           edd_source?: string
           gravida?: number | null
@@ -374,6 +391,7 @@ export type Database = {
           name?: string
           para?: number | null
           phone?: string | null
+          pregnancy_status?: string
           rh_negative?: boolean
           risk_flags?: string[]
           status?: string

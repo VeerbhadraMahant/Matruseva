@@ -20,6 +20,13 @@ export interface DemoPatientRaw {
   weeksPregnant: number;
   risk: FollowUpRisk;
   noAnswerStreak: number;
+  status?: "active" | "delivered" | "closed";
+  pregnancyStatus?: "active" | "delivered" | "closed";
+  deliveryDate?: string;
+  deliveryMode?: "NVD" | "LSCS";
+  birthWeightKg?: number;
+  closedAt?: string;
+  closedBy?: string;
   latestVisit?: {
     daysAgo: number;
     bpSys: number;
@@ -214,13 +221,40 @@ const RAW_DEMO_PATIENTS: DemoPatientRaw[] = [
     overdueEvents: [],
     dueEvents: [{ name: "Growth Scan (32w)", kind: "scan", dueInDays: 7 }],
   },
+  {
+    id: "p11-radha-shinde",
+    name: "Radha Shinde",
+    clinicPatientNo: "ANC-111",
+    phone: "9833221100",
+    address: "Kothari Nagar, Pune",
+    age: 25,
+    gravida: 1,
+    para: 1,
+    bloodGroup: "O+",
+    rhNegative: false,
+    weeksPregnant: 40.0,
+    risk: "on_track",
+    noAnswerStreak: 0,
+    status: "delivered",
+    pregnancyStatus: "delivered",
+    deliveryDate: "2026-09-28",
+    deliveryMode: "NVD",
+    birthWeightKg: 3.15,
+    closedAt: "2026-09-28T14:30:00Z",
+    closedBy: "Dr. Demo",
+    overdueEvents: [],
+    dueEvents: [],
+  },
 ];
 
 export function getDemoSnapshot(): { rows: PatientRow[]; today: Date; todayIso: string } {
   const today = todayInClinicTimezone();
   const todayIso = toISODate(today);
 
-  const rows: PatientRow[] = RAW_DEMO_PATIENTS.map((p) => {
+  // Delivered or closed pregnancies are excluded from the active worklist & follow-up queues
+  const activePatients = RAW_DEMO_PATIENTS.filter((p) => !p.status || p.status === "active");
+
+  const rows: PatientRow[] = activePatients.map((p) => {
     const lmpDate = new Date(today);
     lmpDate.setDate(lmpDate.getDate() - Math.round(p.weeksPregnant * 7));
     const lmpIso = toISODate(lmpDate);
@@ -346,6 +380,8 @@ export function getDemoPatientDetail(id: string) {
     },
   ];
 
+  const isDeliveredOrClosed = patientRaw.status === "delivered" || patientRaw.status === "closed";
+
   return {
     patient: {
       id: patientRaw.id,
@@ -363,11 +399,19 @@ export function getDemoPatientDetail(id: string) {
       lmp: lmpIso,
       edd: eddIso,
       edd_source: "lmp",
-      status: "active",
+      status: patientRaw.status || "active",
+      pregnancy_status: patientRaw.pregnancyStatus || patientRaw.status || "active",
+      delivery_date: patientRaw.deliveryDate || null,
+      delivery_mode: patientRaw.deliveryMode || null,
+      birth_weight_kg: patientRaw.birthWeightKg || null,
+      closed_at: patientRaw.closedAt || null,
+      closed_by: patientRaw.closedBy || null,
       created_at: "2026-05-01T10:00:00Z",
       updated_at: new Date().toISOString(),
     },
-    careEvents,
+    careEvents: isDeliveredOrClosed
+      ? careEvents.map((ce) => (ce.completed_at ? ce : { ...ce, status: "skipped" as CareEventStatus, skipped_reason: "Pregnancy closed / delivered" }))
+      : careEvents,
     visits,
     documents: [],
     contacts: [
@@ -380,9 +424,86 @@ export function getDemoPatientDetail(id: string) {
       },
     ],
     risk: {
-      risk: patientRaw.risk,
-      next_visit_date: toISODate(new Date(today.getTime() + 14 * 86400000)),
-      no_answer_streak: patientRaw.noAnswerStreak,
+      risk: isDeliveredOrClosed ? "on_track" : patientRaw.risk,
+      next_visit_date: isDeliveredOrClosed ? null : toISODate(new Date(today.getTime() + 14 * 86400000)),
+      no_answer_streak: isDeliveredOrClosed ? 0 : patientRaw.noAnswerStreak,
     },
   };
 }
+
+export function closeDemoPregnancy(
+  patientId: string,
+  data: {
+    deliveryDate: string;
+    deliveryMode: "NVD" | "LSCS";
+    birthWeightKg: number;
+    notes?: string;
+  },
+  doctorName = "Dr. Demo"
+): { error: string | null } {
+  const patient = RAW_DEMO_PATIENTS.find((p) => p.id === patientId);
+  if (!patient) {
+    return { error: "Patient record not found." };
+  }
+
+  if (patient.status === "delivered" || patient.status === "closed") {
+    return { error: "This pregnancy has already been closed." };
+  }
+
+  patient.status = "delivered";
+  patient.pregnancyStatus = "delivered";
+  patient.deliveryDate = data.deliveryDate;
+  patient.deliveryMode = data.deliveryMode;
+  patient.birthWeightKg = data.birthWeightKg;
+  patient.closedAt = new Date().toISOString();
+  patient.closedBy = doctorName;
+  patient.overdueEvents = [];
+  patient.dueEvents = [];
+  patient.risk = "on_track";
+
+  return { error: null };
+}
+
+export function logDemoBatchContacts(
+  patientIds: string[],
+  outcome: ContactOutcome,
+  _notes?: string
+): { error: string | null; loggedCount: number; skippedCount: number } {
+  void _notes;
+  let loggedCount = 0;
+  let skippedCount = 0;
+
+  for (const pid of patientIds) {
+    const patient = RAW_DEMO_PATIENTS.find((p) => p.id === pid);
+    if (!patient || patient.status === "delivered" || patient.status === "closed") {
+      skippedCount++;
+      continue;
+    }
+
+    loggedCount++;
+    if (outcome === "reached" || outcome === "will_visit") {
+      patient.noAnswerStreak = 0;
+    } else if (outcome === "no_answer") {
+      patient.noAnswerStreak += 1;
+    }
+  }
+
+  return { error: null, loggedCount, skippedCount };
+}
+
+export function getDemoContactStats(): { reached: number; total: number; successRate: number } {
+  // Synthesized realistic metrics from demo call activities
+  const reached = 38;
+  const total = 46;
+  const successRate = total > 0 ? Math.round((reached / total) * 100) : 0;
+  return { reached, total, successRate };
+}
+
+export function getDemoDeliveriesThisMonthCount(): number {
+  const today = todayInClinicTimezone();
+  const currentYearMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+  return RAW_DEMO_PATIENTS.filter(
+    (p) => (p.status === "delivered" || p.status === "closed") && p.deliveryDate?.startsWith(currentYearMonth)
+  ).length;
+}
+

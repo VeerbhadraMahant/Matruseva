@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Phone, WhatsappLogo, FilePdf } from "@phosphor-icons/react/dist/ssr";
+import { Phone, WhatsappLogo, FilePdf, Baby } from "@phosphor-icons/react/dist/ssr";
 import { createClient } from "@/lib/supabase/server";
 import { gestationalAge, formatGA, trimester } from "@/lib/pregnancy";
 import { todayInClinicTimezone, toISODate } from "@/lib/today";
@@ -19,6 +19,7 @@ import { MarkDoneButton } from "@/components/MarkDoneButton";
 import { VisitForm } from "@/components/VisitForm";
 import { PregnancyTimeline } from "@/components/PregnancyTimeline";
 import { MotherHealthCardButton } from "@/components/MotherHealthCard";
+import { ClosePregnancyForm } from "@/components/ClosePregnancyForm";
 import { VitalsTrendCharts } from "@/components/VitalsTrendCharts";
 import { PatientDetailInteractive } from "@/components/PatientDetailInteractive";
 import { Panel, Tag, Empty, SEVERITY_TONE, buttonPrimary, buttonSecondary, th, td, type Tone } from "@/components/ui";
@@ -297,15 +298,31 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
                 <WhatsappLogo size={15} aria-hidden /> WhatsApp
               </a>
             )}
-            <a href="#record-visit" className={buttonSecondary}>
-              Record visit
-            </a>
+            {!(patient.status === "delivered" || patient.status === "closed" || patient.pregnancy_status === "delivered" || patient.pregnancy_status === "closed") ? (
+              <>
+                <a href="#record-visit" className={buttonSecondary}>
+                  Record visit
+                </a>
+                <ClosePregnancyForm
+                  patient={{
+                    id: patient.id,
+                    name: patient.name,
+                    clinicPatientNo: patient.clinic_patient_no,
+                    lmp: patient.lmp,
+                    edd: eddIso,
+                  }}
+                  todayIso={toISODate(today)}
+                />
+              </>
+            ) : null}
           </div>
         </div>
 
         <div className="grid grid-cols-2 border-t border-l border-[var(--color-border)] sm:grid-cols-3 lg:grid-cols-6">
           <Fact label="Gestational age">
-            {ga ? (
+            {(patient.status === "delivered" || patient.status === "closed" || patient.pregnancy_status === "delivered" || patient.pregnancy_status === "closed") ? (
+              <span className="font-semibold text-[var(--color-on-track)]">Delivered</span>
+            ) : ga ? (
               <>
                 {formatGA(ga)} <span className="text-[12px] text-[var(--color-charcoal)]">T{trimester(ga)}</span>
               </>
@@ -319,7 +336,9 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
           </Fact>
           <Fact label="LMP">{formatDate(patient.lmp)}</Fact>
           <Fact label="Next visit">
-            {nextVisit ? (
+            {(patient.status === "delivered" || patient.status === "closed" || patient.pregnancy_status === "delivered" || patient.pregnancy_status === "closed") ? (
+              <span className="text-[var(--color-charcoal)]">Concluded</span>
+            ) : nextVisit ? (
               <>
                 {formatShortDate(nextVisit)}{" "}
                 <span
@@ -335,7 +354,11 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
             )}
           </Fact>
           <Fact label="Follow-up">
-            <Tag tone={followUp.tone}>{followUp.label}</Tag>
+            {(patient.status === "delivered" || patient.status === "closed" || patient.pregnancy_status === "delivered" || patient.pregnancy_status === "closed") ? (
+              <Tag tone="ok">Delivered</Tag>
+            ) : (
+              <Tag tone={followUp.tone}>{followUp.label}</Tag>
+            )}
           </Fact>
           <Fact label="Schedule">
             {events.filter((e) => e.status === "done").length}/{events.length} done
@@ -345,6 +368,45 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
       </header>
 
       <div className="space-y-4 p-4 md:p-6 pb-20 md:pb-6">
+        {(patient.status === "delivered" || patient.status === "closed" || patient.pregnancy_status === "delivered" || patient.pregnancy_status === "closed") && (
+          <div className="border border-[var(--color-on-track)] bg-[var(--color-on-track-surface)] p-4 text-[var(--color-foreground)]">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--color-on-track)]/30 pb-2.5">
+              <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center bg-[var(--color-on-track)] text-white">
+                  <Baby size={16} weight="bold" />
+                </div>
+                <div>
+                  <h3 className="text-[14px] font-bold text-[var(--color-on-track)] uppercase tracking-wider">
+                    Delivery Outcome & Pregnancy Closed
+                  </h3>
+                  <p className="text-[12px] text-[var(--color-charcoal)]">
+                    Active ANC schedule closed on {patient.closed_at ? formatShortDate(patient.closed_at) : (patient.delivery_date ? formatShortDate(patient.delivery_date) : "record")}
+                  </p>
+                </div>
+              </div>
+              <Tag tone="ok">Delivered</Tag>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-3 text-[13px]">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-charcoal)]">Delivery Date</p>
+                <p className="font-semibold mt-0.5">{patient.delivery_date ? formatDate(patient.delivery_date) : "Recorded"}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-charcoal)]">Delivery Mode</p>
+                <p className="font-semibold mt-0.5">{patient.delivery_mode === "LSCS" ? "LSCS (Cesarean Section)" : "NVD (Normal Vaginal Delivery)"}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-charcoal)]">Birth Weight</p>
+                <p className="font-semibold font-mono mt-0.5">{patient.birth_weight_kg ? `${patient.birth_weight_kg} kg` : "—"}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-charcoal)]">Status</p>
+                <p className="font-semibold text-[var(--color-on-track)] mt-0.5">Discharged from ANC</p>
+              </div>
+            </div>
+          </div>
+        )}
         {flags.length > 0 && (
           <div className="flex flex-wrap items-center gap-1.5 border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2">
             <span className="mr-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-charcoal)]">Alerts</span>
