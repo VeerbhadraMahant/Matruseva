@@ -93,7 +93,8 @@ export function CallQueue({
   const [logStatusMessage, setLogStatusMessage] = useState<string | null>(null);
 
   const counts = useMemo(() => Object.fromEntries(FILTERS.map((f) => [f.id, rows.filter(f.test).length])), [rows]);
-  const visible = rows.filter(FILTERS.find((f) => f.id === filter)!.test);
+  const activeFilter = FILTERS.find((f) => f.id === filter);
+  const visible = rows.filter(activeFilter ? activeFilter.test : () => true);
 
   const handleQuickSubmit = (outcome: ContactOutcome, notes?: string) => {
     if (!quickLogTarget) return;

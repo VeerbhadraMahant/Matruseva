@@ -80,7 +80,7 @@ export function PatientTable({ rows, initialFilter }: { rows: PatientListRow[]; 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     const digits = q.replace(/\D/g, "");
-    const test = FILTERS.find((f) => f.id === filter)!.test;
+    const test = FILTERS.find((f) => f.id === filter)?.test ?? (() => true);
     return rows
       .filter(test)
       .filter(

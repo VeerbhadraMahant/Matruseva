@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
-import { logDemoBatchContacts } from "@/lib/demo-data";
+import { logDemoBatchContacts, logDemoContact } from "@/lib/demo-data";
 import type { ContactOutcome } from "@/lib/supabase/enums";
 
 export interface ActionResult {
@@ -31,22 +31,35 @@ export async function logContact(patientId: string, _prev: ActionResult, formDat
     return { error: parsed.error.issues[0].message };
   }
 
-  const [supabase, me] = await Promise.all([createClient(), getCurrentUser()]);
+  const cookieStore = await cookies();
+  const isDemo = cookieStore.get("matrusetu_demo")?.value === "1";
+  if (isDemo) {
+    logDemoContact(patientId, parsed.data.channel, parsed.data.outcome, parsed.data.reason);
+    revalidatePath("/calls");
+    revalidatePath(`/patients/${patientId}`);
+    return { error: null };
+  }
 
-  const { error } = await supabase.from("contact_log").insert({
-    patient_id: patientId,
-    clinic_id: me.clinicId,
-    channel: parsed.data.channel,
-    outcome: parsed.data.outcome,
-    reason: parsed.data.reason || null,
-    created_by: me.userId,
-  });
+  try {
+    const [supabase, me] = await Promise.all([createClient(), getCurrentUser()]);
 
-  if (error) return { error: error.message };
+    const { error } = await supabase.from("contact_log").insert({
+      patient_id: patientId,
+      clinic_id: me.clinicId,
+      channel: parsed.data.channel,
+      outcome: parsed.data.outcome,
+      reason: parsed.data.reason || null,
+      created_by: me.userId,
+    });
 
-  revalidatePath("/calls");
-  revalidatePath(`/patients/${patientId}`);
-  return { error: null };
+    if (error) return { error: error.message };
+
+    revalidatePath("/calls");
+    revalidatePath(`/patients/${patientId}`);
+    return { error: null };
+  } catch (err: unknown) {
+    return { error: err instanceof Error ? err.message : "Database connection failed" };
+  }
 }
 
 export async function quickLogContact(
@@ -55,22 +68,35 @@ export async function quickLogContact(
   outcome: "reached" | "no_answer" | "wrong_number" | "will_visit" | "refused",
   notes?: string
 ): Promise<ActionResult> {
-  const [supabase, me] = await Promise.all([createClient(), getCurrentUser()]);
+  const cookieStore = await cookies();
+  const isDemo = cookieStore.get("matrusetu_demo")?.value === "1";
+  if (isDemo) {
+    logDemoContact(patientId, channel, outcome, notes);
+    revalidatePath("/calls");
+    revalidatePath(`/patients/${patientId}`);
+    return { error: null };
+  }
 
-  const { error } = await supabase.from("contact_log").insert({
-    patient_id: patientId,
-    clinic_id: me.clinicId,
-    channel,
-    outcome,
-    notes: notes || null,
-    created_by: me.userId,
-  });
+  try {
+    const [supabase, me] = await Promise.all([createClient(), getCurrentUser()]);
 
-  if (error) return { error: error.message };
+    const { error } = await supabase.from("contact_log").insert({
+      patient_id: patientId,
+      clinic_id: me.clinicId,
+      channel,
+      outcome,
+      notes: notes || null,
+      created_by: me.userId,
+    });
 
-  revalidatePath("/calls");
-  revalidatePath(`/patients/${patientId}`);
-  return { error: null };
+    if (error) return { error: error.message };
+
+    revalidatePath("/calls");
+    revalidatePath(`/patients/${patientId}`);
+    return { error: null };
+  } catch (err: unknown) {
+    return { error: err instanceof Error ? err.message : "Database connection failed" };
+  }
 }
 
 const batchContactSchema = z.object({
@@ -111,63 +137,71 @@ export async function logBatchContacts(
     return demoRes;
   }
 
-  const supabase = await createClient();
+  try {
+    const supabase = await createClient();
 
-  // Query patient records to verify clinic match and filter out delivered/closed pregnancies
-  const { data: patients, error: fetchErr } = await supabase
-    .from("patients")
-    .select("id, status, pregnancy_status")
-    .in("id", valid.patientIds);
+    // Query patient records to verify clinic match and filter out delivered/closed pregnancies
+    const { data: patients, error: fetchErr } = await supabase
+      .from("patients")
+      .select("id, status, pregnancy_status")
+      .in("id", valid.patientIds);
 
-  if (fetchErr) {
-    return { error: fetchErr.message, loggedCount: 0, skippedCount: 0 };
-  }
-
-  const patientMap = new Map((patients ?? []).map((p) => [p.id, p]));
-  const toInsert: {
-    patient_id: string;
-    clinic_id: string;
-    channel: string;
-    outcome: string;
-    notes: string | null;
-    created_by: string;
-  }[] = [];
-
-  let skippedCount = 0;
-
-  for (const pid of valid.patientIds) {
-    const p = patientMap.get(pid);
-    if (
-      !p ||
-      p.status === "delivered" ||
-      p.status === "closed" ||
-      p.pregnancy_status === "delivered" ||
-      p.pregnancy_status === "closed"
-    ) {
-      skippedCount++;
-      continue;
+    if (fetchErr) {
+      return { error: fetchErr.message, loggedCount: 0, skippedCount: 0 };
     }
 
-    toInsert.push({
-      patient_id: pid,
-      clinic_id: me.clinicId,
-      channel: valid.channel,
-      outcome: valid.outcome,
-      notes: valid.notes || null,
-      created_by: me.userId,
-    });
-  }
+    const patientMap = new Map((patients ?? []).map((p) => [p.id, p]));
+    const toInsert: {
+      patient_id: string;
+      clinic_id: string;
+      channel: string;
+      outcome: string;
+      notes: string | null;
+      created_by: string;
+    }[] = [];
 
-  if (toInsert.length > 0) {
-    const { error: insertErr } = await supabase.from("contact_log").insert(toInsert);
-    if (insertErr) {
-      return { error: insertErr.message, loggedCount: 0, skippedCount };
+    let skippedCount = 0;
+
+    for (const pid of valid.patientIds) {
+      const p = patientMap.get(pid);
+      if (
+        !p ||
+        p.status === "delivered" ||
+        p.status === "closed" ||
+        p.pregnancy_status === "delivered" ||
+        p.pregnancy_status === "closed"
+      ) {
+        skippedCount++;
+        continue;
+      }
+
+      toInsert.push({
+        patient_id: pid,
+        clinic_id: me.clinicId,
+        channel: valid.channel,
+        outcome: valid.outcome,
+        notes: valid.notes || null,
+        created_by: me.userId,
+      });
     }
-  }
 
-  revalidatePath("/calls");
-  revalidatePath("/today");
-  return { error: null, loggedCount: toInsert.length, skippedCount };
+    if (toInsert.length > 0) {
+      const { error: insertErr } = await supabase.from("contact_log").insert(toInsert);
+      if (insertErr) {
+        return { error: insertErr.message, loggedCount: 0, skippedCount };
+      }
+    }
+
+    revalidatePath("/calls");
+    revalidatePath("/today");
+    return { error: null, loggedCount: toInsert.length, skippedCount };
+  } catch (err: unknown) {
+    return {
+      error: err instanceof Error ? err.message : "Database connection failed",
+      loggedCount: 0,
+      skippedCount: 0,
+    };
+  }
 }
 
 export async function dispatchBotReminder(
@@ -178,8 +212,8 @@ export async function dispatchBotReminder(
   lang: import("@/lib/whatsapp").SupportedLanguage
 ): Promise<{ error: string | null; reminderText?: string }> {
   const { buildAutomatedReminderMessage } = await import("@/lib/whatsappBot");
-  const [supabase, me] = await Promise.all([createClient(), getCurrentUser()]);
-  const { data: clinic } = await supabase.from("clinics").select("name").eq("id", me.clinicId).single();
+  const cookieStore = await cookies();
+  const isDemo = cookieStore.get("matrusetu_demo")?.value === "1";
 
   const reminderText = buildAutomatedReminderMessage({
     patientId,
@@ -187,23 +221,46 @@ export async function dispatchBotReminder(
     careEventName,
     reason,
     lang,
-    clinicName: clinic?.name || "MatruSetu Clinic",
+    clinicName: "MatruSetu Clinic",
   });
 
-  const { error } = await supabase.from("contact_log").insert({
-    patient_id: patientId,
-    clinic_id: me.clinicId,
-    channel: "whatsapp",
-    outcome: "reached",
-    notes: `Automated Bot reminder sent (${lang.toUpperCase()}): "${reminderText.slice(0, 100)}..."`,
-    created_by: me.userId,
-  });
+  if (isDemo) {
+    logDemoContact(patientId, "whatsapp", "reached", `Automated Bot reminder sent (${lang.toUpperCase()}): "${reminderText.slice(0, 100)}..."`);
+    revalidatePath("/calls");
+    revalidatePath(`/patients/${patientId}`);
+    return { error: null, reminderText };
+  }
 
-  if (error) return { error: error.message };
+  try {
+    const [supabase, me] = await Promise.all([createClient(), getCurrentUser()]);
+    const { data: clinic } = await supabase.from("clinics").select("name").eq("id", me.clinicId).single();
 
-  revalidatePath("/calls");
-  revalidatePath(`/patients/${patientId}`);
-  return { error: null, reminderText };
+    const liveReminderText = buildAutomatedReminderMessage({
+      patientId,
+      patientName,
+      careEventName,
+      reason,
+      lang,
+      clinicName: clinic?.name || "MatruSetu Clinic",
+    });
+
+    const { error } = await supabase.from("contact_log").insert({
+      patient_id: patientId,
+      clinic_id: me.clinicId,
+      channel: "whatsapp",
+      outcome: "reached",
+      notes: `Automated Bot reminder sent (${lang.toUpperCase()}): "${liveReminderText.slice(0, 100)}..."`,
+      created_by: me.userId,
+    });
+
+    if (error) return { error: error.message };
+
+    revalidatePath("/calls");
+    revalidatePath(`/patients/${patientId}`);
+    return { error: null, reminderText: liveReminderText };
+  } catch (err: unknown) {
+    return { error: err instanceof Error ? err.message : "Database connection failed" };
+  }
 }
 
 export async function processBotReply(
@@ -211,6 +268,37 @@ export async function processBotReply(
   replyText: string,
   lang: import("@/lib/whatsapp").SupportedLanguage
 ): Promise<{ error: string | null; result?: import("@/lib/whatsappBot").BotProcessResult }> {
+  const cookieStore = await cookies();
+  const isDemo = cookieStore.get("matrusetu_demo")?.value === "1";
+
+  if (isDemo) {
+    const { detectLanguage } = await import("@/lib/whatsappBot");
+    const detectedLang = lang || detectLanguage(replyText, "en");
+    const t = replyText.trim().toLowerCase();
+    const isConfirm = t === "1" || t === "१" || t.includes("confirm") || t.includes("yes") || t.includes("haan") || t.includes("हो") || t.includes("आएंगे") || t.includes("आऊंगी");
+    const isDanger = t.includes("headache") || t.includes("bleed") || t.includes("pain") || t.includes("चक्कर") || t.includes("दर्द") || t.includes("रक्त");
+    const reply = isDanger
+      ? "⚠️ DANGER SIGN ALERT: Please visit the 24x7 emergency maternity unit or call 108 immediately."
+      : isConfirm
+      ? "✅ Visit Confirmed: Thank you! Your appointment has been recorded at MatruSetu Clinic."
+      : "🏥 MatruSetu Clinic: Thank you for your message. Our staff will follow up shortly.";
+    const outcome = isConfirm ? "will_visit" : "reached";
+    logDemoContact(patientId, "whatsapp", outcome, `Bot reply (${detectedLang.toUpperCase()}): "${replyText.slice(0, 100)}"`);
+    revalidatePath("/calls");
+    revalidatePath(`/patients/${patientId}`);
+    return {
+      error: null,
+      result: {
+        success: true,
+        replyText: reply,
+        actionTaken: isConfirm ? "confirmed_visit" : "info_provided",
+        patientId,
+        patientName: "Patient",
+        outcomeLogged: outcome,
+      },
+    };
+  }
+
   const { handleIncomingWhatsAppMessage } = await import("@/lib/whatsappBot");
   const result = await handleIncomingWhatsAppMessage({
     patientId,
@@ -226,4 +314,3 @@ export async function processBotReply(
   revalidatePath(`/patients/${patientId}`);
   return { error: null, result };
 }
-

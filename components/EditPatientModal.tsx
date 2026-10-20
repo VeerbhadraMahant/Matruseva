@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-import { useActionState } from "react";
+import { useState, useMemo, useEffect, useRef, useActionState } from "react";
 import { NotePencil, X, Calendar, Sparkle, WarningCircle } from "@phosphor-icons/react";
 import { buttonSecondary } from "@/components/ui";
 import { updatePatient, type ActionResult } from "@/app/(app)/patients/[id]/actions";
@@ -73,8 +72,8 @@ export function EditPatientModal({
   patient: EditPatientData;
   onClose: () => void;
 }) {
-  const [state, formAction] = useActionState(withSuccessToast(updatePatient.bind(null, patient.id), "Patient details updated"), initialState);
-  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [state, formAction, isPending] = useActionState(withSuccessToast(updatePatient.bind(null, patient.id), "Patient details updated"), initialState);
+  const prevPendingRef = useRef(false);
 
   const [lmp, setLmp] = useState(patient.lmp || "");
   const [edd, setEdd] = useState(patient.edd || "");
@@ -101,12 +100,13 @@ export function EditPatientModal({
     }
   };
 
-  // Close modal when submission succeeds
+  // Close modal only after a real form submission completes successfully
   useEffect(() => {
-    if (hasSubmitted && state.error === null) {
+    if (prevPendingRef.current && !isPending && state.error === null) {
       onClose();
     }
-  }, [state, hasSubmitted, onClose]);
+    prevPendingRef.current = isPending;
+  }, [isPending, state.error, onClose]);
 
   // Handle escape key
   useEffect(() => {
@@ -165,10 +165,7 @@ export function EditPatientModal({
 
         {/* Form Body */}
         <form
-          action={(formData) => {
-            setHasSubmitted(true);
-            formAction(formData);
-          }}
+          action={formAction}
           className="p-5 space-y-4 max-h-[80vh] overflow-y-auto"
         >
           {state.error && (

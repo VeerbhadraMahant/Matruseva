@@ -21,8 +21,11 @@ export function todayInClinicTimezone(now: Date = new Date()): Date {
 
 /** YYYY-MM-DD for a date-only Postgres column, from a local-calendar Date (see above). */
 export function toISODate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
+  // If the date was created as a Date.UTC midnight date (e.g. from addDays/eddFromLmp),
+  // read UTC fields so negative UTC offsets (US servers) do not evaluate to the previous day!
+  const isUtcMidnight = date.getUTCHours() === 0 && date.getUTCMinutes() === 0 && date.getUTCSeconds() === 0 && date.getUTCMilliseconds() === 0 && date.getHours() !== 0;
+  const y = isUtcMidnight ? date.getUTCFullYear() : date.getFullYear();
+  const m = String((isUtcMidnight ? date.getUTCMonth() : date.getMonth()) + 1).padStart(2, "0");
+  const d = String(isUtcMidnight ? date.getUTCDate() : date.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
 }

@@ -6,7 +6,8 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
 import { todayInClinicTimezone, toISODate } from "@/lib/today";
-import { closeDemoPregnancy } from "@/lib/demo-data";
+import { parseLocalDate } from "@/lib/format";
+import { closeDemoPregnancy, markDemoCareEventDone, recordDemoVisit, updateDemoPatient } from "@/lib/demo-data";
 import { eddFromLmp } from "@/lib/pregnancy";
 import {
   generateSchedule,
@@ -21,16 +22,28 @@ export interface ActionResult {
 }
 
 export async function markCareEventDone(careEventId: string, patientId: string): Promise<ActionResult> {
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("care_events")
-    .update({ completed_at: new Date().toISOString() })
-    .eq("id", careEventId);
+  const cookieStore = await cookies();
+  const isDemo = cookieStore.get("matrusetu_demo")?.value === "1";
+  if (isDemo) {
+    markDemoCareEventDone(careEventId, patientId);
+    revalidatePath(`/patients/${patientId}`);
+    return { error: null };
+  }
 
-  if (error) return { error: error.message };
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("care_events")
+      .update({ completed_at: new Date().toISOString() })
+      .eq("id", careEventId);
 
-  revalidatePath(`/patients/${patientId}`);
-  return { error: null };
+    if (error) return { error: error.message };
+
+    revalidatePath(`/patients/${patientId}`);
+    return { error: null };
+  } catch (err: unknown) {
+    return { error: err instanceof Error ? err.message : "Database connection failed" };
+  }
 }
 
 const visitSchema = z.object({
@@ -58,27 +71,49 @@ export async function recordVisit(
   const v = parsed.data;
   const num = (x: number | "" | undefined) => (x === "" || x === undefined ? null : x);
 
-  const [supabase, me] = await Promise.all([createClient(), getCurrentUser()]);
+  const cookieStore = await cookies();
+  const isDemo = cookieStore.get("matrusetu_demo")?.value === "1";
+  if (isDemo) {
+    recordDemoVisit(patientId, {
+      visitDate: v.visitDate || toISODate(todayInClinicTimezone()),
+      bpSys: num(v.bpSys),
+      bpDia: num(v.bpDia),
+      weight: num(v.weight),
+      hb: num(v.hb),
+      fhr: num(v.fhr),
+      fundalHeight: num(v.fundalHeight),
+      notes: v.notes || null,
+      nextVisitDate: v.nextVisitDate || null,
+    });
+    revalidatePath(`/patients/${patientId}`);
+    return { error: null };
+  }
 
-  const { error } = await supabase.from("visits").insert({
-    patient_id: patientId,
-    clinic_id: me.clinicId,
-    visit_date: v.visitDate || toISODate(todayInClinicTimezone()),
-    bp_sys: num(v.bpSys),
-    bp_dia: num(v.bpDia),
-    weight: num(v.weight),
-    hb: num(v.hb),
-    fhr: num(v.fhr),
-    fundal_height: num(v.fundalHeight),
-    notes: v.notes || null,
-    next_visit_date: v.nextVisitDate || null,
-    created_by: me.userId,
-  });
+  try {
+    const [supabase, me] = await Promise.all([createClient(), getCurrentUser()]);
 
-  if (error) return { error: error.message };
+    const { error } = await supabase.from("visits").insert({
+      patient_id: patientId,
+      clinic_id: me.clinicId,
+      visit_date: v.visitDate || toISODate(todayInClinicTimezone()),
+      bp_sys: num(v.bpSys),
+      bp_dia: num(v.bpDia),
+      weight: num(v.weight),
+      hb: num(v.hb),
+      fhr: num(v.fhr),
+      fundal_height: num(v.fundalHeight),
+      notes: v.notes || null,
+      next_visit_date: v.nextVisitDate || null,
+      created_by: me.userId,
+    });
 
-  revalidatePath(`/patients/${patientId}`);
-  return { error: null };
+    if (error) return { error: error.message };
+
+    revalidatePath(`/patients/${patientId}`);
+    return { error: null };
+  } catch (err: unknown) {
+    return { error: err instanceof Error ? err.message : "Database connection failed" };
+  }
 }
 
 const closePregnancySchema = z.object({
@@ -219,6 +254,25 @@ export async function updatePatient(
   const cookieStore = await cookies();
   const isDemo = cookieStore.get("matrusetu_demo")?.value === "1";
   if (isDemo) {
+    const lmpDate = input.lmp ? parseLocalDate(input.lmp) : null;
+    let finalEdd = input.edd || null;
+    if (input.eddSource === "lmp" && lmpDate) {
+      finalEdd = toISODate(eddFromLmp(lmpDate));
+    }
+    updateDemoPatient(patientId, {
+      name: input.name,
+      clinicPatientNo: input.clinicPatientNo || null,
+      phone: input.phone || null,
+      altPhone: input.altPhone || null,
+      age: typeof input.age === "number" ? input.age : null,
+      address: input.address || null,
+      gravida: typeof input.gravida === "number" ? input.gravida : null,
+      para: typeof input.para === "number" ? input.para : null,
+      bloodGroup: input.bloodGroup || null,
+      rhNegative: input.rhNegative,
+      lmp: input.lmp || null,
+      edd: finalEdd,
+    });
     revalidatePath(`/patients/${patientId}`);
     revalidatePath("/patients");
     revalidatePath("/today");

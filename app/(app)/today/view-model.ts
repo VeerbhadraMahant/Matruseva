@@ -134,7 +134,7 @@ export function upcomingDeliveries(rows: PatientRow[], today: Date) {
   return rows
     .filter((r) => r.edd)
     .map((r) => ({ id: r.id, name: r.name, edd: r.edd!, inDays: daysBetween(today, parseLocalDate(r.edd!)) }))
-    .filter((x) => x.inDays <= 30)
+    .filter((x) => x.inDays >= -7 && x.inDays <= 30)
     .sort((a, b) => a.inDays - b.inDays)
     .map((x) => ({ ...x, eddLabel: formatShortDate(x.edd), relative: relativeDays(x.edd, today) }));
 }

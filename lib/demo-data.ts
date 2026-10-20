@@ -8,16 +8,18 @@ import type { CareEventStatus, FollowUpRisk, ContactOutcome } from "@/lib/supaba
 export interface DemoPatientRaw {
   id: string;
   name: string;
-  clinicPatientNo: string;
-  phone: string;
-  altPhone?: string;
-  address: string;
-  age: number;
-  gravida: number;
-  para: number;
-  bloodGroup: string;
+  clinicPatientNo?: string | null;
+  phone?: string | null;
+  altPhone?: string | null;
+  address?: string | null;
+  age?: number | null;
+  gravida?: number | null;
+  para?: number | null;
+  bloodGroup?: string | null;
   rhNegative: boolean;
   weeksPregnant: number;
+  lmp?: string | null;
+  edd?: string | null;
   risk: FollowUpRisk;
   noAnswerStreak: number;
   status?: "active" | "delivered" | "closed";
@@ -37,6 +39,29 @@ export interface DemoPatientRaw {
   overdueEvents?: { name: string; kind: string; daysOverdue: number }[];
   dueEvents?: { name: string; kind: string; dueInDays: number }[];
 }
+
+const DEMO_COMPLETED_EVENTS = new Map<string, Set<string>>();
+const DEMO_VISITS_STATE = new Map<string, Array<{
+  id: string;
+  patient_id: string;
+  visit_date: string;
+  bp_sys: number | null;
+  bp_dia: number | null;
+  weight: number | null;
+  hb: number | null;
+  fhr: number | null;
+  fundal_height: number | null;
+  notes: string | null;
+  next_visit_date: string | null;
+  created_at: string;
+}>>();
+const DEMO_CONTACTS_STATE = new Map<string, Array<{
+  id: string;
+  channel: string;
+  outcome: ContactOutcome;
+  notes: string | null;
+  created_at: string;
+}>>();
 
 const RAW_DEMO_PATIENTS: DemoPatientRaw[] = [
   {
@@ -231,18 +256,20 @@ export function getDemoSnapshot(): { rows: PatientRow[]; today: Date; todayIso: 
   const activePatients = RAW_DEMO_PATIENTS.filter((p) => !p.status || p.status === "active");
 
   const rows: PatientRow[] = activePatients.map((p) => {
-    const lmpDate = new Date(today);
-    lmpDate.setDate(lmpDate.getDate() - Math.round(p.weeksPregnant * 7));
-    const lmpIso = toISODate(lmpDate);
+    const lmpDate = p.lmp ? parseLocalDate(p.lmp) : new Date(today);
+    if (!p.lmp) lmpDate.setDate(lmpDate.getDate() - Math.round(p.weeksPregnant * 7));
+    const lmpIso = p.lmp || toISODate(lmpDate);
 
     const eddDate = new Date(lmpDate);
     eddDate.setDate(eddDate.getDate() + 280);
-    const edd = toISODate(eddDate);
+    const edd = p.edd || toISODate(eddDate);
 
     const lmpParsed = parseLocalDate(lmpIso);
     const ga = gestationalAge(lmpParsed, today);
 
-    const overdue: OpenEvent[] = (p.overdueEvents ?? []).map((e, idx) => ({
+    const completedSet = DEMO_COMPLETED_EVENTS.get(p.id) ?? new Set<string>();
+
+    const overdue: OpenEvent[] = (p.overdueEvents ?? []).filter((e, idx) => !completedSet.has(`ovd-${p.id}-${idx}`) && !completedSet.has(e.name)).map((e, idx) => ({
       id: `ovd-${p.id}-${idx}`,
       name: e.name,
       kind: e.kind,
@@ -251,7 +278,7 @@ export function getDemoSnapshot(): { rows: PatientRow[]; today: Date; todayIso: 
       status: "overdue" as const,
     }));
 
-    const due: OpenEvent[] = (p.dueEvents ?? []).map((e, idx) => ({
+    const due: OpenEvent[] = (p.dueEvents ?? []).filter((e, idx) => !completedSet.has(`due-${p.id}-${idx}`) && !completedSet.has(e.name)).map((e, idx) => ({
       id: `due-${p.id}-${idx}`,
       name: e.name,
       kind: e.kind,
@@ -261,7 +288,18 @@ export function getDemoSnapshot(): { rows: PatientRow[]; today: Date; todayIso: 
     }));
 
     let latestVisit: LatestVisit | null = null;
-    if (p.latestVisit) {
+    const recordedVisits = DEMO_VISITS_STATE.get(p.id);
+    if (recordedVisits && recordedVisits.length > 0) {
+      const top = recordedVisits[0];
+      latestVisit = {
+        visitDate: top.visit_date,
+        bpSys: top.bp_sys,
+        bpDia: top.bp_dia,
+        hb: top.hb,
+        fhr: top.fhr,
+        nextVisitDate: top.next_visit_date || toISODate(new Date(today.getTime() + 14 * 86400000)),
+      };
+    } else if (p.latestVisit) {
       const vDate = new Date(today);
       vDate.setDate(vDate.getDate() - p.latestVisit.daysAgo);
       latestVisit = {
@@ -276,17 +314,17 @@ export function getDemoSnapshot(): { rows: PatientRow[]; today: Date; todayIso: 
 
     const flags = sortFlags([
       ...(latestVisit ? vitalsFlags({ bpSys: latestVisit.bpSys, bpDia: latestVisit.bpDia, hb: latestVisit.hb, fhr: latestVisit.fhr }) : []),
-      ...patientFlags({ age: p.age, gravida: p.gravida, rhNegative: p.rhNegative, bloodGroup: p.bloodGroup, gaWeeks: ga?.weeks ?? null }),
+      ...patientFlags({ age: p.age ?? null, gravida: p.gravida ?? null, rhNegative: p.rhNegative, bloodGroup: p.bloodGroup ?? null, gaWeeks: ga?.weeks ?? null }),
     ]);
 
     return {
       id: p.id,
       name: p.name,
-      phone: p.phone,
-      clinicNo: p.clinicPatientNo,
-      age: p.age,
-      gravida: p.gravida,
-      para: p.para,
+      phone: p.phone ?? null,
+      clinicNo: p.clinicPatientNo ?? null,
+      age: p.age ?? null,
+      gravida: p.gravida ?? null,
+      para: p.para ?? null,
       rhNegative: p.rhNegative,
       lmp: lmpIso,
       edd,
@@ -307,56 +345,87 @@ export function getDemoSnapshot(): { rows: PatientRow[]; today: Date; todayIso: 
 export function getDemoPatientDetail(id: string) {
   const patientRaw = RAW_DEMO_PATIENTS.find((p) => p.id === id) || RAW_DEMO_PATIENTS[0];
   const today = todayInClinicTimezone();
-  const lmpDate = new Date(today);
-  lmpDate.setDate(lmpDate.getDate() - Math.round(patientRaw.weeksPregnant * 7));
-  const lmpIso = toISODate(lmpDate);
+  const todayIso = toISODate(today);
+  const lmpDate = patientRaw.lmp ? parseLocalDate(patientRaw.lmp) : new Date(today);
+  if (!patientRaw.lmp) {
+    lmpDate.setDate(lmpDate.getDate() - Math.round(patientRaw.weeksPregnant * 7));
+  }
+  const lmpIso = patientRaw.lmp || toISODate(lmpDate);
 
   const eddDate = new Date(lmpDate);
   eddDate.setDate(eddDate.getDate() + 280);
-  const eddIso = toISODate(eddDate);
+  const eddIso = patientRaw.edd || toISODate(eddDate);
 
-  const careEvents = [
-    { id: "ce-1", name: "Booking visit + Labs", kind: "test", due_from: "2026-05-01", due_to: "2026-05-30", completed_at: "2026-05-10", status: "done" },
-    { id: "ce-2", name: "Dating / Viability scan", kind: "scan", due_from: "2026-05-15", due_to: "2026-06-01", completed_at: "2026-05-20", status: "done" },
-    { id: "ce-3", name: "NT Scan + Double Marker", kind: "scan", due_from: "2026-06-15", due_to: "2026-07-05", completed_at: patientRaw.weeksPregnant > 14 ? "2026-06-25" : null, status: patientRaw.weeksPregnant > 14 ? "done" : "upcoming" },
-    { id: "ce-4", name: "Anomaly Scan (TIFFA)", kind: "scan", due_from: "2026-08-01", due_to: "2026-08-25", completed_at: null, status: (patientRaw.overdueEvents?.some((e) => e.name.includes("Anomaly")) ? "overdue" : "due") as CareEventStatus },
-    { id: "ce-5", name: "Td Dose 1", kind: "injection", due_from: "2026-07-15", due_to: "2026-08-15", completed_at: "2026-08-05", status: "done" },
-    { id: "ce-6", name: "OGTT Sugar Screening", kind: "test", due_from: "2026-09-10", due_to: "2026-10-05", completed_at: null, status: "upcoming" },
-    { id: "ce-7", name: "Growth Scan + Doppler (32w)", kind: "scan", due_from: "2026-10-15", due_to: "2026-11-05", completed_at: null, status: "upcoming" },
+  const addWeeks = (w: number) => {
+    const d = new Date(lmpDate);
+    d.setDate(d.getDate() + w * 7);
+    return toISODate(d);
+  };
+
+  const completedSet = DEMO_COMPLETED_EVENTS.get(patientRaw.id) ?? new Set<string>();
+
+  const rawEvents = [
+    { id: "ce-1", name: "Booking visit + Labs", kind: "test", due_from: addWeeks(6), due_to: addWeeks(10) },
+    { id: "ce-2", name: "Dating / Viability scan", kind: "scan", due_from: addWeeks(7), due_to: addWeeks(11) },
+    { id: "ce-3", name: "NT Scan + Double Marker", kind: "scan", due_from: addWeeks(11), due_to: addWeeks(14) },
+    { id: "ce-4", name: "Anomaly Scan (TIFFA)", kind: "scan", due_from: addWeeks(18), due_to: addWeeks(22) },
+    { id: "ce-5", name: "Td Dose 1", kind: "injection", due_from: addWeeks(20), due_to: addWeeks(24) },
+    { id: "ce-6", name: "OGTT Sugar Screening", kind: "test", due_from: addWeeks(24), due_to: addWeeks(28) },
+    ...(patientRaw.rhNegative ? [{ id: "ce-rh", name: "Anti-D Prophylaxis (28w)", kind: "injection", due_from: addWeeks(28), due_to: addWeeks(30) }] : []),
+    { id: "ce-7", name: "Growth Scan + Doppler (32w)", kind: "scan", due_from: addWeeks(32), due_to: addWeeks(36) },
   ];
 
-  const visits = [
-    {
-      id: "v-1",
-      patient_id: patientRaw.id,
-      visit_date: toISODate(new Date(today.getTime() - 14 * 86400000)),
-      bp_sys: patientRaw.latestVisit?.bpSys ?? 120,
-      bp_dia: patientRaw.latestVisit?.bpDia ?? 80,
-      hb: patientRaw.latestVisit?.hb ?? 11.2,
-      fhr: patientRaw.latestVisit?.fhr ?? 144,
-      weight: 58.5,
-      fundal_height: 22,
-      notes: "Fetal movements good. Prescribed iron & calcium tablets.",
-      next_visit_date: toISODate(new Date(today.getTime() + 14 * 86400000)),
-      created_at: new Date(today.getTime() - 14 * 86400000).toISOString(),
-    },
-    {
-      id: "v-2",
-      patient_id: patientRaw.id,
-      visit_date: toISODate(new Date(today.getTime() - 42 * 86400000)),
-      bp_sys: 116,
-      bp_dia: 74,
-      hb: 11.5,
-      fhr: 150,
-      weight: 56.0,
-      fundal_height: 18,
-      notes: "First trimester labs reviewed. All normal.",
-      next_visit_date: toISODate(new Date(today.getTime() - 14 * 86400000)),
-      created_at: new Date(today.getTime() - 42 * 86400000).toISOString(),
-    },
-  ];
+  const careEvents = rawEvents.map((e) => {
+    const isCompleted = completedSet.has(e.id) || (e.id === "ce-1" && patientRaw.weeksPregnant > 10) || (e.id === "ce-2" && patientRaw.weeksPregnant > 11) || (e.id === "ce-3" && patientRaw.weeksPregnant > 14);
+    let status: CareEventStatus = "upcoming";
+    if (isCompleted) {
+      status = "done";
+    } else if (e.due_to < todayIso) {
+      status = "overdue";
+    } else if (e.due_from <= todayIso) {
+      status = "due";
+    }
+    return {
+      ...e,
+      completed_at: isCompleted ? (e.due_from < todayIso ? e.due_from : todayIso) : null,
+      status,
+    };
+  });
+
+  const customVisits = DEMO_VISITS_STATE.get(patientRaw.id);
+  const visits = customVisits && customVisits.length > 0
+    ? customVisits
+    : [
+        {
+          id: "v-1",
+          patient_id: patientRaw.id,
+          visit_date: toISODate(new Date(today.getTime() - 14 * 86400000)),
+          bp_sys: patientRaw.latestVisit?.bpSys ?? 120,
+          bp_dia: patientRaw.latestVisit?.bpDia ?? 80,
+          hb: patientRaw.latestVisit?.hb ?? 11.2,
+          fhr: patientRaw.latestVisit?.fhr ?? 144,
+          weight: 58.5,
+          fundal_height: 22,
+          notes: "Fetal movements good. Prescribed iron & calcium tablets.",
+          next_visit_date: toISODate(new Date(today.getTime() + 14 * 86400000)),
+          created_at: new Date(today.getTime() - 14 * 86400000).toISOString(),
+        },
+      ];
 
   const isDeliveredOrClosed = patientRaw.status === "delivered" || patientRaw.status === "closed";
+
+  const customContacts = DEMO_CONTACTS_STATE.get(patientRaw.id);
+  const contacts = customContacts && customContacts.length > 0
+    ? customContacts
+    : [
+        {
+          id: "c-1",
+          channel: "whatsapp",
+          outcome: "reached" as ContactOutcome,
+          notes: "Reminder sent for upcoming scan",
+          created_at: new Date(today.getTime() - 2 * 86400000).toISOString(),
+        },
+      ];
 
   return {
     patient: {
@@ -390,15 +459,7 @@ export function getDemoPatientDetail(id: string) {
       : careEvents,
     visits,
     documents: [],
-    contacts: [
-      {
-        id: "c-1",
-        channel: "whatsapp",
-        outcome: "reached" as ContactOutcome,
-        notes: "Reminder sent for upcoming scan",
-        created_at: new Date(today.getTime() - 2 * 86400000).toISOString(),
-      },
-    ],
+    contacts,
     risk: {
       risk: isDeliveredOrClosed ? "on_track" : patientRaw.risk,
       next_visit_date: isDeliveredOrClosed ? null : toISODate(new Date(today.getTime() + 14 * 86400000)),
@@ -483,3 +544,166 @@ export function getDemoDeliveriesThisMonthCount(): number {
   ).length;
 }
 
+
+export function addDemoPatient(data: {
+  name: string;
+  clinicPatientNo?: string | null;
+  phone?: string | null;
+  altPhone?: string | null;
+  age?: number | null;
+  address?: string | null;
+  gravida?: number | null;
+  para?: number | null;
+  bloodGroup?: string | null;
+  rhNegative: boolean;
+  lmp: string;
+  edd?: string | null;
+}): string {
+  const today = todayInClinicTimezone();
+  const lmpDate = parseLocalDate(data.lmp);
+  const ga = gestationalAge(lmpDate, today);
+  const weeksPregnant = Math.max(0.1, ga.days / 7);
+
+  const cleanName = data.name.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-");
+  const id = `p-demo-${cleanName}-${Date.now().toString(36)}`;
+
+  const eddDate = new Date(lmpDate);
+  eddDate.setDate(eddDate.getDate() + 280);
+  const edd = data.edd || toISODate(eddDate);
+
+  const newPatient: DemoPatientRaw = {
+    id,
+    name: data.name,
+    clinicPatientNo: data.clinicPatientNo || `ANC-${Math.floor(200 + Math.random() * 800)}`,
+    phone: data.phone || "9800000000",
+    altPhone: data.altPhone || undefined,
+    address: data.address || "Local Ward, Pune",
+    age: data.age ?? 26,
+    gravida: data.gravida ?? 1,
+    para: data.para ?? 0,
+    bloodGroup: data.bloodGroup || "B+",
+    rhNegative: data.rhNegative,
+    weeksPregnant: Number(weeksPregnant.toFixed(1)),
+    lmp: data.lmp,
+    edd,
+    risk: "on_track",
+    noAnswerStreak: 0,
+    status: "active",
+    pregnancyStatus: "active",
+    latestVisit: {
+      daysAgo: 0,
+      bpSys: 120,
+      bpDia: 80,
+      hb: 12.0,
+      fhr: 140,
+    },
+    overdueEvents: [],
+    dueEvents: [
+      { name: "Booking visit + Labs", kind: "test", dueInDays: 3 },
+      { name: "Dating / Viability scan", kind: "scan", dueInDays: 7 },
+    ],
+  };
+
+  RAW_DEMO_PATIENTS.unshift(newPatient);
+  return id;
+}
+
+export function markDemoCareEventDone(careEventId: string, patientId: string): void {
+  const current = DEMO_COMPLETED_EVENTS.get(patientId) ?? new Set<string>();
+  current.add(careEventId);
+  DEMO_COMPLETED_EVENTS.set(patientId, current);
+}
+
+export function recordDemoVisit(
+  patientId: string,
+  v: {
+    visitDate: string;
+    bpSys: number | null;
+    bpDia: number | null;
+    weight: number | null;
+    hb: number | null;
+    fhr: number | null;
+    fundalHeight: number | null;
+    notes: string | null;
+    nextVisitDate: string | null;
+  }
+): void {
+  const patient = RAW_DEMO_PATIENTS.find((p) => p.id === patientId);
+  if (patient) {
+    patient.latestVisit = {
+      daysAgo: 0,
+      bpSys: v.bpSys ?? 120,
+      bpDia: v.bpDia ?? 80,
+      hb: v.hb ?? 11.5,
+      fhr: v.fhr ?? 144,
+    };
+  }
+  const visits = DEMO_VISITS_STATE.get(patientId) ?? [];
+  visits.unshift({
+    id: `v-${Date.now().toString(36)}`,
+    patient_id: patientId,
+    visit_date: v.visitDate,
+    bp_sys: v.bpSys,
+    bp_dia: v.bpDia,
+    weight: v.weight,
+    hb: v.hb,
+    fhr: v.fhr,
+    fundal_height: v.fundalHeight,
+    notes: v.notes,
+    next_visit_date: v.nextVisitDate,
+    created_at: new Date().toISOString(),
+  });
+  DEMO_VISITS_STATE.set(patientId, visits);
+}
+
+export function logDemoContact(
+  patientId: string,
+  channel: "call" | "whatsapp",
+  outcome: ContactOutcome,
+  notes?: string
+): void {
+  const patient = RAW_DEMO_PATIENTS.find((p) => p.id === patientId);
+  if (patient) {
+    if (outcome === "reached" || outcome === "will_visit") {
+      patient.noAnswerStreak = 0;
+    } else if (outcome === "no_answer") {
+      patient.noAnswerStreak += 1;
+    }
+  }
+  const contacts = DEMO_CONTACTS_STATE.get(patientId) ?? [];
+  contacts.unshift({
+    id: `c-${Date.now().toString(36)}`,
+    channel,
+    outcome,
+    notes: notes || null,
+    created_at: new Date().toISOString(),
+  });
+  DEMO_CONTACTS_STATE.set(patientId, contacts);
+}
+
+
+export function updateDemoPatient(
+  patientId: string,
+  updates: Partial<Omit<DemoPatientRaw, "id">>
+): boolean {
+  const patient = RAW_DEMO_PATIENTS.find((p) => p.id === patientId);
+  if (!patient) return false;
+  Object.assign(patient, updates);
+  return true;
+}
+
+export function getDemoContacts(): { patientId: string; channel: string; outcome: string; createdAt: string; notes?: string }[] {
+  const all: { patientId: string; channel: string; outcome: string; createdAt: string; notes?: string }[] = [];
+  for (const [patientId, contacts] of DEMO_CONTACTS_STATE.entries()) {
+    for (const c of contacts) {
+      all.push({
+        patientId,
+        channel: c.channel,
+        outcome: c.outcome,
+        createdAt: c.created_at,
+        notes: c.notes ?? undefined,
+      });
+    }
+  }
+  return all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}

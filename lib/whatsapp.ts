@@ -53,7 +53,7 @@ export type MessageTemplates = ReasonTemplates & {
 export const DEFAULT_TEMPLATES: Record<SupportedLanguage, Record<ReminderReason, string>> = {
   en: {
     overdue:
-      "Hello, this is {name}'s clinic calling. Your {item} is now overdue — please visit us at the earliest, or call us to reschedule.",
+      "Hello, this is a reminder from {clinic} that {name}'s {item} is now overdue — please visit us at the earliest, or call us to reschedule.",
     due_soon:
       "Hello, this is a reminder from {clinic} that {name}'s {item} is due soon. Please visit the clinic or call to schedule.",
     at_risk:

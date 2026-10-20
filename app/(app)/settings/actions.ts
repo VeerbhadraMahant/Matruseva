@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, type CurrentUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export interface ActionResult {
@@ -12,11 +12,18 @@ export interface ActionResult {
 }
 
 /** Doctor-only guard: every action here mutates clinic-wide settings. */
-async function requireDoctor() {
-  const [supabase, me] = await Promise.all([createClient(), getCurrentUser()]);
-  if (me.role !== "doctor") {
-    return { supabase, profile: null, error: "Only the clinic's doctor can change this." };
+async function requireDoctor(): Promise<
+  | { supabase: Awaited<ReturnType<typeof createClient>>; profile: { clinic_id: string; role: CurrentUser["role"] }; error: null }
+  | { supabase: null; profile: null; error: string }
+> {
+  const me = await getCurrentUser();
+  if (me.isDemo) {
+    return { supabase: null, profile: null, error: "Clinic settings are read-only in Demo mode." };
   }
+  if (me.role !== "doctor") {
+    return { supabase: null, profile: null, error: "Only the clinic's doctor can change this." };
+  }
+  const supabase = await createClient();
   return { supabase, profile: { clinic_id: me.clinicId, role: me.role }, error: null };
 }
 

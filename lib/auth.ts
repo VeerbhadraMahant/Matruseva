@@ -10,6 +10,7 @@ export interface CurrentUser {
   clinicName: string;
   fullName: string;
   role: "doctor" | "staff";
+  isDemo?: boolean;
 }
 
 // getClaims() verifies the JWT locally against the project's ES256 JWKS, so
@@ -25,6 +26,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
       clinicName: "MatruSetu Demo Clinic",
       fullName: "Dr. Demo",
       role: "doctor",
+      isDemo: true,
     };
   }
 

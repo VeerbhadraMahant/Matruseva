@@ -10,6 +10,7 @@ import {
   type ReminderReason,
   type MessageTemplates,
 } from "@/lib/whatsapp";
+import { getDemoContacts } from "@/lib/demo-data";
 import { PageHeader, pageBody } from "@/components/ui";
 import { CallQueue, type CallFilter, type CallRow } from "@/components/CallQueue";
 import type { ContactOutcome } from "@/lib/supabase/enums";
@@ -34,6 +35,13 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
   const defaultLang = templates.default_lang ?? "en";
 
   const contactsBy = new Map<string, { outcome: string; channel: string; createdAt: string }[]>();
+  if (me.isDemo) {
+    for (const dc of getDemoContacts()) {
+      const list = contactsBy.get(dc.patientId) ?? [];
+      list.push({ outcome: dc.outcome, channel: dc.channel, createdAt: dc.createdAt });
+      contactsBy.set(dc.patientId, list);
+    }
+  }
   for (const c of contacts ?? []) {
     const list = contactsBy.get(c.patient_id) ?? [];
     list.push({ outcome: c.outcome, channel: c.channel, createdAt: c.created_at });
