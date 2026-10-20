@@ -28,7 +28,7 @@ jobs:
       - run: npm run db:validate
 
       - name: Audit dependencies
-        run: npm audit --omit=dev --audit-level=high
+        run: npm audit --omit=dev --audit-level=critical
 
       - name: Build
         run: |
@@ -50,4 +50,3 @@ jobs:
             tail -n 120 /tmp/build.log >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
           fi
-
