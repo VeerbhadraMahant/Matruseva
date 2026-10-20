@@ -19,6 +19,8 @@ import { MarkDoneButton } from "@/components/MarkDoneButton";
 import { VisitForm } from "@/components/VisitForm";
 import { PregnancyTimeline } from "@/components/PregnancyTimeline";
 import { MotherHealthCardButton } from "@/components/MotherHealthCard";
+import { EmergencyReferralButton } from "@/components/EmergencyReferralModal";
+import { NutritionDietButton } from "@/components/NutritionDietModal";
 import { ClosePregnancyForm } from "@/components/ClosePregnancyForm";
 import { EditPatientButton } from "@/components/EditPatientModal";
 import { VitalsTrendCharts } from "@/components/VitalsTrendCharts";
@@ -318,6 +320,38 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
                 gaLabel: ga ? `${formatGA(ga)} · T${trimester(ga)}` : null,
                 gravida: patient.gravida,
                 para: patient.para,
+                clinicName: me.clinicName,
+              }}
+            />
+            <EmergencyReferralButton
+              data={{
+                patientId: patient.id,
+                patientName: patient.name,
+                clinicPatientNo: patient.clinic_patient_no,
+                age: patient.age,
+                phone: patient.phone,
+                bloodGroup: patient.blood_group,
+                rhNegative: patient.rh_negative,
+                edd: eddIso ? formatShortDate(eddIso) : null,
+                gaWeeks: ga?.weeks ?? null,
+                gravida: patient.gravida,
+                para: patient.para,
+                bpSys: latest?.bp_sys ?? null,
+                bpDia: latest?.bp_dia ?? null,
+                hb: latest?.hb ?? null,
+                fhr: latest?.fhr ?? null,
+                riskReasons: flags.map((f) => f.label),
+                clinicName: me.clinicName,
+              }}
+            />
+            <NutritionDietButton
+              data={{
+                patientId: patient.id,
+                patientName: patient.name,
+                phone: patient.phone,
+                gaWeeks: ga?.weeks ?? null,
+                trimester: (ga ? trimester(ga) : 2) as 1 | 2 | 3,
+                hb: latest?.hb ?? null,
                 clinicName: me.clinicName,
               }}
             />
