@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { BowlFood, WhatsappLogo, X, Heart, Plant, Pill } from "@phosphor-icons/react";
 import { whatsAppLink } from "@/lib/whatsapp";
+import { buttonPrimary, buttonSecondary } from "@/components/ui";
 
 export interface NutritionPatientData {
   patientId: string;
@@ -22,11 +23,11 @@ export function NutritionDietButton({ data }: { data: NutritionPatientData }) {
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-1.5 rounded-xl border border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 px-3.5 py-1.5 text-[12px] font-bold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 shadow-xs transition"
+        className={`${buttonSecondary} gap-1.5`}
         title="View personalized trimester & anemia diet plan"
       >
-        <BowlFood size={16} weight="bold" className="text-emerald-600" />
-        <span>Nutrition & Anemia Plan</span>
+        <BowlFood size={15} weight="bold" className="text-[var(--color-primary)]" aria-hidden />
+        <span>Nutrition & Diet Plan</span>
       </button>
 
       {isOpen && <NutritionDietModal data={data} onClose={() => setIsOpen(false)} />}
@@ -48,12 +49,12 @@ export function NutritionDietModal({
 
   const anemiaStatus =
     hb < 7.0
-      ? { level: "Severe Anemia", tone: "critical", color: "text-rose-600 bg-rose-50 border-rose-300" }
+      ? { level: "Severe Anemia", tone: "critical", color: "text-[var(--color-overdue)] bg-[var(--color-overdue-surface)] border-[var(--color-overdue)]/30" }
       : hb < 10.0
-      ? { level: "Moderate Anemia", tone: "warning", color: "text-amber-700 bg-amber-50 border-amber-300" }
+      ? { level: "Moderate Anemia", tone: "warning", color: "text-[var(--color-due)] bg-[var(--color-due-surface)] border-[var(--color-due)]/30" }
       : hb < 11.0
-      ? { level: "Mild Anemia", tone: "caution", color: "text-yellow-800 bg-yellow-50 border-yellow-300" }
-      : { level: "Normal Hemoglobin", tone: "ok", color: "text-emerald-700 bg-emerald-50 border-emerald-300" };
+      ? { level: "Mild Anemia", tone: "caution", color: "text-[var(--color-due)] bg-[var(--color-due-surface)] border-[var(--color-due)]/30" }
+      : { level: "Normal Hemoglobin", tone: "ok", color: "text-[var(--color-on-track)] bg-[var(--color-on-track-surface)] border-[var(--color-on-track)]/30" };
 
   const trimesterFocus = {
     1: {
@@ -156,23 +157,23 @@ export function NutritionDietModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative my-6 w-full max-w-2xl rounded-2xl bg-[var(--color-background)] border border-[var(--color-border)] shadow-2xl overflow-hidden">
+      <div className="relative my-6 w-full max-w-2xl rounded-[var(--radius-cards)] bg-[var(--color-background)] border border-[var(--color-border)] shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface-1)] px-5 py-4">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-sm">
-              <BowlFood size={20} weight="bold" />
+        <div className="flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface-1)] px-5 py-3.5">
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-primary-surface)] text-[var(--color-primary)]">
+              <BowlFood size={16} weight="bold" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-[15px] font-bold text-[var(--color-foreground)]">
+                <h2 className="text-[14px] font-bold text-[var(--color-foreground)]">
                   Personalized Nutrition & Anemia Care Plan
                 </h2>
-                <span className="rounded-full bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 text-[10px] font-bold text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                <span className="rounded-full bg-[var(--color-primary-surface)] px-2 py-0.5 text-[10px] font-bold text-[var(--color-primary)] border border-[var(--color-primary)]/20">
                   Trimester {currentTrimester}
                 </span>
               </div>
-              <p className="text-[12px] text-[var(--color-charcoal)]">
+              <p className="text-[11px] text-[var(--color-charcoal)]">
                 Tailored for {data.patientName} · Hb: <strong>{hb} g/dL</strong>
               </p>
             </div>
@@ -189,9 +190,9 @@ export function NutritionDietModal({
         {/* Body */}
         <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
           {/* Anemia Status Banner */}
-          <div className={`flex items-center justify-between rounded-xl border p-3.5 ${anemiaStatus.color}`}>
+          <div className={`flex items-center justify-between rounded-[var(--radius-cards)] border p-3 ${anemiaStatus.color}`}>
             <div className="flex items-center gap-2.5">
-              <Heart size={20} weight="fill" className="shrink-0" />
+              <Heart size={18} weight="fill" className="shrink-0" />
               <div>
                 <div className="text-[13px] font-bold">
                   {anemiaStatus.level} ({hb} g/dL)
@@ -208,12 +209,12 @@ export function NutritionDietModal({
           </div>
 
           {/* Trimester Focus Card */}
-          <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] p-3.5 space-y-1">
+          <div className="rounded-[var(--radius-cards)] border border-[var(--color-border)] bg-[var(--color-surface-1)] p-3 space-y-1">
             <div className="text-[12px] font-bold text-[var(--color-foreground)]">{trimesterFocus.title}</div>
             <div className="text-[12px] text-[var(--color-charcoal)]">
               <strong>Clinical Goal:</strong> {trimesterFocus.focus}
             </div>
-            <div className="text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold">
+            <div className="text-[11px] text-[var(--color-primary)] font-semibold">
               Energy Recommendation: {trimesterFocus.calorieSurplus}
             </div>
           </div>
@@ -221,18 +222,18 @@ export function NutritionDietModal({
           {/* Affordable Local Superfoods */}
           <div>
             <div className="flex items-center gap-1.5 mb-2">
-              <Plant size={16} weight="fill" className="text-emerald-600" />
-              <h3 className="text-[13px] font-bold text-[var(--color-foreground)]">
+              <Plant size={15} weight="bold" className="text-[var(--color-primary)]" />
+              <h3 className="text-[12px] font-bold text-[var(--color-foreground)]">
                 Indigenous High-Iron Indian Superfoods
               </h3>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {superfoods.map((food, idx) => (
                 <div
                   key={idx}
-                  className="rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-3 space-y-1"
+                  className="rounded-[var(--radius-cards)] border border-[var(--color-border)] bg-[var(--color-background)] p-3 space-y-1"
                 >
-                  <div className="text-[12px] font-bold text-emerald-800 dark:text-emerald-300">{food.name}</div>
+                  <div className="text-[12px] font-bold text-[var(--color-primary)]">{food.name}</div>
                   <div className="text-[11px] text-[var(--color-foreground)]">{food.benefit}</div>
                   <div className="text-[10px] text-[var(--color-charcoal)] italic">How to eat: {food.usage}</div>
                 </div>
@@ -241,12 +242,12 @@ export function NutritionDietModal({
           </div>
 
           {/* Critical Iron Tablet Rules */}
-          <div className="rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50/70 dark:bg-amber-950/30 p-3.5 space-y-2">
-            <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200 font-bold text-[12px]">
-              <Pill size={16} weight="bold" />
+          <div className="rounded-[var(--radius-cards)] border border-[var(--color-due)]/30 bg-[var(--color-due-surface)] p-3 space-y-2">
+            <div className="flex items-center gap-2 text-[var(--color-foreground)] font-bold text-[12px]">
+              <Pill size={16} weight="bold" className="text-[var(--color-due)]" />
               <span>3 Non-Negotiable Iron Tablet Rules (Counseling for Mother)</span>
             </div>
-            <ul className="text-[11px] text-amber-900 dark:text-amber-300 space-y-1 pl-4 list-disc">
+            <ul className="text-[11px] text-[var(--color-foreground)] space-y-1 pl-4 list-disc opacity-90">
               <li>
                 <strong>No Tea / Chai with Tablets:</strong> Tannins in tea block 80% of iron absorption. Wait 1 hour before or after.
               </li>
@@ -267,7 +268,7 @@ export function NutritionDietModal({
             <select
               value={lang}
               onChange={(e) => setLang(e.target.value as "en" | "hi" | "mr")}
-              className="text-[11px] rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2 py-1 font-semibold"
+              className="text-[11px] rounded-[var(--radius-buttons)] border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2 py-1 font-semibold text-[var(--color-foreground)]"
             >
               <option value="hi">हिंदी (Hindi)</option>
               <option value="mr">मराठी (Marathi)</option>
@@ -281,10 +282,10 @@ export function NutritionDietModal({
                 href={whatsappUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-1.5 text-[12px] font-bold text-white shadow-sm hover:bg-emerald-700 transition"
+                className={`${buttonPrimary} min-h-8 px-3 text-[12px]`}
               >
-                <WhatsappLogo size={16} weight="bold" />
-                <span>Send Diet to Mother on WhatsApp</span>
+                <WhatsappLogo size={14} weight="bold" />
+                <span>Send via WhatsApp</span>
               </a>
             ) : (
               <button
@@ -293,16 +294,16 @@ export function NutritionDietModal({
                   navigator.clipboard.writeText(generateWhatsAppMessage());
                   alert("Diet Plan copied to clipboard!");
                 }}
-                className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-1.5 text-[12px] font-bold text-white shadow-sm hover:bg-emerald-700 transition"
+                className={`${buttonPrimary} min-h-8 px-3 text-[12px]`}
               >
-                <WhatsappLogo size={16} weight="bold" />
+                <WhatsappLogo size={14} weight="bold" />
                 <span>Copy Vernacular Diet Plan</span>
               </button>
             )}
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3.5 py-1.5 text-[12px] font-medium text-[var(--color-foreground)] hover:bg-[var(--color-surface-2)] transition"
+              className={`${buttonSecondary} min-h-8 px-3 text-[12px]`}
             >
               Close
             </button>

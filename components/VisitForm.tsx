@@ -7,10 +7,11 @@ import { withSuccessToast } from "@/components/Toaster";
 import { VoiceScribeModal } from "@/components/VoiceScribeModal";
 import type { ParsedVitals } from "@/lib/voiceScribe";
 import { Microphone, ShieldWarning, Warning, Heartbeat } from "@phosphor-icons/react";
+import { buttonSecondary } from "@/components/ui";
 
 const initialState: ActionResult = { error: null };
 const inputClass =
-  "num min-h-9 w-full rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2.5 py-1 text-[13px] text-[var(--color-foreground)] focus:border-[var(--color-primary)] focus:outline-none";
+  "num min-h-9 w-full rounded-[var(--radius-buttons)] border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2.5 py-1 text-[13px] text-[var(--color-foreground)] focus:border-[var(--color-primary)] focus:outline-none";
 const labelClass = "mb-1 block text-[11px] font-semibold text-[var(--color-charcoal)]";
 
 export function VisitForm({ patientId }: { patientId: string }) {
@@ -38,7 +39,7 @@ export function VisitForm({ patientId }: { patientId: string }) {
     if (v.fundalHeight) setFundalHeight(String(v.fundalHeight));
 
     if (v.symptoms.length > 0) {
-      const symptomNote = `[Voice Scribe] Detected symptoms: ${v.symptoms.join(", ")}`;
+      const symptomNote = `[Voice Scribe] Symptoms: ${v.symptoms.join(", ")}`;
       setNotes((prev) => (prev ? `${prev}\n${symptomNote}` : symptomNote));
     }
   };
@@ -51,22 +52,21 @@ export function VisitForm({ patientId }: { patientId: string }) {
   const isSevereHTN = sysNum >= 160 || diaNum >= 110;
   const isGestationalHTN = (sysNum >= 140 || diaNum >= 90) && !isSevereHTN;
   const isSevereAnemia = hbNum > 0 && hbNum < 7.0;
-  const isModerateAnemia = hbNum >= 7.0 && hbNum < 10.0;
   const isAbnormalFHR = fhrNum > 0 && (fhrNum < 110 || fhrNum > 160);
 
   return (
     <div className="space-y-3">
       {/* Voice Scribe Bar */}
-      <div className="flex items-center justify-between rounded-xl bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/30 border border-indigo-200 dark:border-indigo-900/60 p-2.5">
+      <div className="flex items-center justify-between rounded-[var(--radius-cards)] border border-[var(--color-border)] bg-[var(--color-surface-1)] p-2.5">
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-600 text-white shadow-xs">
-            <Microphone size={16} weight="bold" />
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-primary-surface)] text-[var(--color-primary)]">
+            <Microphone size={15} weight="bold" />
           </div>
           <div>
-            <div className="text-[12px] font-bold text-indigo-950 dark:text-indigo-200">
+            <div className="text-[12px] font-semibold text-[var(--color-foreground)]">
               ASHA Vernacular Voice Scribe
             </div>
-            <div className="text-[10px] text-indigo-700/80 dark:text-indigo-300/80">
+            <div className="text-[10px] text-[var(--color-charcoal)]">
               Speak vitals in Hindi / English / Marathi to auto-fill
             </div>
           </div>
@@ -75,9 +75,9 @@ export function VisitForm({ patientId }: { patientId: string }) {
         <button
           type="button"
           onClick={() => setIsVoiceOpen(true)}
-          className="flex items-center gap-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 px-3 py-1.5 text-[11px] font-bold text-white shadow-xs transition cursor-pointer"
+          className={`${buttonSecondary} min-h-8 px-3 text-[12px] gap-1.5`}
         >
-          <Microphone size={14} weight="bold" />
+          <Microphone size={14} weight="bold" className="text-[var(--color-primary)]" />
           <span>Dictate Vitals</span>
         </button>
       </div>
@@ -89,47 +89,47 @@ export function VisitForm({ patientId }: { patientId: string }) {
       />
 
       {/* Clinical Decision Support (CDSS) Dynamic Alert Banners */}
-      {(isSevereHTN || isGestationalHTN || isSevereAnemia || isModerateAnemia || isAbnormalFHR) && (
-        <div className="space-y-1.5 animate-in fade-in duration-200">
+      {(isSevereHTN || isGestationalHTN || isSevereAnemia || isAbnormalFHR) && (
+        <div className="space-y-1.5 animate-in fade-in duration-150">
           {isSevereHTN && (
-            <div className="flex items-start gap-2 rounded-xl border border-rose-400 bg-rose-50 dark:bg-rose-950/50 p-2.5 text-[11px] text-rose-900 dark:text-rose-200">
-              <ShieldWarning size={18} weight="fill" className="shrink-0 text-rose-600 mt-0.5" />
+            <div className="flex items-start gap-2 rounded-[var(--radius-cards)] border border-[var(--color-overdue)]/40 bg-[var(--color-overdue-surface)] p-2.5 text-[11px] text-[var(--color-foreground)]">
+              <ShieldWarning size={16} weight="fill" className="shrink-0 text-[var(--color-overdue)] mt-0.5" />
               <div>
-                <strong className="font-bold uppercase tracking-wider block">
-                  PMSMA CRITICAL ALERT: Severe Hypertension ({sysNum}/{diaNum} mmHg)
+                <strong className="font-bold uppercase tracking-wider block text-[var(--color-overdue)]">
+                  PMSMA CRITICAL: Severe Hypertension ({sysNum}/{diaNum} mmHg)
                 </strong>
-                Preeclampsia / Eclampsia protocol: Administer loading dose Inj. Magnesium Sulfate (MgSO4) 4g IV/IM + Tab Nifedipine 10mg. Urgent FRU Emergency Referral required.
+                Preeclampsia protocol: Administer loading dose Inj. Magnesium Sulfate (MgSO4) 4g IV/IM + Tab Nifedipine 10mg. Urgent FRU Emergency Referral required.
               </div>
             </div>
           )}
 
           {isGestationalHTN && (
-            <div className="flex items-start gap-2 rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950/40 p-2.5 text-[11px] text-amber-900 dark:text-amber-200">
-              <Warning size={16} weight="fill" className="shrink-0 text-amber-600 mt-0.5" />
+            <div className="flex items-start gap-2 rounded-[var(--radius-cards)] border border-[var(--color-due)]/40 bg-[var(--color-due-surface)] p-2.5 text-[11px] text-[var(--color-foreground)]">
+              <Warning size={15} weight="fill" className="shrink-0 text-[var(--color-due)] mt-0.5" />
               <div>
-                <strong className="font-bold block">CDSS Alert: Gestational Hypertension ({sysNum}/{diaNum} mmHg)</strong>
+                <strong className="font-bold block text-[var(--color-due)]">CDSS Alert: Gestational Hypertension ({sysNum}/{diaNum} mmHg)</strong>
                 Follow PMSMA protocol: Test urine albumin for proteinuria. Re-check BP in 4 hours. Do not administer Ergometrine during active labor.
               </div>
             </div>
           )}
 
           {isSevereAnemia && (
-            <div className="flex items-start gap-2 rounded-xl border border-rose-400 bg-rose-50 dark:bg-rose-950/50 p-2.5 text-[11px] text-rose-900 dark:text-rose-200">
-              <ShieldWarning size={18} weight="fill" className="shrink-0 text-rose-600 mt-0.5" />
+            <div className="flex items-start gap-2 rounded-[var(--radius-cards)] border border-[var(--color-overdue)]/40 bg-[var(--color-overdue-surface)] p-2.5 text-[11px] text-[var(--color-foreground)]">
+              <ShieldWarning size={16} weight="fill" className="shrink-0 text-[var(--color-overdue)] mt-0.5" />
               <div>
-                <strong className="font-bold uppercase tracking-wider block">
+                <strong className="font-bold uppercase tracking-wider block text-[var(--color-overdue)]">
                   CRITICAL: Severe Anemia (Hb {hbNum} g/dL &lt; 7.0)
                 </strong>
-                High risk of Postpartum Hemorrhage (PPH) & decompensation. Oral iron is insufficient; immediate IV Iron Sucrose or PRBC blood transfusion referral indicated.
+                High risk of Postpartum Hemorrhage (PPH). Oral iron is insufficient; immediate IV Iron Sucrose or PRBC blood transfusion referral indicated.
               </div>
             </div>
           )}
 
           {isAbnormalFHR && (
-            <div className="flex items-start gap-2 rounded-xl border border-amber-400 bg-amber-50 dark:bg-amber-950/50 p-2.5 text-[11px] text-amber-900 dark:text-amber-200">
-              <Heartbeat size={18} weight="fill" className="shrink-0 text-amber-600 mt-0.5" />
+            <div className="flex items-start gap-2 rounded-[var(--radius-cards)] border border-[var(--color-due)]/40 bg-[var(--color-due-surface)] p-2.5 text-[11px] text-[var(--color-foreground)]">
+              <Heartbeat size={16} weight="fill" className="shrink-0 text-[var(--color-due)] mt-0.5" />
               <div>
-                <strong className="font-bold block">Fetal Distress Warning: FHR {fhrNum} bpm (Target: 110–160 bpm)</strong>
+                <strong className="font-bold block text-[var(--color-due)]">Fetal Distress Warning: FHR {fhrNum} bpm (Target: 110–160 bpm)</strong>
                 Reposition mother to left lateral position, administer maternal oxygen, and prepare immediate Doppler/USG evaluation.
               </div>
             </div>

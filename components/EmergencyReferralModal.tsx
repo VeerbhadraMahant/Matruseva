@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import QRCode from "qrcode";
 import { Warning, PhoneCall, Printer, X, ShieldWarning } from "@phosphor-icons/react";
+import { buttonPrimary, buttonSecondary } from "@/components/ui";
 
 export interface EmergencyReferralData {
   patientId: string;
@@ -32,11 +33,11 @@ export function EmergencyReferralButton({ data }: { data: EmergencyReferralData 
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-1.5 rounded-xl border border-rose-300 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/40 px-3.5 py-1.5 text-[12px] font-bold text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/50 shadow-xs transition"
+        className={`${buttonSecondary} gap-1.5`}
         title="Generate Government FRU Emergency Referral Slip & 108 Dispatch Pass"
       >
-        <ShieldWarning size={16} weight="fill" className="text-rose-600 animate-pulse" />
-        <span>1-Click Emergency Referral Slip</span>
+        <ShieldWarning size={15} weight="bold" className="text-[var(--color-overdue)]" aria-hidden />
+        <span>Emergency Referral Slip</span>
       </button>
 
       {isOpen && <EmergencyReferralModal data={data} onClose={() => setIsOpen(false)} />}
@@ -75,31 +76,36 @@ export function EmergencyReferralModal({
       role="dialog"
       aria-modal="true"
       aria-label="High Risk Emergency Referral Slip"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-xs overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs overflow-y-auto"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative my-6 w-full max-w-2xl rounded-2xl bg-[var(--color-background)] border border-rose-300 dark:border-rose-900 shadow-2xl overflow-hidden">
-        {/* Modal Top Actions */}
-        <div className="flex items-center justify-between border-b border-[var(--color-border)] bg-rose-500 text-white px-5 py-3 print:hidden">
+      <div className="relative my-6 w-full max-w-2xl rounded-[var(--radius-cards)] bg-[var(--color-background)] border border-[var(--color-border)] shadow-2xl overflow-hidden">
+        {/* Modal Top Header */}
+        <div className="flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface-1)] px-5 py-3.5 print:hidden">
           <div className="flex items-center gap-2">
-            <ShieldWarning size={20} weight="fill" />
-            <span className="text-[14px] font-bold">Government FRU Emergency Referral Pass</span>
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-overdue-surface)] text-[var(--color-overdue)]">
+              <ShieldWarning size={16} weight="bold" />
+            </div>
+            <div>
+              <h2 className="text-[14px] font-bold text-[var(--color-foreground)]">Government FRU Emergency Referral Slip</h2>
+              <p className="text-[11px] text-[var(--color-charcoal)]">Standardized Obstetric Referral & 108 Dispatch Pass</p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handlePrint}
-              className="flex items-center gap-1.5 rounded-lg bg-white/20 hover:bg-white/30 px-3 py-1 text-[12px] font-semibold text-white transition"
+              className={`${buttonPrimary} min-h-8 px-3 text-[12px]`}
             >
-              <Printer size={15} weight="bold" />
+              <Printer size={14} weight="bold" />
               <span>Print Slip</span>
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg p-1 hover:bg-white/20 text-white transition"
+              className="rounded-lg p-1.5 text-[var(--color-charcoal)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-foreground)] transition"
             >
               <X size={18} />
             </button>
@@ -109,8 +115,8 @@ export function EmergencyReferralModal({
         {/* Printable Referral Slip Document */}
         <div ref={printRef} className="p-6 space-y-4 print:p-0 text-[var(--color-foreground)] bg-white text-black font-sans">
           {/* Header */}
-          <div className="border-b-2 border-rose-600 pb-3 text-center space-y-1">
-            <div className="text-[11px] font-bold tracking-wider text-rose-700 uppercase">
+          <div className="border-b-2 border-[var(--color-overdue)] pb-3 text-center space-y-1">
+            <div className="text-[11px] font-bold tracking-wider text-[var(--color-overdue)] uppercase">
               Ministry of Health & Family Welfare · Maternal Health Division
             </div>
             <h1 className="text-[18px] font-extrabold uppercase tracking-tight text-neutral-900">
@@ -122,34 +128,34 @@ export function EmergencyReferralModal({
           </div>
 
           {/* Critical Danger Flags Banner */}
-          <div className="rounded-xl border-2 border-rose-600 bg-rose-50 p-3.5 space-y-1.5">
-            <div className="flex items-center gap-2 text-rose-800 font-bold text-[13px] uppercase">
-              <Warning size={18} weight="fill" className="text-rose-600" />
+          <div className="rounded-xl border border-[var(--color-overdue)]/40 bg-[var(--color-overdue-surface)] p-3.5 space-y-1.5">
+            <div className="flex items-center gap-2 text-[var(--color-overdue)] font-bold text-[13px] uppercase">
+              <Warning size={18} weight="fill" />
               <span>Urgent Clinical Indication for Referral</span>
             </div>
             <div className="flex flex-wrap gap-2 pt-1">
               {data.bpSys && data.bpSys >= 140 && (
-                <span className="rounded-md bg-rose-600 text-white font-bold px-2.5 py-0.5 text-[11px]">
+                <span className="rounded-md bg-[var(--color-overdue)] text-white font-bold px-2.5 py-0.5 text-[11px]">
                   Severe Hypertension: {data.bpSys}/{data.bpDia || 90} mmHg
                 </span>
               )}
               {data.hb && data.hb < 7 && (
-                <span className="rounded-md bg-rose-600 text-white font-bold px-2.5 py-0.5 text-[11px]">
+                <span className="rounded-md bg-[var(--color-overdue)] text-white font-bold px-2.5 py-0.5 text-[11px]">
                   Severe Anemia: {data.hb} g/dL
                 </span>
               )}
               {data.rhNegative && (
-                <span className="rounded-md bg-rose-600 text-white font-bold px-2.5 py-0.5 text-[11px]">
+                <span className="rounded-md bg-[var(--color-overdue)] text-white font-bold px-2.5 py-0.5 text-[11px]">
                   Rh Negative Pregnancy
                 </span>
               )}
               {(data.riskReasons ?? []).map((r, i) => (
-                <span key={i} className="rounded-md bg-rose-100 text-rose-900 border border-rose-300 font-semibold px-2 py-0.5 text-[11px]">
+                <span key={i} className="rounded-md bg-white border border-[var(--color-overdue)]/40 text-[var(--color-overdue)] font-semibold px-2 py-0.5 text-[11px]">
                   {r}
                 </span>
               ))}
               {!data.bpSys && !data.hb && (
-                <span className="rounded-md bg-rose-600 text-white font-bold px-2.5 py-0.5 text-[11px]">
+                <span className="rounded-md bg-[var(--color-overdue)] text-white font-bold px-2.5 py-0.5 text-[11px]">
                   High Risk Pregnancy Alert (Urgent Evaluation Required)
                 </span>
               )}
@@ -172,7 +178,7 @@ export function EmergencyReferralModal({
               </div>
               <div className="text-neutral-800">Gravida: <strong>G{data.gravida ?? 1} P{data.para ?? 0}</strong></div>
               <div className="text-neutral-800">
-                Blood Group: <strong className="text-rose-700">{data.bloodGroup || "—"} {data.rhNegative ? "(Rh Neg)" : ""}</strong>
+                Blood Group: <strong className="text-[var(--color-overdue)]">{data.bloodGroup || "—"} {data.rhNegative ? "(Rh Neg)" : ""}</strong>
               </div>
               <div className="text-neutral-800">EDD: <strong>{data.edd || "—"}</strong></div>
             </div>
@@ -197,7 +203,7 @@ export function EmergencyReferralModal({
                   type="checkbox"
                   checked={nifedipineGiven}
                   onChange={(e) => setNifedipineGiven(e.target.checked)}
-                  className="rounded text-rose-600 focus:ring-rose-500"
+                  className="rounded text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
                 />
                 <span>Tab Nifedipine 10mg orally</span>
               </label>
@@ -207,7 +213,7 @@ export function EmergencyReferralModal({
                   type="checkbox"
                   checked={mgso4Given}
                   onChange={(e) => setMgso4Given(e.target.checked)}
-                  className="rounded text-rose-600 focus:ring-rose-500"
+                  className="rounded text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
                 />
                 <span>Inj. Magnesium Sulfate (MgSO4) 4g IV/IM</span>
               </label>
@@ -217,7 +223,7 @@ export function EmergencyReferralModal({
                   type="checkbox"
                   checked={ivCannulaGiven}
                   onChange={(e) => setIvCannulaGiven(e.target.checked)}
-                  className="rounded text-rose-600 focus:ring-rose-500"
+                  className="rounded text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
                 />
                 <span>Wide-bore IV line (18G) secured with Ringer Lactate</span>
               </label>
@@ -227,7 +233,7 @@ export function EmergencyReferralModal({
                   type="checkbox"
                   checked={oxygenGiven}
                   onChange={(e) => setOxygenGiven(e.target.checked)}
-                  className="rounded text-rose-600 focus:ring-rose-500"
+                  className="rounded text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
                 />
                 <span>Maternal Oxygen (4-6 L/min via mask)</span>
               </label>
@@ -235,7 +241,7 @@ export function EmergencyReferralModal({
           </div>
 
           {/* Referral Destination & 108 Dispatch Hotline */}
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-neutral-300 p-3 bg-neutral-100">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-neutral-300 p-3 bg-neutral-50">
             <div>
               <div className="text-[11px] font-semibold text-neutral-500 uppercase">Referral Destination Facility:</div>
               <input
@@ -248,7 +254,7 @@ export function EmergencyReferralModal({
 
             <a
               href="tel:108"
-              className="flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2 text-[13px] font-bold text-white shadow-sm hover:bg-rose-700 transition print:hidden"
+              className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-[var(--radius-buttons)] bg-[var(--color-overdue)] px-4 text-[13px] font-semibold text-white shadow-sm hover:opacity-95 transition print:hidden"
             >
               <PhoneCall size={16} weight="fill" />
               <span>Call 108 Emergency Ambulance</span>
@@ -277,16 +283,16 @@ export function EmergencyReferralModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-background)] px-4 py-1.5 text-[12px] font-medium text-[var(--color-foreground)] hover:bg-[var(--color-surface-2)] transition"
+              className={`${buttonSecondary} min-h-8 px-3 text-[12px]`}
             >
               Close
             </button>
             <button
               type="button"
               onClick={handlePrint}
-              className="flex items-center gap-1.5 rounded-xl bg-rose-600 px-4 py-1.5 text-[12px] font-bold text-white hover:bg-rose-700 shadow-sm transition"
+              className={`${buttonPrimary} min-h-8 px-3 text-[12px]`}
             >
-              <Printer size={15} weight="bold" />
+              <Printer size={14} weight="bold" />
               <span>Print / Download PDF</span>
             </button>
           </div>
