@@ -26,6 +26,7 @@ export interface PatientListRow {
   risk: FollowUpRisk;
   overdueCount: number;
   flags: ClinicalFlag[];
+  createdAt: string | null;
 }
 
 export type PatientFilter = "all" | "t1" | "t2" | "t3" | "overdue" | "at_risk" | "lost" | "alerts" | "term";
@@ -42,7 +43,7 @@ const FILTERS: { id: PatientFilter; label: string; test: (r: PatientListRow) => 
   { id: "term", label: "EDD ≤ 30d", test: (r) => r.eddInDays !== null && r.eddInDays <= 30 },
 ];
 
-type SortKey = "name" | "ga" | "edd" | "next";
+type SortKey = "name" | "ga" | "edd" | "next" | "recent";
 
 const RISK: Record<FollowUpRisk, { tone: Tone; label: string }> = {
   on_track: { tone: "ok", label: "On track" },
@@ -66,14 +67,23 @@ function compare(a: PatientListRow, b: PatientListRow, key: SortKey): number {
       return nullsLast(a.edd, b.edd);
     case "next":
       return nullsLast(a.nextVisit, b.nextVisit);
+    case "recent":
+      return nullsLast(a.createdAt, b.createdAt);
   }
+}
+
+
+function isRecentlyAdded(createdAt: string | null): boolean {
+  if (!createdAt) return false;
+  const diff = Date.now() - new Date(createdAt).getTime();
+  return diff >= 0 && diff < 24 * 60 * 60 * 1000;
 }
 
 export function PatientTable({ rows, initialFilter }: { rows: PatientListRow[]; initialFilter: PatientFilter }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<PatientFilter>(initialFilter);
-  const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "name", dir: 1 });
+  const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "recent", dir: -1 });
 
   const counts = useMemo(() => Object.fromEntries(FILTERS.map((f) => [f.id, rows.filter(f.test).length])), [rows]);
 
@@ -173,9 +183,16 @@ export function PatientTable({ rows, initialFilter }: { rows: PatientListRow[]; 
                         .toUpperCase()}
                     </span>
                     <div className="min-w-0">
-                      <Link href={`/patients/${r.id}`} prefetch={true} className="block font-semibold hover:underline">
-                        {r.name}
-                      </Link>
+                      <div className="flex items-center gap-1.5">
+                        <Link href={`/patients/${r.id}`} prefetch={true} className="block font-semibold hover:underline">
+                          {r.name}
+                        </Link>
+                        {isRecentlyAdded(r.createdAt) && (
+                          <span className="rounded-md bg-[var(--color-on-track-surface)] border border-[var(--color-on-track)]/30 px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-on-track)] tracking-wide">
+                            NEW
+                          </span>
+                        )}
+                      </div>
                       <span className="num block whitespace-nowrap text-[12px] text-[var(--color-charcoal)]">
                         {[r.clinicNo && `#${r.clinicNo}`, r.phone].filter(Boolean).join(" · ") || "—"}
                       </span>

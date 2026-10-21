@@ -38,6 +38,7 @@ export interface DemoPatientRaw {
   };
   overdueEvents?: { name: string; kind: string; daysOverdue: number }[];
   dueEvents?: { name: string; kind: string; dueInDays: number }[];
+  createdAt?: string;
 }
 
 const DEMO_COMPLETED_EVENTS = new Map<string, Set<string>>();
@@ -348,6 +349,7 @@ export function getDemoSnapshot(): { rows: PatientRow[]; today: Date; todayIso: 
       overdue,
       due,
       flags,
+      createdAt: p.createdAt ?? "2026-04-01T08:00:00Z",
     };
   });
 
@@ -621,6 +623,7 @@ export function addDemoPatient(data: {
     noAnswerStreak: 0,
     status: "active",
     pregnancyStatus: "active",
+    createdAt: new Date().toISOString(),
     latestVisit: {
       daysAgo: 0,
       bpSys: 120,

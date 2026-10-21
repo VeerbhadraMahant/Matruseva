@@ -31,6 +31,7 @@ export default async function PatientsPage({ searchParams }: { searchParams: Pro
     risk: r.risk,
     overdueCount: r.overdue.length,
     flags: r.flags,
+    createdAt: r.createdAt,
   }));
 
   return (

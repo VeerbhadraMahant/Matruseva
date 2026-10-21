@@ -1,12 +1,14 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
 import { generateSchedule, type ScheduleTemplateItem } from "@/lib/schedule";
 import { todayInClinicTimezone, toISODate } from "@/lib/today";
+import { eddFromLmp } from "@/lib/pregnancy";
 import { addDemoPatient } from "@/lib/demo-data";
 import type { CareEventKind } from "@/lib/supabase/enums";
 
@@ -19,17 +21,26 @@ const patientSchema = z.object({
   clinicPatientNo: z.string().trim().max(40).optional(),
   phone: z.string().optional(),
   altPhone: z.string().optional(),
-  age: z.coerce.number().int().positive().max(70).optional().or(z.literal("")),
+  age: z.preprocess(
+    (v) => (v === "" || v === undefined ? null : v),
+    z.coerce.number().int().positive().max(70).nullable().optional()
+  ),
   address: z.string().optional(),
-  gravida: z.coerce.number().int().nonnegative().max(20).optional().or(z.literal("")),
-  para: z.coerce.number().int().nonnegative().max(20).optional().or(z.literal("")),
+  gravida: z.preprocess(
+    (v) => (v === "" || v === undefined ? null : v),
+    z.coerce.number().int().nonnegative().max(20).nullable().optional()
+  ),
+  para: z.preprocess(
+    (v) => (v === "" || v === undefined ? null : v),
+    z.coerce.number().int().nonnegative().max(20).nullable().optional()
+  ),
   bloodGroup: z.string().optional(),
   // Unchecked checkboxes are omitted from FormData entirely (not just
   // undefined-valued), so this key must be .optional() to allow that.
   rhNegative: z
     .string()
     .optional()
-    .transform((v) => v === "on"),
+    .transform((v) => v === "on" || v === "true"),
   lmp: z.iso.date("Enter a valid LMP date"),
 });
 
@@ -50,20 +61,30 @@ export async function createPatient(_prev: ActionResult, formData: FormData): Pr
       clinicPatientNo: input.clinicPatientNo || null,
       phone: input.phone || null,
       altPhone: input.altPhone || null,
-      age: input.age === "" || input.age === undefined ? null : input.age,
+      age: input.age ?? null,
       address: input.address || null,
-      gravida: input.gravida === "" || input.gravida === undefined ? null : input.gravida,
-      para: input.para === "" || input.para === undefined ? null : input.para,
+      gravida: input.gravida ?? null,
+      para: input.para ?? null,
       bloodGroup: input.bloodGroup || null,
       rhNegative: input.rhNegative,
       lmp: input.lmp,
     });
+
+    revalidatePath("/patients");
+    revalidatePath("/today");
+    revalidatePath("/calls");
     redirect(`/patients/${newId}`);
   }
+
+  let createdPatientId: string | null = null;
 
   try {
     const [supabase, me] = await Promise.all([createClient(), getCurrentUser()]);
     const profile = { clinic_id: me.clinicId };
+
+    const [y, m, d] = input.lmp.split("-").map(Number);
+    const lmpDate = new Date(y, m - 1, d);
+    const calculatedEdd = toISODate(eddFromLmp(lmpDate));
 
     const { data: patient, error: insertError } = await supabase
       .from("patients")
@@ -73,13 +94,14 @@ export async function createPatient(_prev: ActionResult, formData: FormData): Pr
         clinic_patient_no: input.clinicPatientNo || null,
         phone: input.phone || null,
         alt_phone: input.altPhone || null,
-        age: input.age === "" || input.age === undefined ? null : input.age,
+        age: input.age ?? null,
         address: input.address || null,
-        gravida: input.gravida === "" || input.gravida === undefined ? null : input.gravida,
-        para: input.para === "" || input.para === undefined ? null : input.para,
+        gravida: input.gravida ?? null,
+        para: input.para ?? null,
         blood_group: input.bloodGroup || null,
         rh_negative: input.rhNegative,
         lmp: input.lmp,
+        edd: calculatedEdd,
         edd_source: "lmp",
         created_by: me.userId,
       })
@@ -97,18 +119,8 @@ export async function createPatient(_prev: ActionResult, formData: FormData): Pr
       rhNegative: input.rhNegative,
     });
 
-    redirect(`/patients/${patient.id}`);
+    createdPatientId = patient.id;
   } catch (err: unknown) {
-    // Next.js redirect() throws a NEXT_REDIRECT error which must be rethrown!
-    if (
-      err &&
-      typeof err === "object" &&
-      "digest" in err &&
-      typeof (err as { digest: string }).digest === "string" &&
-      (err as { digest: string }).digest.startsWith("NEXT_REDIRECT")
-    ) {
-      throw err;
-    }
     console.error("createPatient error:", err);
     return {
       error:
@@ -117,6 +129,15 @@ export async function createPatient(_prev: ActionResult, formData: FormData): Pr
           : "Database connection failed. Please check your Supabase configuration.",
     };
   }
+
+  if (createdPatientId) {
+    revalidatePath("/patients");
+    revalidatePath("/today");
+    revalidatePath("/calls");
+    redirect(`/patients/${createdPatientId}`);
+  }
+
+  return { error: "Failed to create patient record." };
 }
 
 async function generateScheduleForPatient(

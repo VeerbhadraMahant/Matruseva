@@ -46,6 +46,7 @@ export interface PatientRow {
   overdue: OpenEvent[];
   due: OpenEvent[];
   flags: ClinicalFlag[];
+  createdAt: string | null;
 }
 
 function eddIso(lmp: string): string {
@@ -71,7 +72,7 @@ export const getClinicSnapshot = cache(async () => {
   const [{ data: patients }, { data: events }, { data: risks }, { data: visits }] = await Promise.all([
     supabase
       .from("patients")
-      .select("id, name, phone, clinic_patient_no, age, gravida, para, rh_negative, blood_group, lmp, edd")
+      .select("id, name, phone, clinic_patient_no, age, gravida, para, rh_negative, blood_group, lmp, edd, created_at")
       .eq("status", "active")
       .order("name"),
     supabase
@@ -139,6 +140,7 @@ export const getClinicSnapshot = cache(async () => {
       latestVisit,
       overdue: open.filter((e) => e.status === "overdue"),
       due: open.filter((e) => e.status === "due"),
+      createdAt: p.created_at ?? null,
       flags: sortFlags([
         ...(latestVisit ? vitalsFlags(latestVisit) : []),
         ...patientFlags({ age: p.age, gravida: p.gravida, rhNegative: p.rh_negative, bloodGroup: p.blood_group, gaWeeks: ga?.weeks ?? null }),

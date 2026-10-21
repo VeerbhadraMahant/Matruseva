@@ -11,12 +11,11 @@ const nextConfig: NextConfig = {
   // likely mistake. This acknowledges it's intentional.
   turbopack: {},
   experimental: {
-    // Router cache stale times: dynamic pages cached for 3 minutes (180s),
-    // static / prefetched routes cached for 5 minutes (300s).
-    // Instant client-side navigation between tabs!
+    // Dynamic pages have 0s client-router cache to guarantee fresh data on
+    // navigation after mutations, while prefetched static routes retain 180s.
     staleTimes: {
-      dynamic: 180,
-      static: 300,
+      dynamic: 0,
+      static: 180,
     },
   },
   async headers() {

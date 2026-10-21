@@ -47,6 +47,9 @@ export async function updateClinicDetails(_prev: ActionResult, formData: FormDat
 
   if (updateError) return { error: updateError.message };
   revalidatePath("/settings");
+  revalidatePath("/patients");
+  revalidatePath("/today");
+  revalidatePath("/calls");
   return { error: null };
 }
 
@@ -72,6 +75,9 @@ export async function updateRiskThresholds(_prev: ActionResult, formData: FormDa
 
   if (updateError) return { error: updateError.message };
   revalidatePath("/settings");
+  revalidatePath("/patients");
+  revalidatePath("/today");
+  revalidatePath("/calls");
   return { error: null };
 }
 
@@ -153,6 +159,9 @@ export async function updateScheduleItem(_prev: ActionResult, formData: FormData
 
   if (updateError) return { error: updateError.message };
   revalidatePath("/settings");
+  revalidatePath("/patients");
+  revalidatePath("/today");
+  revalidatePath("/calls");
   return { error: null };
 }
 

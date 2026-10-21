@@ -27,6 +27,9 @@ export async function markCareEventDone(careEventId: string, patientId: string):
   if (isDemo) {
     markDemoCareEventDone(careEventId, patientId);
     revalidatePath(`/patients/${patientId}`);
+    revalidatePath("/patients");
+    revalidatePath("/today");
+    revalidatePath("/calls");
     return { error: null };
   }
 
@@ -40,6 +43,9 @@ export async function markCareEventDone(careEventId: string, patientId: string):
     if (error) return { error: error.message };
 
     revalidatePath(`/patients/${patientId}`);
+    revalidatePath("/patients");
+    revalidatePath("/today");
+    revalidatePath("/calls");
     return { error: null };
   } catch (err: unknown) {
     return { error: err instanceof Error ? err.message : "Database connection failed" };
@@ -86,6 +92,9 @@ export async function recordVisit(
       nextVisitDate: v.nextVisitDate || null,
     });
     revalidatePath(`/patients/${patientId}`);
+    revalidatePath("/patients");
+    revalidatePath("/today");
+    revalidatePath("/calls");
     return { error: null };
   }
 
@@ -110,6 +119,9 @@ export async function recordVisit(
     if (error) return { error: error.message };
 
     revalidatePath(`/patients/${patientId}`);
+    revalidatePath("/patients");
+    revalidatePath("/today");
+    revalidatePath("/calls");
     return { error: null };
   } catch (err: unknown) {
     return { error: err instanceof Error ? err.message : "Database connection failed" };
@@ -276,6 +288,7 @@ export async function updatePatient(
     revalidatePath(`/patients/${patientId}`);
     revalidatePath("/patients");
     revalidatePath("/today");
+    revalidatePath("/calls");
     return { error: null };
   }
 
@@ -417,5 +430,6 @@ export async function updatePatient(
   revalidatePath(`/patients/${patientId}`);
   revalidatePath("/patients");
   revalidatePath("/today");
+  revalidatePath("/calls");
   return { error: null };
 }

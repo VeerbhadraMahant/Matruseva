@@ -36,6 +36,8 @@ export async function logContact(patientId: string, _prev: ActionResult, formDat
   if (isDemo) {
     logDemoContact(patientId, parsed.data.channel, parsed.data.outcome, parsed.data.reason);
     revalidatePath("/calls");
+    revalidatePath("/today");
+    revalidatePath("/patients");
     revalidatePath(`/patients/${patientId}`);
     return { error: null };
   }
@@ -55,6 +57,8 @@ export async function logContact(patientId: string, _prev: ActionResult, formDat
     if (error) return { error: error.message };
 
     revalidatePath("/calls");
+    revalidatePath("/today");
+    revalidatePath("/patients");
     revalidatePath(`/patients/${patientId}`);
     return { error: null };
   } catch (err: unknown) {
@@ -73,6 +77,8 @@ export async function quickLogContact(
   if (isDemo) {
     logDemoContact(patientId, channel, outcome, notes);
     revalidatePath("/calls");
+    revalidatePath("/today");
+    revalidatePath("/patients");
     revalidatePath(`/patients/${patientId}`);
     return { error: null };
   }
@@ -92,6 +98,8 @@ export async function quickLogContact(
     if (error) return { error: error.message };
 
     revalidatePath("/calls");
+    revalidatePath("/today");
+    revalidatePath("/patients");
     revalidatePath(`/patients/${patientId}`);
     return { error: null };
   } catch (err: unknown) {
@@ -134,6 +142,7 @@ export async function logBatchContacts(
     const demoRes = logDemoBatchContacts(valid.patientIds, valid.outcome, valid.notes);
     revalidatePath("/calls");
     revalidatePath("/today");
+    revalidatePath("/patients");
     return demoRes;
   }
 
@@ -194,6 +203,7 @@ export async function logBatchContacts(
 
     revalidatePath("/calls");
     revalidatePath("/today");
+    revalidatePath("/patients");
     return { error: null, loggedCount: toInsert.length, skippedCount };
   } catch (err: unknown) {
     return {
