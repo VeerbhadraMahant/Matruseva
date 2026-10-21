@@ -156,6 +156,7 @@ export function PatientTable({ rows, initialFilter }: { rows: PatientListRow[]; 
                   if ((e.target as HTMLElement).closest("a")) return;
                   router.push(`/patients/${r.id}`);
                 }}
+                onMouseEnter={() => router.prefetch(`/patients/${r.id}`)}
                 className="cursor-pointer hover:bg-[var(--color-surface-1)]"
               >
                 <td className={td}>
@@ -172,7 +173,7 @@ export function PatientTable({ rows, initialFilter }: { rows: PatientListRow[]; 
                         .toUpperCase()}
                     </span>
                     <div className="min-w-0">
-                      <Link href={`/patients/${r.id}`} className="block font-semibold hover:underline">
+                      <Link href={`/patients/${r.id}`} prefetch={true} className="block font-semibold hover:underline">
                         {r.name}
                       </Link>
                       <span className="num block whitespace-nowrap text-[12px] text-[var(--color-charcoal)]">

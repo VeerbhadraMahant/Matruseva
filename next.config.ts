@@ -11,10 +11,35 @@ const nextConfig: NextConfig = {
   // likely mistake. This acknowledges it's intentional.
   turbopack: {},
   experimental: {
-    // Every app page is dynamic (per-user, cookie-based), which Next caches
-    // client-side for 0s by default — so tab switches always waited on a
-    // full server render. Server actions' revalidatePath still busts this.
-    staleTimes: { dynamic: 30 },
+    // Router cache stale times: dynamic pages cached for 3 minutes (180s),
+    // static / prefetched routes cached for 5 minutes (300s).
+    // Instant client-side navigation between tabs!
+    staleTimes: {
+      dynamic: 180,
+      static: 300,
+    },
+  },
+  async headers() {
+    return [
+      {
+        source: "/:all*(svg|jpg|jpeg|png|webp|avif|ico|woff|woff2)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
+        source: "/manifest.webmanifest",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=86400, stale-while-revalidate=604800",
+          },
+        ],
+      },
+    ];
   },
 };
 

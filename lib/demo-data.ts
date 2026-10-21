@@ -248,9 +248,21 @@ const RAW_DEMO_PATIENTS: DemoPatientRaw[] = [
   },
 ];
 
+let cachedDemoSnapshot: { rows: PatientRow[]; today: Date; todayIso: string } | null = null;
+const cachedPatientDetails = new Map<string, { todayIso: string; data: unknown }>();
+
+export function invalidateDemoCache(): void {
+  cachedDemoSnapshot = null;
+  cachedPatientDetails.clear();
+}
+
 export function getDemoSnapshot(): { rows: PatientRow[]; today: Date; todayIso: string } {
   const today = todayInClinicTimezone();
   const todayIso = toISODate(today);
+
+  if (cachedDemoSnapshot && cachedDemoSnapshot.todayIso === todayIso) {
+    return cachedDemoSnapshot;
+  }
 
   // Delivered or closed pregnancies are excluded from the active worklist & follow-up queues
   const activePatients = RAW_DEMO_PATIENTS.filter((p) => !p.status || p.status === "active");
@@ -339,13 +351,12 @@ export function getDemoSnapshot(): { rows: PatientRow[]; today: Date; todayIso: 
     };
   });
 
-  return { rows, today, todayIso };
+  cachedDemoSnapshot = { rows, today, todayIso };
+  return cachedDemoSnapshot;
 }
 
-export function getDemoPatientDetail(id: string) {
+function computeDemoPatientDetail(id: string, today: Date, todayIso: string) {
   const patientRaw = RAW_DEMO_PATIENTS.find((p) => p.id === id) || RAW_DEMO_PATIENTS[0];
-  const today = todayInClinicTimezone();
-  const todayIso = toISODate(today);
   const lmpDate = patientRaw.lmp ? parseLocalDate(patientRaw.lmp) : new Date(today);
   if (!patientRaw.lmp) {
     lmpDate.setDate(lmpDate.getDate() - Math.round(patientRaw.weeksPregnant * 7));
@@ -427,7 +438,7 @@ export function getDemoPatientDetail(id: string) {
         },
       ];
 
-  return {
+  const result = {
     patient: {
       id: patientRaw.id,
       clinic_id: "00000000-0000-0000-0000-000000000002",
@@ -466,6 +477,24 @@ export function getDemoPatientDetail(id: string) {
       no_answer_streak: isDeliveredOrClosed ? 0 : patientRaw.noAnswerStreak,
     },
   };
+
+  return result;
+}
+
+export type DemoPatientDetailResult = ReturnType<typeof computeDemoPatientDetail>;
+
+export function getDemoPatientDetail(id: string): DemoPatientDetailResult {
+  const today = todayInClinicTimezone();
+  const todayIso = toISODate(today);
+
+  const cached = cachedPatientDetails.get(id);
+  if (cached && cached.todayIso === todayIso) {
+    return cached.data as DemoPatientDetailResult;
+  }
+
+  const result = computeDemoPatientDetail(id, today, todayIso);
+  cachedPatientDetails.set(id, { todayIso, data: result });
+  return result;
 }
 
 export function closeDemoPregnancy(
@@ -498,6 +527,7 @@ export function closeDemoPregnancy(
   patient.dueEvents = [];
   patient.risk = "on_track";
 
+  invalidateDemoCache();
   return { error: null };
 }
 
@@ -525,6 +555,7 @@ export function logDemoBatchContacts(
     }
   }
 
+  invalidateDemoCache();
   return { error: null, loggedCount, skippedCount };
 }
 
@@ -605,6 +636,7 @@ export function addDemoPatient(data: {
   };
 
   RAW_DEMO_PATIENTS.unshift(newPatient);
+  invalidateDemoCache();
   return id;
 }
 
@@ -612,6 +644,7 @@ export function markDemoCareEventDone(careEventId: string, patientId: string): v
   const current = DEMO_COMPLETED_EVENTS.get(patientId) ?? new Set<string>();
   current.add(careEventId);
   DEMO_COMPLETED_EVENTS.set(patientId, current);
+  invalidateDemoCache();
 }
 
 export function recordDemoVisit(
@@ -654,6 +687,7 @@ export function recordDemoVisit(
     created_at: new Date().toISOString(),
   });
   DEMO_VISITS_STATE.set(patientId, visits);
+  invalidateDemoCache();
 }
 
 export function logDemoContact(
@@ -679,6 +713,7 @@ export function logDemoContact(
     created_at: new Date().toISOString(),
   });
   DEMO_CONTACTS_STATE.set(patientId, contacts);
+  invalidateDemoCache();
 }
 
 
@@ -689,6 +724,7 @@ export function updateDemoPatient(
   const patient = RAW_DEMO_PATIENTS.find((p) => p.id === patientId);
   if (!patient) return false;
   Object.assign(patient, updates);
+  invalidateDemoCache();
   return true;
 }
 

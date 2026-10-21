@@ -192,6 +192,7 @@ export function AppTopBar({
                 key={href}
                 ref={i === 0 ? firstLinkRef : undefined}
                 href={href}
+                prefetch={true}
                 onClick={() => setOpen(false)}
                 aria-current={active ? "page" : undefined}
                 className={`flex min-h-12 items-center gap-3 rounded-xl px-3 text-[15px] transition-colors duration-150 ${
@@ -247,6 +248,7 @@ export function AppBottomNav() {
           <Link
             key={href}
             href={href}
+            prefetch={true}
             aria-current={active ? "page" : undefined}
             className={`flex min-h-16 flex-1 flex-col items-center justify-center gap-1 text-[11px] ${
               active ? "font-semibold text-[var(--color-primary)]" : "text-[var(--color-charcoal)]"
