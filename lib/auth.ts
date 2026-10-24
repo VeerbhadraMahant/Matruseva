@@ -13,12 +13,19 @@ export interface CurrentUser {
   isDemo?: boolean;
 }
 
+export function isDemoActive(cookieStore?: { get(name: string): { value?: string } | undefined }): boolean {
+  if (cookieStore?.get("matrusetu_demo")?.value === "1") return true;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!url || url.includes("xxxxxxxx") || url.includes("your-project")) return true;
+  return false;
+}
+
 // getClaims() verifies the JWT locally against the project's ES256 JWKS, so
 // unlike getUser() it costs no Auth-server round trip. cache() dedupes this
 // across the layout, page and nested components within one request.
 export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
   const cookieStore = await cookies();
-  const isDemo = cookieStore.get("matrusetu_demo")?.value === "1";
+  const isDemo = isDemoActive(cookieStore);
   if (isDemo) {
     return {
       userId: "demo-doctor-id",

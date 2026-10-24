@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isDemoActive } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getClinicSnapshot } from "@/lib/snapshot";
 import { trimester } from "@/lib/pregnancy";
@@ -20,7 +20,7 @@ export default async function TodayPage() {
   const deliveries = upcomingDeliveries(rows, today);
 
   const cookieStore = await cookies();
-  const isDemo = cookieStore.get("matrusetu_demo")?.value === "1";
+  const isDemo = isDemoActive(cookieStore);
 
   let deliveriesThisMonth = 0;
   let contactsAttempted = 0;

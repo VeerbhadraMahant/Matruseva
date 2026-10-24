@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isDemoActive } from "@/lib/auth";
 import { generateSchedule, type ScheduleTemplateItem } from "@/lib/schedule";
 import { todayInClinicTimezone, toISODate } from "@/lib/today";
 import { eddFromLmp } from "@/lib/pregnancy";
@@ -17,7 +17,7 @@ export interface ActionResult {
 }
 
 const patientSchema = z.object({
-  name: z.string().min(2, "Enter the patient's name"),
+  name: z.string().trim().min(2, "Enter the patient's name"),
   clinicPatientNo: z.string().trim().max(40).optional(),
   phone: z.string().optional(),
   altPhone: z.string().optional(),
@@ -41,7 +41,10 @@ const patientSchema = z.object({
     .string()
     .optional()
     .transform((v) => v === "on" || v === "true"),
-  lmp: z.iso.date("Enter a valid LMP date"),
+  lmp: z.iso.date("Enter a valid LMP date").refine((val) => {
+    const today = toISODate(todayInClinicTimezone());
+    return val <= today;
+  }, { message: "LMP date cannot be in the future" }),
 });
 
 export async function createPatient(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
@@ -53,7 +56,7 @@ export async function createPatient(_prev: ActionResult, formData: FormData): Pr
   const input = parsed.data;
 
   const cookieStore = await cookies();
-  const isDemo = cookieStore.get("matrusetu_demo")?.value === "1";
+  const isDemo = isDemoActive(cookieStore);
 
   if (isDemo) {
     const newId = addDemoPatient({

@@ -54,8 +54,8 @@ export function MotherHealthCardModal({
   useEffect(() => {
     // Generate QR code pointing to patient profile
     const targetUrl = typeof window !== "undefined"
-      ? `${window.location.origin}/patients/${patient.id}`
-      : `/patients/${patient.id}`;
+      ? `${window.location.origin}/patients/${patient.id}/report`
+      : `/patients/${patient.id}/report`;
 
     // Payload can be scanned either as a direct URL or interpreted by our reception scanner
     QRCode.toDataURL(targetUrl, {

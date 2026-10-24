@@ -17,6 +17,7 @@ npm-debug.log*
 .next/
 out/
 next-env.d.ts
+.matrusetu-demo-store.json
 
 # Serwist-generated service worker (built from app/sw.ts)
 public/sw.js

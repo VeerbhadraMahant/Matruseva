@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isDemoActive } from "@/lib/auth";
 import { todayInClinicTimezone, toISODate } from "@/lib/today";
 import { parseLocalDate } from "@/lib/format";
 import { closeDemoPregnancy, markDemoCareEventDone, recordDemoVisit, updateDemoPatient } from "@/lib/demo-data";
@@ -23,7 +23,7 @@ export interface ActionResult {
 
 export async function markCareEventDone(careEventId: string, patientId: string): Promise<ActionResult> {
   const cookieStore = await cookies();
-  const isDemo = cookieStore.get("matrusetu_demo")?.value === "1";
+  const isDemo = isDemoActive(cookieStore);
   if (isDemo) {
     markDemoCareEventDone(careEventId, patientId);
     revalidatePath(`/patients/${patientId}`);
@@ -78,7 +78,7 @@ export async function recordVisit(
   const num = (x: number | "" | undefined) => (x === "" || x === undefined ? null : x);
 
   const cookieStore = await cookies();
-  const isDemo = cookieStore.get("matrusetu_demo")?.value === "1";
+  const isDemo = isDemoActive(cookieStore);
   if (isDemo) {
     recordDemoVisit(patientId, {
       visitDate: v.visitDate || toISODate(todayInClinicTimezone()),
@@ -158,7 +158,7 @@ export async function closePregnancy(
   }
 
   const [cookieStore, me] = await Promise.all([cookies(), getCurrentUser()]);
-  const isDemo = cookieStore.get("matrusetu_demo")?.value === "1";
+  const isDemo = isDemoActive(cookieStore);
 
   if (isDemo) {
     const demoRes = closeDemoPregnancy(patientId, data, me.fullName);
@@ -264,7 +264,7 @@ export async function updatePatient(
   const input = parsed.data;
 
   const cookieStore = await cookies();
-  const isDemo = cookieStore.get("matrusetu_demo")?.value === "1";
+  const isDemo = isDemoActive(cookieStore);
   if (isDemo) {
     const lmpDate = input.lmp ? parseLocalDate(input.lmp) : null;
     let finalEdd = input.edd || null;

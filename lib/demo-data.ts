@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { todayInClinicTimezone, toISODate } from "@/lib/today";
 import { gestationalAge } from "@/lib/pregnancy";
 import { parseLocalDate } from "@/lib/format";
@@ -41,8 +43,7 @@ export interface DemoPatientRaw {
   createdAt?: string;
 }
 
-const DEMO_COMPLETED_EVENTS = new Map<string, Set<string>>();
-const DEMO_VISITS_STATE = new Map<string, Array<{
+export interface DemoVisitRecord {
   id: string;
   patient_id: string;
   visit_date: string;
@@ -55,16 +56,32 @@ const DEMO_VISITS_STATE = new Map<string, Array<{
   notes: string | null;
   next_visit_date: string | null;
   created_at: string;
-}>>();
-const DEMO_CONTACTS_STATE = new Map<string, Array<{
+}
+
+export interface DemoContactRecord {
   id: string;
-  channel: string;
+  channel: "call" | "whatsapp";
   outcome: ContactOutcome;
   notes: string | null;
   created_at: string;
-}>>();
+}
 
-const RAW_DEMO_PATIENTS: DemoPatientRaw[] = [
+export interface DemoStoreState {
+  patients: DemoPatientRaw[];
+  completedEvents: Record<string, string[]>;
+  visits: Record<string, DemoVisitRecord[]>;
+  contacts: Record<string, DemoContactRecord[]>;
+}
+
+const STORE_FILE_PATH = path.join(process.cwd(), ".matrusetu-demo-store.json");
+
+declare global {
+  var __matrusetu_demo_store__: DemoStoreState | undefined;
+  var __matrusetu_demo_snapshot_cache__: { rows: PatientRow[]; today: Date; todayIso: string } | null | undefined;
+  var __matrusetu_demo_detail_cache__: Map<string, { todayIso: string; data: unknown }> | undefined;
+}
+
+const INITIAL_RAW_DEMO_PATIENTS: DemoPatientRaw[] = [
   {
     id: "p1-pooja-deshmukh",
     name: "Pooja Deshmukh",
@@ -249,24 +266,86 @@ const RAW_DEMO_PATIENTS: DemoPatientRaw[] = [
   },
 ];
 
-let cachedDemoSnapshot: { rows: PatientRow[]; today: Date; todayIso: string } | null = null;
-const cachedPatientDetails = new Map<string, { todayIso: string; data: unknown }>();
+function initFreshStore(): DemoStoreState {
+  return {
+    patients: JSON.parse(JSON.stringify(INITIAL_RAW_DEMO_PATIENTS)),
+    completedEvents: {},
+    visits: {},
+    contacts: {},
+  };
+}
+
+export function getDemoStore(): DemoStoreState {
+  if (globalThis.__matrusetu_demo_store__) {
+    return globalThis.__matrusetu_demo_store__;
+  }
+
+  try {
+    if (fs.existsSync(STORE_FILE_PATH)) {
+      const data = fs.readFileSync(STORE_FILE_PATH, "utf8");
+      const parsed = JSON.parse(data) as DemoStoreState;
+      if (parsed && Array.isArray(parsed.patients)) {
+        globalThis.__matrusetu_demo_store__ = parsed;
+        return parsed;
+      }
+    }
+  } catch {
+    // If reading fails, fall back to fresh
+  }
+
+  const fresh = initFreshStore();
+  globalThis.__matrusetu_demo_store__ = fresh;
+  saveDemoStore(fresh);
+  return fresh;
+}
+
+export function saveDemoStore(store: DemoStoreState): void {
+  globalThis.__matrusetu_demo_store__ = store;
+  try {
+    fs.writeFileSync(STORE_FILE_PATH, JSON.stringify(store, null, 2), "utf8");
+  } catch {
+    // Graceful fallback if fs is restricted
+  }
+}
+
+export function resetDemoStore(): void {
+  const fresh = initFreshStore();
+  saveDemoStore(fresh);
+  invalidateDemoCache();
+}
+
+// Backward compatibility proxy for any code accessing RAW_DEMO_PATIENTS
+export const RAW_DEMO_PATIENTS: DemoPatientRaw[] = new Proxy([] as DemoPatientRaw[], {
+  get(_target, prop) {
+    const store = getDemoStore();
+    return Reflect.get(store.patients, prop);
+  },
+  set(_target, prop, value) {
+    const store = getDemoStore();
+    const result = Reflect.set(store.patients, prop, value);
+    saveDemoStore(store);
+    return result;
+  },
+});
 
 export function invalidateDemoCache(): void {
-  cachedDemoSnapshot = null;
-  cachedPatientDetails.clear();
+  globalThis.__matrusetu_demo_snapshot_cache__ = null;
+  if (globalThis.__matrusetu_demo_detail_cache__) {
+    globalThis.__matrusetu_demo_detail_cache__.clear();
+  }
 }
 
 export function getDemoSnapshot(): { rows: PatientRow[]; today: Date; todayIso: string } {
   const today = todayInClinicTimezone();
   const todayIso = toISODate(today);
 
-  if (cachedDemoSnapshot && cachedDemoSnapshot.todayIso === todayIso) {
-    return cachedDemoSnapshot;
+  if (globalThis.__matrusetu_demo_snapshot_cache__ && globalThis.__matrusetu_demo_snapshot_cache__.todayIso === todayIso) {
+    return globalThis.__matrusetu_demo_snapshot_cache__;
   }
 
+  const store = getDemoStore();
   // Delivered or closed pregnancies are excluded from the active worklist & follow-up queues
-  const activePatients = RAW_DEMO_PATIENTS.filter((p) => !p.status || p.status === "active");
+  const activePatients = store.patients.filter((p) => !p.status || p.status === "active");
 
   const rows: PatientRow[] = activePatients.map((p) => {
     const lmpDate = p.lmp ? parseLocalDate(p.lmp) : new Date(today);
@@ -280,7 +359,8 @@ export function getDemoSnapshot(): { rows: PatientRow[]; today: Date; todayIso: 
     const lmpParsed = parseLocalDate(lmpIso);
     const ga = gestationalAge(lmpParsed, today);
 
-    const completedSet = DEMO_COMPLETED_EVENTS.get(p.id) ?? new Set<string>();
+    const completedList = store.completedEvents[p.id] ?? [];
+    const completedSet = new Set(completedList);
 
     const overdue: OpenEvent[] = (p.overdueEvents ?? []).filter((e, idx) => !completedSet.has(`ovd-${p.id}-${idx}`) && !completedSet.has(e.name)).map((e, idx) => ({
       id: `ovd-${p.id}-${idx}`,
@@ -301,22 +381,22 @@ export function getDemoSnapshot(): { rows: PatientRow[]; today: Date; todayIso: 
     }));
 
     let latestVisit: LatestVisit | null = null;
-    const recordedVisits = DEMO_VISITS_STATE.get(p.id);
-    if (recordedVisits && recordedVisits.length > 0) {
-      const top = recordedVisits[0];
+    const patientVisits = store.visits[p.id];
+    if (patientVisits && patientVisits.length > 0) {
+      const v = patientVisits[0];
       latestVisit = {
-        visitDate: top.visit_date,
-        bpSys: top.bp_sys,
-        bpDia: top.bp_dia,
-        hb: top.hb,
-        fhr: top.fhr,
-        nextVisitDate: top.next_visit_date || toISODate(new Date(today.getTime() + 14 * 86400000)),
+        visitDate: v.visit_date,
+        bpSys: v.bp_sys,
+        bpDia: v.bp_dia,
+        hb: v.hb,
+        fhr: v.fhr,
+        nextVisitDate: v.next_visit_date || toISODate(new Date(today.getTime() + 14 * 86400000)),
       };
     } else if (p.latestVisit) {
-      const vDate = new Date(today);
-      vDate.setDate(vDate.getDate() - p.latestVisit.daysAgo);
+      const d = new Date(today);
+      d.setDate(d.getDate() - p.latestVisit.daysAgo);
       latestVisit = {
-        visitDate: toISODate(vDate),
+        visitDate: toISODate(d),
         bpSys: p.latestVisit.bpSys,
         bpDia: p.latestVisit.bpDia,
         hb: p.latestVisit.hb,
@@ -327,7 +407,13 @@ export function getDemoSnapshot(): { rows: PatientRow[]; today: Date; todayIso: 
 
     const flags = sortFlags([
       ...(latestVisit ? vitalsFlags({ bpSys: latestVisit.bpSys, bpDia: latestVisit.bpDia, hb: latestVisit.hb, fhr: latestVisit.fhr }) : []),
-      ...patientFlags({ age: p.age ?? null, gravida: p.gravida ?? null, rhNegative: p.rhNegative, bloodGroup: p.bloodGroup ?? null, gaWeeks: ga?.weeks ?? null }),
+      ...patientFlags({
+        age: p.age ?? null,
+        gravida: p.gravida ?? null,
+        rhNegative: p.rhNegative,
+        bloodGroup: p.bloodGroup ?? null,
+        gaWeeks: ga?.weeks ?? null,
+      }),
     ]);
 
     return {
@@ -353,12 +439,15 @@ export function getDemoSnapshot(): { rows: PatientRow[]; today: Date; todayIso: 
     };
   });
 
-  cachedDemoSnapshot = { rows, today, todayIso };
-  return cachedDemoSnapshot;
+  globalThis.__matrusetu_demo_snapshot_cache__ = { rows, today, todayIso };
+  return globalThis.__matrusetu_demo_snapshot_cache__;
 }
 
 function computeDemoPatientDetail(id: string, today: Date, todayIso: string) {
-  const patientRaw = RAW_DEMO_PATIENTS.find((p) => p.id === id) || RAW_DEMO_PATIENTS[0];
+  const store = getDemoStore();
+  const patientRaw = store.patients.find((p) => p.id === id) || store.patients[0];
+  if (!patientRaw) return null;
+
   const lmpDate = patientRaw.lmp ? parseLocalDate(patientRaw.lmp) : new Date(today);
   if (!patientRaw.lmp) {
     lmpDate.setDate(lmpDate.getDate() - Math.round(patientRaw.weeksPregnant * 7));
@@ -375,7 +464,8 @@ function computeDemoPatientDetail(id: string, today: Date, todayIso: string) {
     return toISODate(d);
   };
 
-  const completedSet = DEMO_COMPLETED_EVENTS.get(patientRaw.id) ?? new Set<string>();
+  const completedList = store.completedEvents[patientRaw.id] ?? [];
+  const completedSet = new Set(completedList);
 
   const rawEvents = [
     { id: "ce-1", name: "Booking visit + Labs", kind: "test", due_from: addWeeks(6), due_to: addWeeks(10) },
@@ -405,7 +495,7 @@ function computeDemoPatientDetail(id: string, today: Date, todayIso: string) {
     };
   });
 
-  const customVisits = DEMO_VISITS_STATE.get(patientRaw.id);
+  const customVisits = store.visits[patientRaw.id];
   const visits = customVisits && customVisits.length > 0
     ? customVisits
     : [
@@ -427,13 +517,13 @@ function computeDemoPatientDetail(id: string, today: Date, todayIso: string) {
 
   const isDeliveredOrClosed = patientRaw.status === "delivered" || patientRaw.status === "closed";
 
-  const customContacts = DEMO_CONTACTS_STATE.get(patientRaw.id);
+  const customContacts = store.contacts[patientRaw.id];
   const contacts = customContacts && customContacts.length > 0
     ? customContacts
     : [
         {
           id: "c-1",
-          channel: "whatsapp",
+          channel: "whatsapp" as const,
           outcome: "reached" as ContactOutcome,
           notes: "Reminder sent for upcoming scan",
           created_at: new Date(today.getTime() - 2 * 86400000).toISOString(),
@@ -444,15 +534,15 @@ function computeDemoPatientDetail(id: string, today: Date, todayIso: string) {
     patient: {
       id: patientRaw.id,
       clinic_id: "00000000-0000-0000-0000-000000000002",
-      clinic_patient_no: patientRaw.clinicPatientNo,
+      clinic_patient_no: patientRaw.clinicPatientNo ?? null,
       name: patientRaw.name,
-      phone: patientRaw.phone,
+      phone: patientRaw.phone ?? null,
       alt_phone: patientRaw.altPhone || null,
-      address: patientRaw.address,
-      age: patientRaw.age,
-      gravida: patientRaw.gravida,
-      para: patientRaw.para,
-      blood_group: patientRaw.bloodGroup,
+      address: patientRaw.address ?? null,
+      age: patientRaw.age ?? null,
+      gravida: patientRaw.gravida ?? null,
+      para: patientRaw.para ?? null,
+      blood_group: patientRaw.bloodGroup ?? null,
       rh_negative: patientRaw.rhNegative,
       lmp: lmpIso,
       edd: eddIso,
@@ -464,7 +554,7 @@ function computeDemoPatientDetail(id: string, today: Date, todayIso: string) {
       birth_weight_kg: patientRaw.birthWeightKg || null,
       closed_at: patientRaw.closedAt || null,
       closed_by: patientRaw.closedBy || null,
-      created_at: "2026-05-01T10:00:00Z",
+      created_at: patientRaw.createdAt ?? "2026-05-01T10:00:00Z",
       updated_at: new Date().toISOString(),
     },
     careEvents: isDeliveredOrClosed
@@ -483,19 +573,23 @@ function computeDemoPatientDetail(id: string, today: Date, todayIso: string) {
   return result;
 }
 
-export type DemoPatientDetailResult = ReturnType<typeof computeDemoPatientDetail>;
+export type DemoPatientDetailResult = NonNullable<ReturnType<typeof computeDemoPatientDetail>>;
 
 export function getDemoPatientDetail(id: string): DemoPatientDetailResult {
   const today = todayInClinicTimezone();
   const todayIso = toISODate(today);
 
-  const cached = cachedPatientDetails.get(id);
+  if (!globalThis.__matrusetu_demo_detail_cache__) {
+    globalThis.__matrusetu_demo_detail_cache__ = new Map();
+  }
+
+  const cached = globalThis.__matrusetu_demo_detail_cache__.get(id);
   if (cached && cached.todayIso === todayIso) {
     return cached.data as DemoPatientDetailResult;
   }
 
-  const result = computeDemoPatientDetail(id, today, todayIso);
-  cachedPatientDetails.set(id, { todayIso, data: result });
+  const result = computeDemoPatientDetail(id, today, todayIso)!;
+  globalThis.__matrusetu_demo_detail_cache__.set(id, { todayIso, data: result });
   return result;
 }
 
@@ -509,7 +603,8 @@ export function closeDemoPregnancy(
   },
   doctorName = "Dr. Demo"
 ): { error: string | null } {
-  const patient = RAW_DEMO_PATIENTS.find((p) => p.id === patientId);
+  const store = getDemoStore();
+  const patient = store.patients.find((p) => p.id === patientId);
   if (!patient) {
     return { error: "Patient record not found." };
   }
@@ -529,6 +624,7 @@ export function closeDemoPregnancy(
   patient.dueEvents = [];
   patient.risk = "on_track";
 
+  saveDemoStore(store);
   invalidateDemoCache();
   return { error: null };
 }
@@ -538,12 +634,12 @@ export function logDemoBatchContacts(
   outcome: ContactOutcome,
   _notes?: string
 ): { error: string | null; loggedCount: number; skippedCount: number } {
-  void _notes;
+  const store = getDemoStore();
   let loggedCount = 0;
   let skippedCount = 0;
 
   for (const pid of patientIds) {
-    const patient = RAW_DEMO_PATIENTS.find((p) => p.id === pid);
+    const patient = store.patients.find((p) => p.id === pid);
     if (!patient || patient.status === "delivered" || patient.status === "closed") {
       skippedCount++;
       continue;
@@ -555,8 +651,19 @@ export function logDemoBatchContacts(
     } else if (outcome === "no_answer") {
       patient.noAnswerStreak += 1;
     }
+
+    const contacts = store.contacts[pid] ?? [];
+    contacts.unshift({
+      id: `c-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+      channel: "call",
+      outcome,
+      notes: _notes || "Logged via Batch Follow-up",
+      created_at: new Date().toISOString(),
+    });
+    store.contacts[pid] = contacts;
   }
 
+  saveDemoStore(store);
   invalidateDemoCache();
   return { error: null, loggedCount, skippedCount };
 }
@@ -570,13 +677,13 @@ export function getDemoContactStats(): { reached: number; total: number; success
 }
 
 export function getDemoDeliveriesThisMonthCount(): number {
+  const store = getDemoStore();
   const today = todayInClinicTimezone();
   const currentYearMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
-  return RAW_DEMO_PATIENTS.filter(
+  return store.patients.filter(
     (p) => (p.status === "delivered" || p.status === "closed") && p.deliveryDate?.startsWith(currentYearMonth)
   ).length;
 }
-
 
 export function addDemoPatient(data: {
   name: string;
@@ -592,12 +699,13 @@ export function addDemoPatient(data: {
   lmp: string;
   edd?: string | null;
 }): string {
+  const store = getDemoStore();
   const today = todayInClinicTimezone();
   const lmpDate = parseLocalDate(data.lmp);
   const ga = gestationalAge(lmpDate, today);
   const weeksPregnant = Math.max(0.1, ga.days / 7);
 
-  const cleanName = data.name.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-");
+  const cleanName = data.name.trim().toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-") || "patient";
   const id = `p-demo-${cleanName}-${Date.now().toString(36)}`;
 
   const eddDate = new Date(lmpDate);
@@ -606,15 +714,15 @@ export function addDemoPatient(data: {
 
   const newPatient: DemoPatientRaw = {
     id,
-    name: data.name,
+    name: data.name.trim(),
     clinicPatientNo: data.clinicPatientNo || `ANC-${Math.floor(200 + Math.random() * 800)}`,
-    phone: data.phone || "9800000000",
+    phone: data.phone || null,
     altPhone: data.altPhone || undefined,
-    address: data.address || "Local Ward, Pune",
+    address: data.address || null,
     age: data.age ?? 26,
     gravida: data.gravida ?? 1,
     para: data.para ?? 0,
-    bloodGroup: data.bloodGroup || "B+",
+    bloodGroup: data.bloodGroup || null,
     rhNegative: data.rhNegative,
     weeksPregnant: Number(weeksPregnant.toFixed(1)),
     lmp: data.lmp,
@@ -638,15 +746,19 @@ export function addDemoPatient(data: {
     ],
   };
 
-  RAW_DEMO_PATIENTS.unshift(newPatient);
+  store.patients.unshift(newPatient);
+  saveDemoStore(store);
   invalidateDemoCache();
   return id;
 }
 
 export function markDemoCareEventDone(careEventId: string, patientId: string): void {
-  const current = DEMO_COMPLETED_EVENTS.get(patientId) ?? new Set<string>();
-  current.add(careEventId);
-  DEMO_COMPLETED_EVENTS.set(patientId, current);
+  const store = getDemoStore();
+  const current = store.completedEvents[patientId] ?? [];
+  if (!current.includes(careEventId)) {
+    store.completedEvents[patientId] = [...current, careEventId];
+  }
+  saveDemoStore(store);
   invalidateDemoCache();
 }
 
@@ -664,7 +776,8 @@ export function recordDemoVisit(
     nextVisitDate: string | null;
   }
 ): void {
-  const patient = RAW_DEMO_PATIENTS.find((p) => p.id === patientId);
+  const store = getDemoStore();
+  const patient = store.patients.find((p) => p.id === patientId);
   if (patient) {
     patient.latestVisit = {
       daysAgo: 0,
@@ -674,7 +787,7 @@ export function recordDemoVisit(
       fhr: v.fhr ?? 144,
     };
   }
-  const visits = DEMO_VISITS_STATE.get(patientId) ?? [];
+  const visits = store.visits[patientId] ?? [];
   visits.unshift({
     id: `v-${Date.now().toString(36)}`,
     patient_id: patientId,
@@ -689,7 +802,8 @@ export function recordDemoVisit(
     next_visit_date: v.nextVisitDate,
     created_at: new Date().toISOString(),
   });
-  DEMO_VISITS_STATE.set(patientId, visits);
+  store.visits[patientId] = visits;
+  saveDemoStore(store);
   invalidateDemoCache();
 }
 
@@ -699,7 +813,8 @@ export function logDemoContact(
   outcome: ContactOutcome,
   notes?: string
 ): void {
-  const patient = RAW_DEMO_PATIENTS.find((p) => p.id === patientId);
+  const store = getDemoStore();
+  const patient = store.patients.find((p) => p.id === patientId);
   if (patient) {
     if (outcome === "reached" || outcome === "will_visit") {
       patient.noAnswerStreak = 0;
@@ -707,7 +822,7 @@ export function logDemoContact(
       patient.noAnswerStreak += 1;
     }
   }
-  const contacts = DEMO_CONTACTS_STATE.get(patientId) ?? [];
+  const contacts = store.contacts[patientId] ?? [];
   contacts.unshift({
     id: `c-${Date.now().toString(36)}`,
     channel,
@@ -715,25 +830,28 @@ export function logDemoContact(
     notes: notes || null,
     created_at: new Date().toISOString(),
   });
-  DEMO_CONTACTS_STATE.set(patientId, contacts);
+  store.contacts[patientId] = contacts;
+  saveDemoStore(store);
   invalidateDemoCache();
 }
-
 
 export function updateDemoPatient(
   patientId: string,
   updates: Partial<Omit<DemoPatientRaw, "id">>
 ): boolean {
-  const patient = RAW_DEMO_PATIENTS.find((p) => p.id === patientId);
+  const store = getDemoStore();
+  const patient = store.patients.find((p) => p.id === patientId);
   if (!patient) return false;
   Object.assign(patient, updates);
+  saveDemoStore(store);
   invalidateDemoCache();
   return true;
 }
 
 export function getDemoContacts(): { patientId: string; channel: string; outcome: string; createdAt: string; notes?: string }[] {
+  const store = getDemoStore();
   const all: { patientId: string; channel: string; outcome: string; createdAt: string; notes?: string }[] = [];
-  for (const [patientId, contacts] of DEMO_CONTACTS_STATE.entries()) {
+  for (const [patientId, contacts] of Object.entries(store.contacts)) {
     for (const c of contacts) {
       all.push({
         patientId,

@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Phone, WhatsappLogo, FilePdf, Baby } from "@phosphor-icons/react/dist/ssr";
+import { Phone, WhatsappLogo, FilePdf, Baby, FileText } from "@phosphor-icons/react/dist/ssr";
 import { createClient } from "@/lib/supabase/server";
 import { gestationalAge, formatGA, trimester } from "@/lib/pregnancy";
 import { todayInClinicTimezone, toISODate } from "@/lib/today";
@@ -14,7 +14,7 @@ import {
   type MessageTemplates,
   type ReminderReason,
 } from "@/lib/whatsapp";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isDemoActive } from "@/lib/auth";
 import { MarkDoneButton } from "@/components/MarkDoneButton";
 import { VisitForm } from "@/components/VisitForm";
 import { PregnancyTimeline } from "@/components/PregnancyTimeline";
@@ -113,7 +113,7 @@ interface RiskRecord {
 export default async function PatientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const cookieStore = await cookies();
-  const isDemo = cookieStore.get("matrusetu_demo")?.value === "1";
+  const isDemo = isDemoActive(cookieStore);
   const [me, supabase] = await Promise.all([getCurrentUser(), createClient()]);
 
   let patient: PatientRecord | null = null;
@@ -288,6 +288,14 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href={`/patients/${patient.id}/report`}
+              className="${buttonSecondary} gap-1.5"
+              title="Open official 1-Page Obstetric Clinical Dossier & Print Summary"
+            >
+              <FileText size={16} weight="bold" className="text-[var(--color-primary)]" aria-hidden />
+              <span>1-Page Report</span>
+            </Link>
             <EditPatientButton
               patient={{
                 id: patient.id,

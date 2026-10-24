@@ -20,7 +20,9 @@ export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   // Demo bypass: allow access without Supabase auth round-trip
-  const isDemo = request.cookies.get("matrusetu_demo")?.value === "1";
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const isUnconfigured = !url || url.includes("xxxxxxxx");
+  const isDemo = request.cookies.get("matrusetu_demo")?.value === "1" || isUnconfigured;
   if (isDemo) {
     return response;
   }

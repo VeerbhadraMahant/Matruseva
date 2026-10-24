@@ -88,7 +88,7 @@ export function QRScannerModal({ onClose }: { onClose: () => void }) {
 
     setTimeout(() => {
       onClose();
-      router.push(`/patients/${patientId}`);
+      router.push(`/patients/${patientId}/report`);
     }, 600);
   }, [isProcessing, onClose, router]);
 
@@ -156,7 +156,7 @@ export function QRScannerModal({ onClose }: { onClose: () => void }) {
     e.preventDefault();
     if (!manualInput.trim()) return;
     onClose();
-    router.push(`/patients/${manualInput.trim()}`);
+    router.push(`/patients/${manualInput.trim()}/report`);
   };
 
   return (

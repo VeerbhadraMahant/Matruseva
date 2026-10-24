@@ -7,6 +7,7 @@ import { todayInClinicTimezone, toISODate } from "@/lib/today";
 import { parseLocalDate, daysBetween } from "@/lib/format";
 import { patientFlags, vitalsFlags, sortFlags, type ClinicalFlag } from "@/lib/clinical";
 import type { CareEventStatus, FollowUpRisk } from "@/lib/supabase/enums";
+import { isDemoActive } from "@/lib/auth";
 import { getDemoSnapshot } from "@/lib/demo-data";
 
 export interface OpenEvent {
@@ -61,7 +62,7 @@ function eddIso(lmp: string): string {
  */
 export const getClinicSnapshot = cache(async () => {
   const cookieStore = await cookies();
-  const isDemo = cookieStore.get("matrusetu_demo")?.value === "1";
+  const isDemo = isDemoActive(cookieStore);
   if (isDemo) {
     return getDemoSnapshot();
   }

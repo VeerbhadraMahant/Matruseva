@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isDemoActive } from "@/lib/auth";
 import { logDemoBatchContacts, logDemoContact } from "@/lib/demo-data";
 import type { ContactOutcome } from "@/lib/supabase/enums";
 
@@ -32,7 +32,7 @@ export async function logContact(patientId: string, _prev: ActionResult, formDat
   }
 
   const cookieStore = await cookies();
-  const isDemo = cookieStore.get("matrusetu_demo")?.value === "1";
+  const isDemo = isDemoActive(cookieStore);
   if (isDemo) {
     logDemoContact(patientId, parsed.data.channel, parsed.data.outcome, parsed.data.reason);
     revalidatePath("/calls");
@@ -73,7 +73,7 @@ export async function quickLogContact(
   notes?: string
 ): Promise<ActionResult> {
   const cookieStore = await cookies();
-  const isDemo = cookieStore.get("matrusetu_demo")?.value === "1";
+  const isDemo = isDemoActive(cookieStore);
   if (isDemo) {
     logDemoContact(patientId, channel, outcome, notes);
     revalidatePath("/calls");
@@ -136,7 +136,7 @@ export async function logBatchContacts(
 
   const valid = parsed.data;
   const [cookieStore, me] = await Promise.all([cookies(), getCurrentUser()]);
-  const isDemo = cookieStore.get("matrusetu_demo")?.value === "1";
+  const isDemo = isDemoActive(cookieStore);
 
   if (isDemo) {
     const demoRes = logDemoBatchContacts(valid.patientIds, valid.outcome, valid.notes);
@@ -223,7 +223,7 @@ export async function dispatchBotReminder(
 ): Promise<{ error: string | null; reminderText?: string }> {
   const { buildAutomatedReminderMessage } = await import("@/lib/whatsappBot");
   const cookieStore = await cookies();
-  const isDemo = cookieStore.get("matrusetu_demo")?.value === "1";
+  const isDemo = isDemoActive(cookieStore);
 
   const reminderText = buildAutomatedReminderMessage({
     patientId,
@@ -279,7 +279,7 @@ export async function processBotReply(
   lang: import("@/lib/whatsapp").SupportedLanguage
 ): Promise<{ error: string | null; result?: import("@/lib/whatsappBot").BotProcessResult }> {
   const cookieStore = await cookies();
-  const isDemo = cookieStore.get("matrusetu_demo")?.value === "1";
+  const isDemo = isDemoActive(cookieStore);
 
   if (isDemo) {
     const { detectLanguage } = await import("@/lib/whatsappBot");
