@@ -94,10 +94,12 @@ export function QRScannerModal({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     let html5QrCode: unknown = null;
+    let isMounted = true;
 
     // Dynamically import html5-qrcode
     import("html5-qrcode")
       .then(({ Html5Qrcode }) => {
+        if (!isMounted || !document.getElementById("reader")) return;
         html5QrCode = new Html5Qrcode("reader");
         scannerRef.current = html5QrCode;
 
@@ -122,6 +124,7 @@ export function QRScannerModal({ onClose }: { onClose: () => void }) {
       });
 
     return () => {
+      isMounted = false;
       if (scannerRef.current) {
         try {
           (scannerRef.current as { stop?: () => Promise<void>; clear?: () => void }).stop?.()
