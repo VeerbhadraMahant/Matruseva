@@ -21,6 +21,7 @@ import { PregnancyTimeline } from "@/components/PregnancyTimeline";
 import { MotherHealthCardButton } from "@/components/MotherHealthCard";
 import { EmergencyReferralButton } from "@/components/EmergencyReferralModal";
 import { NutritionDietButton } from "@/components/NutritionDietModal";
+import { VoiceCounselorButton } from "@/components/VoiceCounselorModal";
 import { ClosePregnancyForm } from "@/components/ClosePregnancyForm";
 import { EditPatientButton } from "@/components/EditPatientModal";
 import { VitalsTrendCharts } from "@/components/VitalsTrendCharts";
@@ -296,6 +297,23 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
               <FileText size={16} weight="bold" className="text-[var(--color-primary)]" aria-hidden />
               <span>1-Page Report</span>
             </Link>
+            <VoiceCounselorButton
+              data={{
+                patientId: patient.id,
+                patientName: patient.name,
+                phone: patient.phone,
+                age: patient.age,
+                gaWeeks: ga?.weeks ?? null,
+                trimester: (ga ? trimester(ga) : 2) as 1 | 2 | 3,
+                bpSys: latest?.bp_sys ?? null,
+                bpDia: latest?.bp_dia ?? null,
+                hb: latest?.hb ?? null,
+                fhr: latest?.fhr ?? null,
+                riskFlags: flags.map((f) => f.label),
+                nextVisitDate: firstOverdue?.dueFrom ?? null,
+                clinicName: me.clinicName,
+              }}
+            />
             <EditPatientButton
               patient={{
                 id: patient.id,

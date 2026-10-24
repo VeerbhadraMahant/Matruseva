@@ -19,6 +19,7 @@ import {
   FirstAid,
 } from "@phosphor-icons/react";
 import type { PastObstetricHistory, FamilyPregnancyHistory, DiagnosticScanReport } from "@/lib/obstetricReportData";
+import { VoiceCounselorButton } from "@/components/VoiceCounselorModal";
 
 export interface ReportVisit {
   visitDate: string;
@@ -123,6 +124,25 @@ export function OnePagePatientReport({
         </div>
 
         <div className="flex items-center gap-2">
+          <VoiceCounselorButton
+            variant="subtle"
+            label="Audio Counseling"
+            data={{
+              patientId: patient.id,
+              patientName: patient.name,
+              phone: patient.phone,
+              age: patient.age,
+              gaWeeks: patient.gaWeeks,
+              trimester: (patient.trimester as 1 | 2 | 3) || 2,
+              bpSys: latestVisit?.bpSys ?? null,
+              bpDia: latestVisit?.bpDia ?? null,
+              hb: latestVisit?.hb ?? null,
+              fhr: latestVisit?.fhr ?? null,
+              riskFlags: riskFlags,
+              clinicName: patient.clinicName,
+            }}
+          />
+
           <button
             type="button"
             onClick={handleShare}
