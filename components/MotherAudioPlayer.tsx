@@ -6,7 +6,6 @@ import {
   SpeakerHigh,
   Play,
   Pause,
-  ArrowCounterClockwise,
   Heart,
   Baby,
   Pill,
