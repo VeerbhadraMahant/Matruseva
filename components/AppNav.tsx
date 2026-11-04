@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import {
   CalendarCheck,
@@ -15,10 +15,23 @@ import {
   QrCode,
   House,
   X,
+  SidebarSimple,
 } from "@phosphor-icons/react";
 import type { Icon } from "@phosphor-icons/react";
 import { logout } from "@/app/(auth)/actions";
 import { openCommandPalette } from "@/components/CommandPalette";
+import { useSidebar } from "@/components/AppShell";
+
+const noopSubscribe = () => () => {};
+/** "⌘K" on Apple platforms; server and first client render use "Ctrl K" (no hydration mismatch). */
+function useModKeyLabel() {
+  const apple = useSyncExternalStore(
+    noopSubscribe,
+    () => /Mac|iPhone|iPad|iPod/i.test(navigator.platform || navigator.userAgent),
+    () => false,
+  );
+  return { search: apple ? "⌘K" : "Ctrl K", toggle: apple ? "⌘B" : "Ctrl+B" };
+}
 
 const NAV_ITEMS = [
   { href: "/today", label: "Today", icon: CalendarCheck },
@@ -61,6 +74,9 @@ function MenuBody({
   onNavigate,
   firstLinkRef,
   hideSearch,
+  collapsed = false,
+  onToggleCollapse,
+  callBadge,
 }: {
   pathname: string;
   items: { href: string; label: string; icon: Icon }[];
@@ -71,13 +87,17 @@ function MenuBody({
   onNavigate?: () => void;
   firstLinkRef?: React.Ref<HTMLAnchorElement>;
   hideSearch?: boolean;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
+  callBadge?: React.ReactNode;
 }) {
+  const keys = useModKeyLabel();
   return (
     <>
-        <div className="flex items-center justify-between gap-3 px-5 pb-4 pt-5">
+        <div className={`flex items-center gap-3 pb-4 pt-5 ${collapsed ? "justify-center" : "justify-between px-5"}`}>
           <div className="flex min-w-0 items-center gap-3">
             <BrandMark />
-            <div className="min-w-0">
+            <div className={`min-w-0 ${collapsed ? "hidden" : ""}`}>
               <p className="text-[16px] font-semibold tracking-tight text-[var(--color-foreground)]">MatruSetu</p>
               <p className="truncate text-[12px] text-[var(--color-charcoal)]">{clinicName}</p>
             </div>
@@ -94,7 +114,18 @@ function MenuBody({
           )}
         </div>
 
-        {!hideSearch && (
+        {collapsed && (
+          <button
+            type="button"
+            onClick={() => openCommandPalette()}
+            aria-label={`Find patient (${keys.search})`}
+            title={`Find patient (${keys.search})`}
+            className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] text-[var(--color-charcoal)] transition-colors hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
+          >
+            <MagnifyingGlass size={18} aria-hidden />
+          </button>
+        )}
+        {!hideSearch && !collapsed && (
         <button
           type="button"
           onClick={() => {
@@ -105,11 +136,11 @@ function MenuBody({
         >
           <MagnifyingGlass size={16} aria-hidden />
           <span className="flex-1">Find patient…</span>
-          <kbd className="rounded-md bg-[var(--color-background)] px-1.5 py-0.5 text-[11px] font-medium">Ctrl K</kbd>
+          <kbd className="rounded-md bg-[var(--color-background)] px-1.5 py-0.5 text-[11px] font-medium">{keys.search}</kbd>
         </button>
         )}
 
-        <nav className="mt-5 flex flex-1 flex-col gap-1 overflow-y-auto px-3" aria-label="Primary">
+        <nav className={`mt-5 flex flex-1 flex-col gap-1 overflow-y-auto ${collapsed ? "px-2" : "px-3"}`} aria-label="Primary">
           {items.map(({ href, label, icon: Icon }, i) => {
             const active = isActive(pathname, href);
             return (
@@ -120,27 +151,48 @@ function MenuBody({
                 prefetch={true}
                 onClick={onNavigate}
                 aria-current={active ? "page" : undefined}
-                className={`flex min-h-12 items-center gap-3 rounded-xl px-3 text-[15px] transition-colors duration-150 ${
+                title={collapsed ? label : undefined}
+                className={`group/link relative flex min-h-12 items-center rounded-xl text-[15px] transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)] ${
+                  collapsed ? "justify-center" : "gap-3 px-3"
+                } ${
                   active
                     ? "bg-[var(--color-primary)] font-semibold text-white shadow-[0_8px_18px_-10px_rgb(62_42_92/0.7)]"
                     : "text-[var(--color-charcoal)] hover:bg-[var(--color-primary-surface)] hover:text-[var(--color-primary)]"
                 }`}
               >
                 <Icon size={20} weight={active ? "fill" : "regular"} aria-hidden />
-                {label}
+                <span className={collapsed ? "sr-only" : "truncate"}>{label}</span>
+                {href === "/calls" && callBadge}
               </Link>
             );
           })}
         </nav>
 
-        <div className="m-3 flex items-center gap-3 rounded-2xl bg-[var(--color-surface-1)] p-3">
+        {onToggleCollapse && (
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            aria-expanded={!collapsed}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={`${collapsed ? "Expand" : "Collapse"} sidebar (${keys.toggle})`}
+            className={`mx-3 mt-2 flex min-h-10 items-center rounded-xl text-[13px] text-[var(--color-charcoal)] transition-colors hover:bg-[var(--color-primary-surface)] hover:text-[var(--color-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)] ${
+              collapsed ? "justify-center" : "gap-3 px-3"
+            }`}
+          >
+            <SidebarSimple size={20} weight={collapsed ? "fill" : "regular"} aria-hidden />
+            {!collapsed && <span>Collapse</span>}
+          </button>
+        )}
+
+        <div className={`m-3 flex items-center rounded-2xl bg-[var(--color-surface-1)] ${collapsed ? "flex-col gap-2 p-2" : "gap-3 p-3"}`}>
           <span
             aria-hidden
+            title={collapsed ? userName : undefined}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-surface)] text-[12px] font-semibold text-[var(--color-primary)]"
           >
             {initials(userName)}
           </span>
-          <div className="min-w-0 flex-1">
+          <div className={`min-w-0 flex-1 ${collapsed ? "hidden" : ""}`}>
             <p className="truncate text-[13px] font-medium text-[var(--color-foreground)]">{userName}</p>
             <p className="text-[12px] text-[var(--color-charcoal)]">{isDoctor ? "Doctor" : "Staff"}</p>
           </div>
@@ -163,12 +215,17 @@ export function AppTopBar({
   clinicName,
   userName,
   isDoctor,
+  callBadge,
 }: {
   clinicName: string;
   userName: string;
   isDoctor: boolean;
+  /** Server-rendered (Suspense-wrapped) overdue badge for the Call queue link. */
+  callBadge?: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const { collapsed, toggle } = useSidebar();
+  const keys = useModKeyLabel();
   const [open, setOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const firstLinkRef = useRef<HTMLAnchorElement>(null);
@@ -226,7 +283,7 @@ export function AppTopBar({
           >
             <MagnifyingGlass size={16} aria-hidden />
             <span className="flex-1">Find patient…</span>
-            <kbd className="rounded-md bg-[var(--color-surface-2)] px-1.5 py-0.5 text-[11px] font-medium">Ctrl K</kbd>
+            <kbd className="rounded-md bg-[var(--color-surface-2)] px-1.5 py-0.5 text-[11px] font-medium">{keys.search}</kbd>
           </button>
           <button
             type="button"
@@ -273,13 +330,15 @@ export function AppTopBar({
           onClose={close}
           onNavigate={() => setOpen(false)}
           firstLinkRef={firstLinkRef}
+          callBadge={callBadge}
         />
       </aside>
 
       {/* Permanent sidebar on desktop */}
       <aside
         aria-label="Main menu"
-        className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-[var(--color-border)] bg-[var(--color-background)] print:hidden md:flex"
+        data-collapsed={collapsed}
+        className="app-sidebar group/sb fixed inset-y-0 left-0 z-30 hidden flex-col overflow-x-hidden border-r border-[var(--color-border)] bg-[var(--color-background)] print:hidden md:flex"
       >
         <MenuBody
           pathname={pathname}
@@ -288,6 +347,9 @@ export function AppTopBar({
           userName={userName}
           isDoctor={isDoctor}
           hideSearch
+          collapsed={collapsed}
+          onToggleCollapse={toggle}
+          callBadge={callBadge}
         />
       </aside>
     </>

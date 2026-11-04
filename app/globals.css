@@ -236,3 +236,17 @@ h1, h2, h3, h4 {
   content-visibility: auto;
   contain-intrinsic-size: auto 96px;
 }
+
+/* Desktop sidebar width follows the AppShell data attribute (no layout shift on first paint). */
+.app-shell { --sb-w: 16rem; }
+.app-shell[data-sidebar="collapsed"] { --sb-w: 4rem; }
+.app-sidebar { width: var(--sb-w); transition: width 200ms ease; }
+@media (min-width: 768px) {
+  .app-shell { padding-left: var(--sb-w); transition: padding-left 200ms ease; }
+}
+@media print {
+  .app-shell { padding-left: 0 !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-shell, .app-sidebar { transition: none; }
+}
