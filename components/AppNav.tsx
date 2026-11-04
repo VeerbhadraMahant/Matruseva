@@ -16,6 +16,7 @@ import {
   House,
   X,
 } from "@phosphor-icons/react";
+import type { Icon } from "@phosphor-icons/react";
 import { logout } from "@/app/(auth)/actions";
 import { openCommandPalette } from "@/components/CommandPalette";
 
@@ -48,6 +49,114 @@ function BrandMark() {
 function initials(name: string): string {
   const parts = name.replace(/^dr\.?\s+/i, "").trim().split(/\s+/);
   return ((parts[0]?.[0] ?? "") + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase();
+}
+
+function MenuBody({
+  pathname,
+  items,
+  clinicName,
+  userName,
+  isDoctor,
+  onClose,
+  onNavigate,
+  firstLinkRef,
+  hideSearch,
+}: {
+  pathname: string;
+  items: { href: string; label: string; icon: Icon }[];
+  clinicName: string;
+  userName: string;
+  isDoctor: boolean;
+  onClose?: () => void;
+  onNavigate?: () => void;
+  firstLinkRef?: React.Ref<HTMLAnchorElement>;
+  hideSearch?: boolean;
+}) {
+  return (
+    <>
+        <div className="flex items-center justify-between gap-3 px-5 pb-4 pt-5">
+          <div className="flex min-w-0 items-center gap-3">
+            <BrandMark />
+            <div className="min-w-0">
+              <p className="text-[16px] font-semibold tracking-tight text-[var(--color-foreground)]">MatruSetu</p>
+              <p className="truncate text-[12px] text-[var(--color-charcoal)]">{clinicName}</p>
+            </div>
+          </div>
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close menu"
+              className="flex h-10 w-10 items-center justify-center rounded-xl text-[var(--color-charcoal)] hover:bg-[var(--color-primary-surface)] hover:text-[var(--color-primary)]"
+            >
+              <X size={20} aria-hidden />
+            </button>
+          )}
+        </div>
+
+        {!hideSearch && (
+        <button
+          type="button"
+          onClick={() => {
+            onNavigate?.();
+            openCommandPalette();
+          }}
+          className="mx-4 flex min-h-10 items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 text-left text-[13px] text-[var(--color-charcoal)] transition-colors hover:border-[var(--color-primary)]"
+        >
+          <MagnifyingGlass size={16} aria-hidden />
+          <span className="flex-1">Find patient…</span>
+          <kbd className="rounded-md bg-[var(--color-background)] px-1.5 py-0.5 text-[11px] font-medium">Ctrl K</kbd>
+        </button>
+        )}
+
+        <nav className="mt-5 flex flex-1 flex-col gap-1 overflow-y-auto px-3" aria-label="Primary">
+          {items.map(({ href, label, icon: Icon }, i) => {
+            const active = isActive(pathname, href);
+            return (
+              <Link
+                key={href}
+                ref={i === 0 ? firstLinkRef : undefined}
+                href={href}
+                prefetch={true}
+                onClick={onNavigate}
+                aria-current={active ? "page" : undefined}
+                className={`flex min-h-12 items-center gap-3 rounded-xl px-3 text-[15px] transition-colors duration-150 ${
+                  active
+                    ? "bg-[var(--color-primary)] font-semibold text-white shadow-[0_8px_18px_-10px_rgb(62_42_92/0.7)]"
+                    : "text-[var(--color-charcoal)] hover:bg-[var(--color-primary-surface)] hover:text-[var(--color-primary)]"
+                }`}
+              >
+                <Icon size={20} weight={active ? "fill" : "regular"} aria-hidden />
+                {label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="m-3 flex items-center gap-3 rounded-2xl bg-[var(--color-surface-1)] p-3">
+          <span
+            aria-hidden
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-surface)] text-[12px] font-semibold text-[var(--color-primary)]"
+          >
+            {initials(userName)}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[13px] font-medium text-[var(--color-foreground)]">{userName}</p>
+            <p className="text-[12px] text-[var(--color-charcoal)]">{isDoctor ? "Doctor" : "Staff"}</p>
+          </div>
+          <form action={logout}>
+            <button
+              type="submit"
+              className="flex min-h-9 min-w-9 items-center justify-center rounded-lg text-[var(--color-charcoal)] transition-colors hover:bg-[var(--color-primary-surface)] hover:text-[var(--color-primary)]"
+              aria-label="Sign out"
+              title="Sign out"
+            >
+              <SignOut size={18} aria-hidden />
+            </button>
+          </form>
+        </div>
+    </>
+  );
 }
 
 export function AppTopBar({
@@ -88,8 +197,8 @@ export function AppTopBar({
 
   return (
     <>
-      <header className="pc-glass sticky top-0 z-30 flex h-16 items-center justify-between gap-3 !rounded-none !border-x-0 !border-t-0 px-3 md:px-6">
-        <div className="flex min-w-0 items-center gap-3">
+      <header className="pc-glass sticky top-0 z-30 flex h-16 items-center justify-between gap-3 !rounded-none !border-x-0 !border-t-0 px-3 md:justify-end md:px-6">
+        <div className="flex min-w-0 items-center gap-3 md:hidden">
           <button
             ref={menuButtonRef}
             type="button"
@@ -113,7 +222,7 @@ export function AppTopBar({
           <button
             type="button"
             onClick={openCommandPalette}
-            className="hidden min-h-10 w-64 items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] px-3 text-left text-[13px] text-[var(--color-charcoal)] transition-colors hover:border-[var(--color-primary)] md:flex"
+            className="hidden min-h-10 w-72 items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] px-3 text-left text-[13px] text-[var(--color-charcoal)] transition-colors hover:border-[var(--color-primary)] md:flex"
           >
             <MagnifyingGlass size={16} aria-hidden />
             <span className="flex-1">Find patient…</span>
@@ -141,7 +250,7 @@ export function AppTopBar({
       <div
         aria-hidden
         onClick={close}
-        className={`fixed inset-0 z-40 bg-[rgb(34_27_43/0.32)] backdrop-blur-[2px] transition-opacity duration-300 ${
+        className={`fixed inset-0 z-40 md:hidden bg-[rgb(34_27_43/0.32)] backdrop-blur-[2px] transition-opacity duration-300 ${
           open ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
       />
@@ -151,87 +260,35 @@ export function AppTopBar({
         aria-modal="true"
         aria-label="Main menu"
         inert={!open}
-        className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col bg-[var(--color-background)] shadow-[0_24px_60px_-12px_rgb(62_42_92/0.45)] transition-transform duration-300 ease-out ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col md:hidden bg-[var(--color-background)] shadow-[0_24px_60px_-12px_rgb(62_42_92/0.45)] transition-transform duration-300 ease-out ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex items-center justify-between gap-3 px-5 pb-4 pt-5">
-          <div className="flex min-w-0 items-center gap-3">
-            <BrandMark />
-            <div className="min-w-0">
-              <p className="text-[16px] font-semibold tracking-tight text-[var(--color-foreground)]">MatruSetu</p>
-              <p className="truncate text-[12px] text-[var(--color-charcoal)]">{clinicName}</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={close}
-            aria-label="Close menu"
-            className="flex h-10 w-10 items-center justify-center rounded-xl text-[var(--color-charcoal)] hover:bg-[var(--color-primary-surface)] hover:text-[var(--color-primary)]"
-          >
-            <X size={20} aria-hidden />
-          </button>
-        </div>
+        <MenuBody
+          pathname={pathname}
+          items={items}
+          clinicName={clinicName}
+          userName={userName}
+          isDoctor={isDoctor}
+          onClose={close}
+          onNavigate={() => setOpen(false)}
+          firstLinkRef={firstLinkRef}
+        />
+      </aside>
 
-        <button
-          type="button"
-          onClick={() => {
-            setOpen(false);
-            openCommandPalette();
-          }}
-          className="mx-4 flex min-h-10 items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 text-left text-[13px] text-[var(--color-charcoal)] transition-colors hover:border-[var(--color-primary)]"
-        >
-          <MagnifyingGlass size={16} aria-hidden />
-          <span className="flex-1">Find patient…</span>
-          <kbd className="rounded-md bg-[var(--color-background)] px-1.5 py-0.5 text-[11px] font-medium">Ctrl K</kbd>
-        </button>
-
-        <nav className="mt-5 flex flex-1 flex-col gap-1 overflow-y-auto px-3" aria-label="Primary">
-          {items.map(({ href, label, icon: Icon }, i) => {
-            const active = isActive(pathname, href);
-            return (
-              <Link
-                key={href}
-                ref={i === 0 ? firstLinkRef : undefined}
-                href={href}
-                prefetch={true}
-                onClick={() => setOpen(false)}
-                aria-current={active ? "page" : undefined}
-                className={`flex min-h-12 items-center gap-3 rounded-xl px-3 text-[15px] transition-colors duration-150 ${
-                  active
-                    ? "bg-[var(--color-primary)] font-semibold text-white shadow-[0_8px_18px_-10px_rgb(62_42_92/0.7)]"
-                    : "text-[var(--color-charcoal)] hover:bg-[var(--color-primary-surface)] hover:text-[var(--color-primary)]"
-                }`}
-              >
-                <Icon size={20} weight={active ? "fill" : "regular"} aria-hidden />
-                {label}
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="m-3 flex items-center gap-3 rounded-2xl bg-[var(--color-surface-1)] p-3">
-          <span
-            aria-hidden
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-surface)] text-[12px] font-semibold text-[var(--color-primary)]"
-          >
-            {initials(userName)}
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-[13px] font-medium text-[var(--color-foreground)]">{userName}</p>
-            <p className="text-[12px] text-[var(--color-charcoal)]">{isDoctor ? "Doctor" : "Staff"}</p>
-          </div>
-          <form action={logout}>
-            <button
-              type="submit"
-              className="flex min-h-9 min-w-9 items-center justify-center rounded-lg text-[var(--color-charcoal)] transition-colors hover:bg-[var(--color-primary-surface)] hover:text-[var(--color-primary)]"
-              aria-label="Sign out"
-              title="Sign out"
-            >
-              <SignOut size={18} aria-hidden />
-            </button>
-          </form>
-        </div>
+      {/* Permanent sidebar on desktop */}
+      <aside
+        aria-label="Main menu"
+        className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-[var(--color-border)] bg-[var(--color-background)] print:hidden md:flex"
+      >
+        <MenuBody
+          pathname={pathname}
+          items={items}
+          clinicName={clinicName}
+          userName={userName}
+          isDoctor={isDoctor}
+          hideSearch
+        />
       </aside>
     </>
   );

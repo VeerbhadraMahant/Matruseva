@@ -62,25 +62,25 @@ const FEATURES = [
 
 const SHOWCASE = [
   {
-    src: "/marketing/screenshot-today.jpg",
+    src: "/marketing/screenshot-today-720.webp",
     title: "Today",
     caption:
       "A calm view of the clinic's day — patients due today, a week strip, and a worklist of everyone who needs follow-up, ready when staff walk in.",
   },
   {
-    src: "/marketing/screenshot-calls.jpg",
+    src: "/marketing/screenshot-calls-720.webp",
     title: "Call queue",
     caption:
       "Overdue and at-risk patients in one queue, with a WhatsApp and phone link for each — staff-initiated outreach, no automation required.",
   },
   {
-    src: "/marketing/screenshot-patient-detail.jpg",
+    src: "/marketing/screenshot-patient-detail-720.webp",
     title: "Patient timeline",
     caption:
       "GA, EDD, and risk alerts up top, with a visual ANC timeline below showing exactly which scans, tests, and visits are done, due, or overdue.",
   },
   {
-    src: "/marketing/screenshot-patients.jpg",
+    src: "/marketing/screenshot-patients-720.webp",
     title: "Patient list",
     caption:
       "Every patient in the clinic, searchable and filterable — find the record you need without flipping through a register.",
@@ -157,7 +157,7 @@ export default function LandingPage() {
           <Reveal delay={150} className="mx-auto mt-16 max-w-4xl">
             <BrowserFrame>
               <Image
-                src="/marketing/screenshot-today.jpg"
+                src="/marketing/screenshot-today-958.webp"
                 alt="MatruSetu Today dashboard showing patients due today, a week strip and the follow-up worklist"
                 width={958}
                 height={958}
@@ -228,9 +228,9 @@ export default function LandingPage() {
                     <Image
                       src={item.src}
                       alt={item.caption}
-                      width={958}
-                      height={958}
-                      loading={i < 2 ? "eager" : "lazy"}
+                      width={720}
+                      height={720}
+                      loading="lazy"
                       className="w-full"
                     />
                   </BrowserFrame>

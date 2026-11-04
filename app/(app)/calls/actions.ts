@@ -18,6 +18,14 @@ export interface BatchContactResult {
   skippedCount: number;
 }
 
+/** Every page that renders contact-log derived data for a patient. */
+function revalidateContactViews(patientId: string) {
+  revalidatePath("/calls");
+  revalidatePath("/today");
+  revalidatePath("/patients");
+  revalidatePath(`/patients/${patientId}`);
+}
+
 const contactSchema = z.object({
   channel: z.enum(["call", "whatsapp"]),
   outcome: z.enum(["reached", "no_answer", "wrong_number", "will_visit", "refused"]),
@@ -35,10 +43,7 @@ export async function logContact(patientId: string, _prev: ActionResult, formDat
   const isDemo = isDemoActive(cookieStore);
   if (isDemo) {
     logDemoContact(patientId, parsed.data.channel, parsed.data.outcome, parsed.data.reason);
-    revalidatePath("/calls");
-    revalidatePath("/today");
-    revalidatePath("/patients");
-    revalidatePath(`/patients/${patientId}`);
+    revalidateContactViews(patientId);
     return { error: null };
   }
 
@@ -56,10 +61,7 @@ export async function logContact(patientId: string, _prev: ActionResult, formDat
 
     if (error) return { error: error.message };
 
-    revalidatePath("/calls");
-    revalidatePath("/today");
-    revalidatePath("/patients");
-    revalidatePath(`/patients/${patientId}`);
+    revalidateContactViews(patientId);
     return { error: null };
   } catch (err: unknown) {
     return { error: err instanceof Error ? err.message : "Database connection failed" };
@@ -76,10 +78,7 @@ export async function quickLogContact(
   const isDemo = isDemoActive(cookieStore);
   if (isDemo) {
     logDemoContact(patientId, channel, outcome, notes);
-    revalidatePath("/calls");
-    revalidatePath("/today");
-    revalidatePath("/patients");
-    revalidatePath(`/patients/${patientId}`);
+    revalidateContactViews(patientId);
     return { error: null };
   }
 
@@ -97,10 +96,7 @@ export async function quickLogContact(
 
     if (error) return { error: error.message };
 
-    revalidatePath("/calls");
-    revalidatePath("/today");
-    revalidatePath("/patients");
-    revalidatePath(`/patients/${patientId}`);
+    revalidateContactViews(patientId);
     return { error: null };
   } catch (err: unknown) {
     return { error: err instanceof Error ? err.message : "Database connection failed" };

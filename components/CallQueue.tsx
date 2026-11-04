@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useRef, useTransition } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import {
   Phone,
   WhatsappLogo,
@@ -18,7 +19,6 @@ import {
 import { Tag, SEVERITY_TONE, type Tone, buttonPrimary, buttonSecondary, card, chipClass, chipCountClass } from "@/components/ui";
 import { ContactLogForm } from "@/components/ContactLogForm";
 import { quickLogContact, logBatchContacts } from "@/app/(app)/calls/actions";
-import { WhatsAppBotSimulator } from "@/components/WhatsAppBotSimulator";
 import type { ClinicalFlag } from "@/lib/clinical";
 import type { ContactOutcome } from "@/lib/supabase/enums";
 import {
@@ -26,6 +26,12 @@ import {
   type ReminderReason,
   type SupportedLanguage,
 } from "@/lib/whatsapp";
+
+// Rarely used modal: loaded only when a simulator is opened.
+const WhatsAppBotSimulator = dynamic(
+  () => import("@/components/WhatsAppBotSimulator").then((m) => m.WhatsAppBotSimulator),
+  { ssr: false },
+);
 
 export interface CallRow {
   id: string;

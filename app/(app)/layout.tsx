@@ -7,7 +7,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const me = await getCurrentUser();
 
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className="flex min-h-dvh flex-col md:pl-64 print:pl-0">
       <AppTopBar clinicName={me.clinicName} userName={me.fullName} isDoctor={me.role === "doctor"} />
       <main className="min-w-0 flex-1 pb-20 md:pb-0">{children}</main>
       <AppBottomNav />

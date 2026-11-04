@@ -195,12 +195,11 @@ h1, h2, h3, h4 {
 }
 
 @keyframes pc-shimmer {
-  from { background-position: 150% 0; }
-  to { background-position: -50% 0; }
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
 }
 .pc-skeleton {
-  background: linear-gradient(90deg, #efe7ef 0%, #f8f3f6 50%, #efe7ef 100%);
-  background-size: 200% 100%;
+  background: #f3ecf1;
   animation: pc-shimmer 1.4s ease-in-out infinite;
   border-radius: 10px;
 }

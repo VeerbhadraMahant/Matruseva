@@ -36,19 +36,20 @@ export default async function TodayPage() {
   } else {
     const supabase = await createClient();
     const startOfMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
-    const [{ count: delivCount }, { data: contactRows }] = await Promise.all([
+    const [{ count: delivCount }, { count: attemptedCount }, { count: reachedCount }] = await Promise.all([
       supabase
         .from("patients")
         .select("*", { count: "exact", head: true })
         .gte("delivery_date", startOfMonth),
+      supabase.from("contact_log").select("*", { count: "exact", head: true }),
       supabase
         .from("contact_log")
-        .select("outcome")
-        .limit(2000),
+        .select("*", { count: "exact", head: true })
+        .in("outcome", ["reached", "will_visit"]),
     ]);
     deliveriesThisMonth = delivCount ?? 0;
-    contactsAttempted = (contactRows ?? []).length;
-    contactsReached = (contactRows ?? []).filter((c) => c.outcome === "reached" || c.outcome === "will_visit").length;
+    contactsAttempted = attemptedCount ?? 0;
+    contactsReached = reachedCount ?? 0;
     contactSuccessRate = contactsAttempted > 0 ? Math.round((contactsReached / contactsAttempted) * 100) : 0;
   }
 

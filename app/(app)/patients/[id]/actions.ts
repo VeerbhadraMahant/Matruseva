@@ -21,15 +21,20 @@ export interface ActionResult {
   error: string | null;
 }
 
+/** Every page that renders per-patient schedule/visit/risk data. */
+function revalidatePatientViews(patientId: string) {
+  revalidatePath(`/patients/${patientId}`);
+  revalidatePath("/patients");
+  revalidatePath("/today");
+  revalidatePath("/calls");
+}
+
 export async function markCareEventDone(careEventId: string, patientId: string): Promise<ActionResult> {
   const cookieStore = await cookies();
   const isDemo = isDemoActive(cookieStore);
   if (isDemo) {
     markDemoCareEventDone(careEventId, patientId);
-    revalidatePath(`/patients/${patientId}`);
-    revalidatePath("/patients");
-    revalidatePath("/today");
-    revalidatePath("/calls");
+    revalidatePatientViews(patientId);
     return { error: null };
   }
 
@@ -42,10 +47,7 @@ export async function markCareEventDone(careEventId: string, patientId: string):
 
     if (error) return { error: error.message };
 
-    revalidatePath(`/patients/${patientId}`);
-    revalidatePath("/patients");
-    revalidatePath("/today");
-    revalidatePath("/calls");
+    revalidatePatientViews(patientId);
     return { error: null };
   } catch (err: unknown) {
     return { error: err instanceof Error ? err.message : "Database connection failed" };
@@ -91,10 +93,7 @@ export async function recordVisit(
       notes: v.notes || null,
       nextVisitDate: v.nextVisitDate || null,
     });
-    revalidatePath(`/patients/${patientId}`);
-    revalidatePath("/patients");
-    revalidatePath("/today");
-    revalidatePath("/calls");
+    revalidatePatientViews(patientId);
     return { error: null };
   }
 
@@ -118,10 +117,7 @@ export async function recordVisit(
 
     if (error) return { error: error.message };
 
-    revalidatePath(`/patients/${patientId}`);
-    revalidatePath("/patients");
-    revalidatePath("/today");
-    revalidatePath("/calls");
+    revalidatePatientViews(patientId);
     return { error: null };
   } catch (err: unknown) {
     return { error: err instanceof Error ? err.message : "Database connection failed" };
@@ -164,10 +160,7 @@ export async function closePregnancy(
     const demoRes = closeDemoPregnancy(patientId, data, me.fullName);
     if (demoRes.error) return demoRes;
 
-    revalidatePath(`/patients/${patientId}`);
-    revalidatePath("/today");
-    revalidatePath("/calls");
-    revalidatePath("/patients");
+    revalidatePatientViews(patientId);
     return { error: null };
   }
 
@@ -225,10 +218,7 @@ export async function closePregnancy(
     .is("completed_at", null)
     .is("skipped_reason", null);
 
-  revalidatePath(`/patients/${patientId}`);
-  revalidatePath("/today");
-  revalidatePath("/calls");
-  revalidatePath("/patients");
+  revalidatePatientViews(patientId);
   return { error: null };
 }
 
@@ -285,10 +275,7 @@ export async function updatePatient(
       lmp: input.lmp || null,
       edd: finalEdd,
     });
-    revalidatePath(`/patients/${patientId}`);
-    revalidatePath("/patients");
-    revalidatePath("/today");
-    revalidatePath("/calls");
+    revalidatePatientViews(patientId);
     return { error: null };
   }
 
@@ -427,9 +414,6 @@ export async function updatePatient(
     }
   }
 
-  revalidatePath(`/patients/${patientId}`);
-  revalidatePath("/patients");
-  revalidatePath("/today");
-  revalidatePath("/calls");
+  revalidatePatientViews(patientId);
   return { error: null };
 }
