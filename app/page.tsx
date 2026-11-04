@@ -11,6 +11,7 @@ import {
   ShieldWarning,
   UsersThree,
 } from "@phosphor-icons/react/dist/ssr";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Reveal } from "@/components/marketing/Reveal";
 import {
   HeroBackdrop,
@@ -103,6 +104,7 @@ export default function LandingPage() {
             </span>
           </div>
           <nav className="flex items-center gap-2 sm:gap-3">
+            <LanguageSwitcher variant="pill" placement="bottom" align="end" />
             <Link
               href="/login"
               className="rounded-full px-4 py-2 text-[14px] font-medium text-[#221b2b] transition-colors hover:bg-[#221b2b]/5"

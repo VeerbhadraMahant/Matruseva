@@ -57,9 +57,9 @@
 @theme inline {
   --color-background: var(--color-background);
   --color-foreground: var(--color-foreground);
-  --font-sans: var(--font-body);
+  --font-sans: var(--font-body), var(--font-devanagari), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-mono-face);
-  --font-heading: var(--font-body);
+  --font-heading: var(--font-body), var(--font-devanagari), ui-sans-serif, system-ui, sans-serif;
 }
 
 body {
@@ -69,7 +69,7 @@ body {
     linear-gradient(170deg, var(--color-pc-canvas) 0%, var(--color-pc-canvas-to) 100%);
   background-attachment: fixed;
   color: var(--color-foreground);
-  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-body), var(--font-devanagari), ui-sans-serif, system-ui, sans-serif;
   font-size: 14px;
   line-height: 1.5;
 }
@@ -95,10 +95,24 @@ body::before {
 }
 
 h1, h2, h3, h4 {
-  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-body), var(--font-devanagari), ui-sans-serif, system-ui, sans-serif;
   font-weight: 600;
   letter-spacing: -0.015em;
 }
+
+/*
+  Devanagari (Hindi, Marathi): matras and headline strokes sit above/below the
+  Latin line box, so tight leading clips them, and negative tracking collides
+  conjuncts. Unlayered rules beat the Tailwind leading-*/tracking-* utilities.
+*/
+:lang(hi) body, :lang(mr) body { line-height: 1.65; }
+:lang(hi) h1, :lang(hi) h2, :lang(hi) h3, :lang(hi) h4,
+:lang(mr) h1, :lang(mr) h2, :lang(mr) h3, :lang(mr) h4 { line-height: 1.5; }
+:lang(hi) [class*="leading-"], :lang(mr) [class*="leading-"] { line-height: 1.6; }
+:lang(hi) body, :lang(mr) body,
+:lang(hi) h1, :lang(hi) h2, :lang(hi) h3, :lang(hi) h4,
+:lang(mr) h1, :lang(mr) h2, :lang(mr) h3, :lang(mr) h4,
+:lang(hi) [class*="tracking-"], :lang(mr) [class*="tracking-"] { letter-spacing: 0; }
 
 /* Figures: same face as body text, aligned digits. Mono only for codes. */
 .num {

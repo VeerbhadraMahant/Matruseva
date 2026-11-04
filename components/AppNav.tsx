@@ -22,6 +22,7 @@ import { logout } from "@/app/(auth)/actions";
 import { discardQueueForLogout } from "@/lib/offlineQueue";
 import { openCommandPalette } from "@/components/CommandPalette";
 import { useSidebar } from "@/components/AppShell";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 /** Sign out, first wiping the offline queue (patient data must not outlive the session). */
 async function logoutAndClearQueue() {
@@ -189,6 +190,10 @@ function MenuBody({
             {!collapsed && <span>Collapse</span>}
           </button>
         )}
+
+        <div className={collapsed ? "px-2 pt-2" : "px-3 pt-2"}>
+          <LanguageSwitcher variant={collapsed ? "icon" : "row"} placement="top" align="start" />
+        </div>
 
         <div className={`m-3 flex items-center rounded-2xl bg-[var(--color-surface-1)] ${collapsed ? "flex-col gap-2 p-2" : "gap-3 p-3"}`}>
           <span

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CheckCircle } from "@phosphor-icons/react/dist/ssr";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 const POINTS = [
   "ANC schedule built automatically from the LMP",
@@ -59,7 +60,10 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
         <p className="text-[12px] text-[#e6ddef]/80">Antenatal care and OPD digitisation for OB-GYN clinics.</p>
       </aside>
 
-      <div className="flex flex-1 flex-col items-center justify-center px-4 py-10">
+      <div className="relative flex flex-1 flex-col items-center justify-center px-4 py-10">
+        <div className="absolute right-4 top-4">
+          <LanguageSwitcher variant="pill" placement="bottom" align="end" />
+        </div>
         <Link href="/" className="mb-6 flex items-center gap-2.5 md:hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
