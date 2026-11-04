@@ -134,7 +134,10 @@ export function MotherHealthCardModal({
               <div className="flex items-center gap-2">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src="/logo.jpg"
+                  src="/logo-80.jpg"
+                  width={32}
+                  height={32}
+                  loading="lazy"
                   alt="MatruSetu"
                   className="h-8 w-8 rounded-xl object-cover shadow-xs border border-[#baadca]/40"
                 />

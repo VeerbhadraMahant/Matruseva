@@ -31,7 +31,9 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
         <Link href="/" className="flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/logo.jpg"
+            src="/logo-120.jpg"
+            width={44}
+            height={44}
             alt="MatruSetu"
             className="h-11 w-11 shrink-0 rounded-2xl object-cover shadow-[0_4px_16px_rgba(0,0,0,0.2)] border border-white/25"
           />
@@ -61,7 +63,9 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
         <Link href="/" className="mb-6 flex items-center gap-2.5 md:hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/logo.jpg"
+            src="/logo-80.jpg"
+            width={40}
+            height={40}
             alt="MatruSetu"
             className="h-10 w-10 shrink-0 rounded-xl object-cover shadow-sm border border-[var(--color-border)]"
           />
@@ -71,7 +75,9 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
           <div className="mb-6 flex items-center gap-3 border-b border-[var(--color-border)] pb-4">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/logo.jpg"
+              src="/logo-120.jpg"
+              width={48}
+              height={48}
               alt="MatruSetu"
               className="h-12 w-12 shrink-0 rounded-2xl object-cover shadow-[0_4px_12px_rgba(62,42,92,0.15)] border border-[var(--color-border)]"
             />

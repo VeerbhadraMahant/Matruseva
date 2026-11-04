@@ -97,7 +97,7 @@ export default function LandingPage() {
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.jpg" alt="MatruSetu" className="h-9 w-9 rounded-xl object-cover shadow-[0_2px_8px_rgba(62,42,92,0.15)]" />
+            <img src="/logo-80.jpg" alt="MatruSetu" width={36} height={36} className="h-9 w-9 rounded-xl object-cover shadow-[0_2px_8px_rgba(62,42,92,0.15)]" />
             <span className="text-[20px] font-bold tracking-tight">
               MatruSetu
             </span>

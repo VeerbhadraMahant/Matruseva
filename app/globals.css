@@ -172,10 +172,11 @@ h1, h2, h3, h4 {
 }
 
 @utility pc-glass {
-  background-color: color-mix(in srgb, var(--color-pc-card) 74%, transparent);
+  /* Near-opaque instead of backdrop-filter blur: re-blurring the content under the
+     sticky top/bottom bars on every scroll frame was a major source of jank on
+     mid-range phones, and over the flat cream canvas the look is almost identical. */
+  background-color: color-mix(in srgb, var(--color-pc-card) 94%, transparent);
   border: 1px solid color-mix(in srgb, var(--color-pc-line) 65%, white);
-  -webkit-backdrop-filter: blur(16px) saturate(140%);
-  backdrop-filter: blur(16px) saturate(140%);
   box-shadow:
     0 1px 2px rgb(34 27 43 / 0.04),
     0 14px 36px -18px rgb(62 42 92 / 0.22);

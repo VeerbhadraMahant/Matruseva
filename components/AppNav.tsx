@@ -36,8 +36,10 @@ function BrandMark() {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src="/logo.jpg"
+      src="/logo-80.jpg"
       alt="MatruSetu"
+      width={36}
+      height={36}
       className="h-9 w-9 shrink-0 rounded-xl object-cover shadow-[0_4px_12px_-4px_rgba(62,42,92,0.4)] border border-white/20"
     />
   );

@@ -11,10 +11,14 @@ const nextConfig: NextConfig = {
   // likely mistake. This acknowledges it's intentional.
   turbopack: {},
   experimental: {
-    // Dynamic pages have 0s client-router cache to guarantee fresh data on
-    // navigation after mutations, while prefetched static routes retain 180s.
+    // Reuse dynamic pages from the client router cache for 30s so back/forth
+    // taps are instant. Freshness after writes still holds: per the Next docs
+    // (glossary "Client Cache", revalidatePath), revalidatePath/revalidateTag
+    // in a Server Action, router.refresh(), and cookies.set/delete all purge
+    // the client cache. All mutations here use those. Auth cookie changes
+    // (login/logout) also purge it.
     staleTimes: {
-      dynamic: 0,
+      dynamic: 30,
       static: 180,
     },
   },
