@@ -45,6 +45,11 @@ npx supabase db push
 | `npm run db:seed` | Seed a demo clinic with synthetic patients |
 | `npm run test:e2e` | Playwright golden-path test (needs a running dev server + live Supabase credentials — not run in CI, see `playwright.config.ts`) |
 
+### Demo mode and WhatsApp webhook configuration
+
+- **Demo mode is off by default.** Set `DEMO_MODE=1` (server-side env, never `NEXT_PUBLIC_`) only on a throwaway demo deployment to enable the shared demo login and fake-data mode. Without it, the demo cookie is ignored and missing Supabase config makes the app return 503 instead of opening up.
+- **`/api/whatsapp/webhook` has no defaults.** Set `WHATSAPP_VERIFY_TOKEN` (GET handshake) and `WHATSAPP_APP_SECRET` (POST signature check, `X-Hub-Signature-256`). Without them the endpoint rejects all requests.
+
 ## Deployment
 
 The app deploys to [Vercel](https://vercel.com) with no extra config — it auto-detects Next.js and runs `npm run build` (which already targets webpack, required by Serwist's PWA build; see `next.config.ts`).

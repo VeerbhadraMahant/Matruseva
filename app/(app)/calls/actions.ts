@@ -309,6 +309,12 @@ export async function processBotReply(
     };
   }
 
+  // handleIncomingWhatsAppMessage uses the service-role client, so confirm
+  // through the RLS-scoped client that this patient belongs to the caller's clinic.
+  const [supabase] = await Promise.all([createClient(), getCurrentUser()]);
+  const { data: owned } = await supabase.from("patients").select("id").eq("id", patientId).maybeSingle();
+  if (!owned) return { error: "Patient not found" };
+
   const { handleIncomingWhatsAppMessage } = await import("@/lib/whatsappBot");
   const result = await handleIncomingWhatsAppMessage({
     patientId,

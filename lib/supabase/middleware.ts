@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "./types";
+import { isDemoSession, isSupabaseConfigured } from "@/lib/demo";
 
 // /offline must stay reachable with no session and no network round-trip —
 // it's the PWA's offline fallback, so redirecting it anywhere defeats its purpose.
@@ -19,12 +20,19 @@ const PUBLIC_PATHS = ["/login", "/signup", "/auth", "/offline", "/api/whatsapp"]
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
-  // Demo bypass: allow access without Supabase auth round-trip
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const isUnconfigured = !url || url.includes("xxxxxxxx");
-  const isDemo = request.cookies.get("matrusetu_demo")?.value === "1" || isUnconfigured;
-  if (isDemo) {
+  // Demo bypass: only when the deployment opted in via DEMO_MODE=1.
+  if (isDemoSession(request.cookies)) {
     return response;
+  }
+
+  // Fail closed: never serve the app unauthenticated because config is missing.
+  if (!isSupabaseConfigured()) {
+    const { pathname } = request.nextUrl;
+    // Static landing page and PWA offline fallback need no auth; the webhook enforces its own checks.
+    if (pathname === "/" || pathname.startsWith("/offline") || pathname.startsWith("/api/whatsapp")) {
+      return response;
+    }
+    return new NextResponse("Service unavailable: authentication is not configured.", { status: 503 });
   }
 
   const supabase = createServerClient<Database>(

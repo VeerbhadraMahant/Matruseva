@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { DEMO_COOKIE, DEMO_EMAIL, DEMO_PASSWORD, isDemoModeEnabled } from "@/lib/demo";
 
 export interface ActionResult {
   error: string | null;
@@ -25,12 +26,14 @@ export async function login(_prev: ActionResult, formData: FormData): Promise<Ac
 
   // Demo bypass mode for offline evaluation / local testing
   if (
-    parsed.data.email.toLowerCase() === "demo.doctor@matrusetu.test" &&
-    parsed.data.password === "DemoClinic123!"
+    isDemoModeEnabled() &&
+    parsed.data.email.toLowerCase() === DEMO_EMAIL &&
+    parsed.data.password === DEMO_PASSWORD
   ) {
     const cookieStore = await cookies();
-    cookieStore.set("matrusetu_demo", "1", {
+    cookieStore.set(DEMO_COOKIE, "1", {
       httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
       path: "/",
       sameSite: "lax",
       maxAge: 60 * 60 * 24 * 7,
@@ -73,7 +76,7 @@ export async function signup(_prev: ActionResult, formData: FormData): Promise<A
 
 export async function logout(): Promise<void> {
   const cookieStore = await cookies();
-  cookieStore.delete("matrusetu_demo");
+  cookieStore.delete(DEMO_COOKIE);
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/login");
