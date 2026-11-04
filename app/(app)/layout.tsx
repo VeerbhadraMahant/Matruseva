@@ -7,6 +7,7 @@ import { SIDEBAR_COOKIE } from "@/lib/sidebar";
 import { CallQueueBadge } from "@/components/CallQueueBadge";
 import { CommandPalette } from "@/components/CommandPalette";
 import { Toaster } from "@/components/Toaster";
+import { OfflineSync } from "@/components/OfflineSync";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const [me, cookieStore] = await Promise.all([getCurrentUser(), cookies()]);
@@ -28,6 +29,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <AppBottomNav />
       <CommandPalette />
       <Toaster />
+      <OfflineSync />
     </AppShell>
   );
 }

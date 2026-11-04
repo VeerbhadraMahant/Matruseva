@@ -70,7 +70,7 @@ Demo mode is an explicit server-side opt-in and is **off by default**. With `DEM
 
 ## Deployment
 
-**Apply database migrations before deploying new code.** In particular `20261104000000_latest_visits_view.sql` creates the `latest_visits` view the dashboard snapshot reads; if the code ships first, the snapshot silently shows no latest visits (no error). Run `npx supabase db push` first, then deploy.
+**Apply database migrations before deploying new code.** In particular `20261104000000_latest_visits_view.sql` creates the `latest_visits` view and `20261105000000_client_request_id.sql` adds the idempotency column the offline queue relies on. The view is what the dashboard snapshot reads; if the code ships first, the snapshot silently shows no latest visits (no error). Run `npx supabase db push` first, then deploy.
 
 The app deploys to [Vercel](https://vercel.com) with no extra config — it auto-detects Next.js and runs `npm run build` (which already targets webpack, required by Serwist's PWA build; see `next.config.ts`).
 
@@ -94,6 +94,7 @@ Auth/onboarding (email/password + Google OAuth), patient registration with auto-
 
 Also in the app:
 
+- **Offline write queue**: recording a visit or logging a contact while offline (or when the request can't reach the server) saves it in the browser's IndexedDB and replays it when the connection returns, with a status pill, retry/discard for failures, and an idempotency key (`client_request_id`) so replays never duplicate (`lib/offlineQueue.ts`, `components/OfflineSync.tsx`). See `docs/SECURITY.md` for what is stored.
 - **WhatsApp bot**: reminders and replies (confirm / reschedule / info; English, Hindi, Marathi) via the signed `/api/whatsapp/webhook`, plus an in-app simulator on the call queue that uses the authenticated `processBotReply` server action, not the webhook (`lib/whatsappBot.ts`).
 - **Voice counselling**: generates a counselling script in Hindi, Marathi, Gujarati or English from the patient's data (`lib/voiceCounselor.ts`); the doctor can create a signed public listen link for the mother.
 - **Voice-to-vitals**: parses dictated English/Hindi/Marathi/Hinglish vitals into the visit form (`lib/voiceScribe.ts`).

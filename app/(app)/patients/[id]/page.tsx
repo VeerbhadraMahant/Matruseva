@@ -143,6 +143,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
       next_visit_date: v.next_visit_date,
       created_at: v.created_at,
       created_by: null,
+      client_request_id: null,
     }));
     documents = demo.documents as DocRecord[];
     contacts = demo.contacts as ContactRecord[];

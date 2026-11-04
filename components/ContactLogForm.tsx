@@ -1,11 +1,10 @@
 "use client";
 
 import { useOptimistic, useState } from "react";
-import { logContact, type ActionResult } from "@/app/(app)/calls/actions";
+import { submitContactLog } from "@/components/offlineActions";
 import { useFormStatus } from "react-dom";
 import { showToast } from "@/components/Toaster";
 
-const initialState: ActionResult = { error: null };
 const selectClass =
   "min-h-10 border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2.5 text-[13px]";
 
@@ -31,9 +30,9 @@ export function ContactLogForm({ patientId }: { patientId: string }) {
     setError(null);
     setLogged(true);
     try {
-      const result = await logContact(patientId, initialState, formData);
+      const result = await submitContactLog(patientId, formData);
       if (result.error) setError(result.error);
-      else showToast("Contact logged");
+      else if (!result.queued) showToast("Contact logged");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Could not log contact");
     }

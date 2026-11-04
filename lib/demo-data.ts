@@ -56,6 +56,8 @@ export interface DemoVisitRecord {
   notes: string | null;
   next_visit_date: string | null;
   created_at: string;
+  /** Offline-queue idempotency key; a replay with the same key is ignored. */
+  client_request_id?: string;
 }
 
 export interface DemoContactRecord {
@@ -64,6 +66,7 @@ export interface DemoContactRecord {
   outcome: ContactOutcome;
   notes: string | null;
   created_at: string;
+  client_request_id?: string;
 }
 
 export interface DemoStoreState {
@@ -774,9 +777,11 @@ export function recordDemoVisit(
     fundalHeight: number | null;
     notes: string | null;
     nextVisitDate: string | null;
-  }
+  },
+  clientRequestId?: string
 ): void {
   const store = getDemoStore();
+  if (clientRequestId && (store.visits[patientId] ?? []).some((x) => x.client_request_id === clientRequestId)) return;
   const patient = store.patients.find((p) => p.id === patientId);
   if (patient) {
     patient.latestVisit = {
@@ -801,6 +806,7 @@ export function recordDemoVisit(
     notes: v.notes,
     next_visit_date: v.nextVisitDate,
     created_at: new Date().toISOString(),
+    ...(clientRequestId ? { client_request_id: clientRequestId } : {}),
   });
   store.visits[patientId] = visits;
   saveDemoStore(store);
@@ -811,9 +817,11 @@ export function logDemoContact(
   patientId: string,
   channel: "call" | "whatsapp",
   outcome: ContactOutcome,
-  notes?: string
+  notes?: string,
+  clientRequestId?: string
 ): void {
   const store = getDemoStore();
+  if (clientRequestId && (store.contacts[patientId] ?? []).some((x) => x.client_request_id === clientRequestId)) return;
   const patient = store.patients.find((p) => p.id === patientId);
   if (patient) {
     if (outcome === "reached" || outcome === "will_visit") {
@@ -829,6 +837,7 @@ export function logDemoContact(
     outcome,
     notes: notes || null,
     created_at: new Date().toISOString(),
+    ...(clientRequestId ? { client_request_id: clientRequestId } : {}),
   });
   store.contacts[patientId] = contacts;
   saveDemoStore(store);

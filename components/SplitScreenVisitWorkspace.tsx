@@ -12,11 +12,11 @@ import {
   Columns,
   Warning,
 } from "@phosphor-icons/react";
-import { recordVisit, type ActionResult } from "@/app/(app)/patients/[id]/actions";
+import type { ActionResult } from "@/app/(app)/patients/[id]/actions";
+import { saveVisitAction } from "@/components/offlineActions";
 import { SubmitButton } from "@/components/SubmitButton";
 import { bpFlag, hbFlag, fhrFlag } from "@/lib/clinical";
 import { formatShortDate } from "@/lib/format";
-import { withSuccessToast } from "@/components/Toaster";
 
 export interface PatientDocument {
   id: string;
@@ -75,8 +75,7 @@ export function SplitScreenVisitWorkspace({
   const [fhr, setFhr] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
 
-  const action = recordVisit.bind(null, patientId);
-  const [state, formAction] = useActionState(withSuccessToast(action, "Visit saved"), initialState);
+  const [state, formAction] = useActionState(saveVisitAction(patientId), initialState);
 
   // Handle ESC key to close
   useEffect(() => {

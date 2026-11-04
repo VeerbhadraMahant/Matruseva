@@ -156,6 +156,7 @@ export type Database = {
       contact_log: {
         Row: {
           channel: string
+          client_request_id: string | null
           clinic_id: string
           created_at: string
           created_by: string | null
@@ -168,6 +169,7 @@ export type Database = {
         }
         Insert: {
           channel: string
+          client_request_id?: string | null
           clinic_id: string
           created_at?: string
           created_by?: string | null
@@ -180,6 +182,7 @@ export type Database = {
         }
         Update: {
           channel?: string
+          client_request_id?: string | null
           clinic_id?: string
           created_at?: string
           created_by?: string | null
@@ -529,6 +532,7 @@ export type Database = {
         Row: {
           bp_dia: number | null
           bp_sys: number | null
+          client_request_id: string | null
           clinic_id: string
           created_at: string
           created_by: string | null
@@ -546,6 +550,7 @@ export type Database = {
         Insert: {
           bp_dia?: number | null
           bp_sys?: number | null
+          client_request_id?: string | null
           clinic_id: string
           created_at?: string
           created_by?: string | null
@@ -563,6 +568,7 @@ export type Database = {
         Update: {
           bp_dia?: number | null
           bp_sys?: number | null
+          client_request_id?: string | null
           clinic_id?: string
           created_at?: string
           created_by?: string | null

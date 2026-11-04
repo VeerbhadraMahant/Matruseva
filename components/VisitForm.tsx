@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useActionState } from "react";
-import { recordVisit, type ActionResult } from "@/app/(app)/patients/[id]/actions";
+import type { ActionResult } from "@/app/(app)/patients/[id]/actions";
+import { saveVisitAction } from "@/components/offlineActions";
 import { SubmitButton } from "@/components/SubmitButton";
-import { withSuccessToast } from "@/components/Toaster";
 import { VoiceScribeModal } from "@/components/VoiceScribeModal";
 import type { ParsedVitals } from "@/lib/voiceScribe";
 import { Microphone, ShieldWarning, Warning, Heartbeat } from "@phosphor-icons/react";
@@ -15,8 +15,7 @@ const inputClass =
 const labelClass = "mb-1 block text-[11px] font-semibold text-[var(--color-charcoal)]";
 
 export function VisitForm({ patientId }: { patientId: string }) {
-  const action = recordVisit.bind(null, patientId);
-  const [state, formAction] = useActionState(withSuccessToast(action, "Visit saved"), initialState);
+  const [state, formAction] = useActionState(saveVisitAction(patientId), initialState);
   const [isVoiceOpen, setIsVoiceOpen] = useState(false);
 
   // Controlled values for live CDSS protocol evaluation and voice auto-fill

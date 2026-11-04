@@ -57,6 +57,7 @@ export default async function PatientReportPage({ params }: { params: Promise<{ 
       next_visit_date: v.next_visit_date,
       created_at: v.created_at,
       created_by: null,
+      client_request_id: null,
     }));
     riskValue = (demo.risk?.risk as FollowUpRisk) ?? "on_track";
   } else {

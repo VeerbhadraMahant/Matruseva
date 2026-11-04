@@ -19,8 +19,14 @@ import {
 } from "@phosphor-icons/react";
 import type { Icon } from "@phosphor-icons/react";
 import { logout } from "@/app/(auth)/actions";
+import { discardQueueForLogout } from "@/lib/offlineQueue";
 import { openCommandPalette } from "@/components/CommandPalette";
 import { useSidebar } from "@/components/AppShell";
+
+/** Sign out, first wiping the offline queue (patient data must not outlive the session). */
+async function logoutAndClearQueue() {
+  if (await discardQueueForLogout()) await logout();
+}
 
 const noopSubscribe = () => () => {};
 /** "⌘K" on Apple platforms; server and first client render use "Ctrl K" (no hydration mismatch). */
@@ -196,7 +202,7 @@ function MenuBody({
             <p className="truncate text-[13px] font-medium text-[var(--color-foreground)]">{userName}</p>
             <p className="text-[12px] text-[var(--color-charcoal)]">{isDoctor ? "Doctor" : "Staff"}</p>
           </div>
-          <form action={logout}>
+          <form action={logoutAndClearQueue}>
             <button
               type="submit"
               className="flex min-h-9 min-w-9 items-center justify-center rounded-lg text-[var(--color-charcoal)] transition-colors hover:bg-[var(--color-primary-surface)] hover:text-[var(--color-primary)]"

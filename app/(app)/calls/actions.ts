@@ -6,6 +6,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser, isDemoActive } from "@/lib/auth";
 import { logDemoBatchContacts, logDemoContact } from "@/lib/demo-data";
+import { isDuplicateRequest } from "@/lib/idempotency";
 import type { ContactOutcome } from "@/lib/supabase/enums";
 
 export interface ActionResult {
@@ -30,6 +31,8 @@ const contactSchema = z.object({
   channel: z.enum(["call", "whatsapp"]),
   outcome: z.enum(["reached", "no_answer", "wrong_number", "will_visit", "refused"]),
   reason: z.string().optional(),
+  // Idempotency key from the offline queue / client (optional, backwards compatible).
+  clientRequestId: z.uuid().optional().or(z.literal("")),
 });
 
 export async function logContact(patientId: string, _prev: ActionResult, formData: FormData): Promise<ActionResult> {
@@ -38,11 +41,12 @@ export async function logContact(patientId: string, _prev: ActionResult, formDat
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message };
   }
+  const clientRequestId = parsed.data.clientRequestId || undefined;
 
   const cookieStore = await cookies();
   const isDemo = isDemoActive(cookieStore);
   if (isDemo) {
-    logDemoContact(patientId, parsed.data.channel, parsed.data.outcome, parsed.data.reason);
+    logDemoContact(patientId, parsed.data.channel, parsed.data.outcome, parsed.data.reason, clientRequestId);
     revalidateContactViews(patientId);
     return { error: null };
   }
@@ -57,9 +61,11 @@ export async function logContact(patientId: string, _prev: ActionResult, formDat
       outcome: parsed.data.outcome,
       reason: parsed.data.reason || null,
       created_by: me.userId,
+      ...(clientRequestId ? { client_request_id: clientRequestId } : {}),
     });
 
-    if (error) return { error: error.message };
+    // Unique violation on our idempotency key = already applied (lost response).
+    if (error && !isDuplicateRequest(error, clientRequestId)) return { error: error.message };
 
     revalidateContactViews(patientId);
     return { error: null };
@@ -72,12 +78,16 @@ export async function quickLogContact(
   patientId: string,
   channel: "call" | "whatsapp",
   outcome: "reached" | "no_answer" | "wrong_number" | "will_visit" | "refused",
-  notes?: string
+  notes?: string,
+  clientRequestId?: string
 ): Promise<ActionResult> {
+  if (clientRequestId !== undefined && !z.uuid().safeParse(clientRequestId).success) {
+    return { error: "Invalid request id" };
+  }
   const cookieStore = await cookies();
   const isDemo = isDemoActive(cookieStore);
   if (isDemo) {
-    logDemoContact(patientId, channel, outcome, notes);
+    logDemoContact(patientId, channel, outcome, notes, clientRequestId);
     revalidateContactViews(patientId);
     return { error: null };
   }
@@ -92,9 +102,10 @@ export async function quickLogContact(
       outcome,
       notes: notes || null,
       created_by: me.userId,
+      ...(clientRequestId ? { client_request_id: clientRequestId } : {}),
     });
 
-    if (error) return { error: error.message };
+    if (error && !isDuplicateRequest(error, clientRequestId)) return { error: error.message };
 
     revalidateContactViews(patientId);
     return { error: null };

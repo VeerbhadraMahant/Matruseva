@@ -27,6 +27,14 @@ Current as of 4 Nov 2026. Verified against the code, not older docs.
 - `/listen/*` is served with `Referrer-Policy: no-referrer`, `X-Robots-Tag: noindex, nofollow`, `Cache-Control: private, no-store` (`next.config.ts`).
 - No secret -> link creation throws and verification returns null. Rotating the secret revokes all issued links; there is no per-link revocation.
 
+## Offline queue
+- Scope: only two writes can be queued while offline or unreachable: recording a visit and logging a contact (`lib/offlineQueue.ts`, replayed by `components/OfflineSync.tsx`). Nothing else is queued.
+- What is stored: IndexedDB database `matrusetu-offline` in the browser holds, per entry, an id, type, patient id, timestamps/attempt count/last error and a whitelisted set of form fields (visit vitals/notes/dates; contact channel/outcome/reason/notes). This is patient health data at rest on the device, unencrypted, readable by anything running in the app's origin and by anyone with access to the unlocked browser profile. Use clinic devices with a screen lock.
+- Queued entries are only sent through the normal server actions, so auth, zod validation and RLS apply at replay time exactly as for a live request; the queue grants no new access. `created_by` is whoever is signed in when the entry syncs.
+- Lifetime: an entry is removed once the server accepts it; permanent errors are kept as "failed" until the user retries or discards them. Sign-out (`AppNav`) asks for confirmation if unsynced entries exist and then wipes the queue. If the session simply expires, entries stay until the next sign-in syncs or discards them.
+- Idempotency: each entry's UUID is sent as `client_request_id` (unique partial index on `visits` and `contact_log`); a unique violation on it is treated as already applied. The key is not a secret and does not authorise anything.
+- Related: the service worker's runtime cache (`defaultCache`) may keep copies of visited authenticated pages in Cache Storage on the device; sign-out does not purge it.
+
 ## Dependencies and CI
 - CI runs `npm audit --omit=dev --audit-level=high` and fails on high/critical advisories. At the time of writing `npm audit --omit=dev` reports 0 vulnerabilities.
 

@@ -8,6 +8,7 @@ import { getCurrentUser, isDemoActive } from "@/lib/auth";
 import { todayInClinicTimezone, toISODate } from "@/lib/today";
 import { parseLocalDate } from "@/lib/format";
 import { closeDemoPregnancy, markDemoCareEventDone, recordDemoVisit, updateDemoPatient } from "@/lib/demo-data";
+import { isDuplicateRequest } from "@/lib/idempotency";
 import { eddFromLmp } from "@/lib/pregnancy";
 import { createListenToken, ListenLinkConfigError } from "@/lib/listenLink";
 import { COUNSELING_LANGUAGES, type CounselingLanguage } from "@/lib/voiceCounselor";
@@ -66,6 +67,8 @@ const visitSchema = z.object({
   fundalHeight: z.coerce.number().positive().optional().or(z.literal("")),
   notes: z.string().optional(),
   nextVisitDate: z.iso.date().optional().or(z.literal("")),
+  // Idempotency key from the offline queue / client (optional, backwards compatible).
+  clientRequestId: z.uuid().optional().or(z.literal("")),
 });
 
 export async function recordVisit(
@@ -80,6 +83,7 @@ export async function recordVisit(
   }
   const v = parsed.data;
   const num = (x: number | "" | undefined) => (x === "" || x === undefined ? null : x);
+  const clientRequestId = v.clientRequestId || undefined;
 
   const cookieStore = await cookies();
   const isDemo = isDemoActive(cookieStore);
@@ -94,7 +98,7 @@ export async function recordVisit(
       fundalHeight: num(v.fundalHeight),
       notes: v.notes || null,
       nextVisitDate: v.nextVisitDate || null,
-    });
+    }, clientRequestId);
     revalidatePatientViews(patientId);
     return { error: null };
   }
@@ -115,9 +119,12 @@ export async function recordVisit(
       notes: v.notes || null,
       next_visit_date: v.nextVisitDate || null,
       created_by: me.userId,
+      ...(clientRequestId ? { client_request_id: clientRequestId } : {}),
     });
 
-    if (error) return { error: error.message };
+    // A unique violation on our own idempotency key means an earlier attempt
+    // already stored this visit (response was lost): treat as success.
+    if (error && !isDuplicateRequest(error, clientRequestId)) return { error: error.message };
 
     revalidatePatientViews(patientId);
     return { error: null };

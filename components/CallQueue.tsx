@@ -18,7 +18,8 @@ import {
 } from "@phosphor-icons/react";
 import { Tag, SEVERITY_TONE, type Tone, buttonPrimary, buttonSecondary, card, chipClass, chipCountClass } from "@/components/ui";
 import { ContactLogForm } from "@/components/ContactLogForm";
-import { quickLogContact, logBatchContacts } from "@/app/(app)/calls/actions";
+import { logBatchContacts } from "@/app/(app)/calls/actions";
+import { submitQuickContact } from "@/components/offlineActions";
 import { PAGE_SIZE, nextLimit, remainingCount } from "@/lib/paging";
 import type { ClinicalFlag } from "@/lib/clinical";
 import type { ContactOutcome } from "@/lib/supabase/enums";
@@ -120,11 +121,11 @@ export function CallQueue({
     if (!quickLogTarget) return;
     const target = quickLogTarget;
     startTransition(async () => {
-      const res = await quickLogContact(target.patientId, target.channel, outcome, notes);
+      const res = await submitQuickContact(target.patientId, target.channel, outcome, notes);
       if (res.error) {
         setLogStatusMessage(`Error: ${res.error}`);
       } else {
-        setLogStatusMessage(`Logged: ${OUTCOME[outcome].label}`);
+        setLogStatusMessage(res.queued ? "Saved offline — will sync when you're back online" : `Logged: ${OUTCOME[outcome].label}`);
         setTimeout(() => {
           setQuickLogTarget(null);
           setLogStatusMessage(null);

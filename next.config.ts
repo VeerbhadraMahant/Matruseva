@@ -59,6 +59,9 @@ const withSerwist = withSerwistInit({
   swSrc: "app/sw.ts",
   swDest: "public/sw.js",
   disable: process.env.NODE_ENV !== "production",
+  // The SW's offline fallback (app/sw.ts) serves /offline from the precache,
+  // but it is a page route, not a public/ file, so it must be listed explicitly.
+  additionalPrecacheEntries: [{ url: "/offline", revision: process.env.VERCEL_GIT_COMMIT_SHA ?? String(Date.now()) }],
 });
 
 export default withSerwist(nextConfig);
