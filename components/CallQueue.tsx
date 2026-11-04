@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useRef, useTransition } from "react";
+import { memo, useCallback, useDeferredValue, useMemo, useState, useRef, useTransition } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import {
@@ -19,6 +19,7 @@ import {
 import { Tag, SEVERITY_TONE, type Tone, buttonPrimary, buttonSecondary, card, chipClass, chipCountClass } from "@/components/ui";
 import { ContactLogForm } from "@/components/ContactLogForm";
 import { quickLogContact, logBatchContacts } from "@/app/(app)/calls/actions";
+import { PAGE_SIZE, nextLimit, remainingCount } from "@/lib/paging";
 import type { ClinicalFlag } from "@/lib/clinical";
 import type { ContactOutcome } from "@/lib/supabase/enums";
 import {
@@ -99,8 +100,21 @@ export function CallQueue({
   const [logStatusMessage, setLogStatusMessage] = useState<string | null>(null);
 
   const counts = useMemo(() => Object.fromEntries(FILTERS.map((f) => [f.id, rows.filter(f.test).length])), [rows]);
-  const activeFilter = FILTERS.find((f) => f.id === filter);
-  const visible = rows.filter(activeFilter ? activeFilter.test : () => true);
+  // Chips stay instant; the (full) filtered list follows the deferred filter.
+  const deferredFilter = useDeferredValue(filter);
+  const isStale = deferredFilter !== filter;
+  const visible = useMemo(() => {
+    const activeFilter = FILTERS.find((f) => f.id === deferredFilter);
+    return rows.filter(activeFilter ? activeFilter.test : () => true);
+  }, [rows, deferredFilter]);
+
+  // Incremental rendering: only the first `limit` rows are mounted. Selection,
+  // select-all and counts keep operating on the FULL `visible` set.
+  const [limitState, setLimitState] = useState({ key: "", limit: PAGE_SIZE });
+  if (limitState.key !== deferredFilter) setLimitState({ key: deferredFilter, limit: PAGE_SIZE });
+  const limit = limitState.key === deferredFilter ? limitState.limit : PAGE_SIZE;
+  const shown = useMemo(() => visible.slice(0, limit), [visible, limit]);
+  const remaining = remainingCount(visible.length, limit);
 
   const handleQuickSubmit = (outcome: ContactOutcome, notes?: string) => {
     if (!quickLogTarget) return;
@@ -127,14 +141,33 @@ export function CallQueue({
   const [batchToast, setBatchToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [isBatchPending, startBatchTransition] = useTransition();
 
-  const toggleSelect = (id: string) => {
+  const toggleSelect = useCallback((id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
-  };
+  }, []);
+
+  const triggerCall = useCallback((r: CallRow) => {
+    if (r.tel) window.location.href = r.tel;
+    setQuickLogTarget({ patientId: r.id, name: r.name, phone: r.phone, channel: "call" });
+  }, []);
+
+  const triggerWhatsApp = useCallback((r: CallRow, waLink: string | null) => {
+    if (waLink) window.open(waLink, "_blank");
+    setQuickLogTarget({
+      patientId: r.id,
+      name: r.name,
+      phone: r.phone,
+      channel: "whatsapp",
+      whatsappUrl: waLink,
+      messagesByLang: r.messagesByLang,
+    });
+  }, []);
+
+  const triggerBot = useCallback((id: string) => setSimulatorPatientId(id), []);
 
   const toggleSelectAll = () => {
     if (visible.length === 0) return;
@@ -305,43 +338,37 @@ export function CallQueue({
           </div>
         )}
 
-        <ol>
-          {visible.map((r, i) => {
-            const currentWaLink = r.whatsappByLang?.[selectedLang] ?? r.whatsapp;
-            return (
-              <SwipeableCallCard
-                key={r.id}
-                row={r}
-                index={i}
-                selectedLang={selectedLang}
-                waLink={currentWaLink}
-                isSelected={selectedIds.has(r.id)}
-                onToggleSelect={() => toggleSelect(r.id)}
-                onTriggerCall={() => {
-                  if (r.tel) window.location.href = r.tel;
-                  setQuickLogTarget({
-                    patientId: r.id,
-                    name: r.name,
-                    phone: r.phone,
-                    channel: "call",
-                  });
-                }}
-                onTriggerWhatsApp={() => {
-                  if (currentWaLink) window.open(currentWaLink, "_blank");
-                  setQuickLogTarget({
-                    patientId: r.id,
-                    name: r.name,
-                    phone: r.phone,
-                    channel: "whatsapp",
-                    whatsappUrl: currentWaLink,
-                    messagesByLang: r.messagesByLang,
-                  });
-                }}
-                onTriggerBot={() => setSimulatorPatientId(r.id)}
-              />
-            );
-          })}
+        <ol className={`transition-opacity ${isStale ? "opacity-60" : ""}`} aria-busy={isStale}>
+          {shown.map((r, i) => (
+            <SwipeableCallCard
+              key={r.id}
+              row={r}
+              index={i}
+              selectedLang={selectedLang}
+              waLink={r.whatsappByLang?.[selectedLang] ?? r.whatsapp}
+              isSelected={selectedIds.has(r.id)}
+              onToggleSelect={toggleSelect}
+              onTriggerCall={triggerCall}
+              onTriggerWhatsApp={triggerWhatsApp}
+              onTriggerBot={triggerBot}
+            />
+          ))}
         </ol>
+
+        {remaining > 0 && (
+          <div className="border-t border-[var(--color-border)] px-4 py-3 text-center">
+            <button
+              type="button"
+              onClick={() => setLimitState((s) => ({ ...s, limit: nextLimit(s.limit, visible.length) }))}
+              className="min-h-10 rounded-full border border-[var(--color-border)] bg-[var(--color-background)] px-4 text-[13px] font-medium hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
+            >
+              Show more ({remaining} remaining)
+            </button>
+            <p className="num mt-1 text-[12px] text-[var(--color-charcoal)]" aria-live="polite">
+              Showing {shown.length} of {visible.length}
+            </p>
+          </div>
+        )}
 
         {visible.length === 0 && (
           <p className="px-3 py-8 text-center text-[13px] text-[var(--color-charcoal)]">
@@ -607,7 +634,7 @@ export function CallQueue({
    Swipeable Call Card Sub-component with Language-aware WhatsApp
    ========================================================================= */
 
-function SwipeableCallCard({
+const SwipeableCallCard = memo(function SwipeableCallCard({
   row: r,
   index: i,
   selectedLang,
@@ -623,10 +650,10 @@ function SwipeableCallCard({
   selectedLang: SupportedLanguage;
   waLink: string | null;
   isSelected: boolean;
-  onToggleSelect: () => void;
-  onTriggerCall: () => void;
-  onTriggerWhatsApp: () => void;
-  onTriggerBot?: () => void;
+  onToggleSelect: (id: string) => void;
+  onTriggerCall: (row: CallRow) => void;
+  onTriggerWhatsApp: (row: CallRow, waLink: string | null) => void;
+  onTriggerBot?: (id: string) => void;
 }) {
   const [offsetX, setOffsetX] = useState(0);
   const [swiping, setSwiping] = useState(false);
@@ -658,16 +685,16 @@ function SwipeableCallCard({
 
     // Right swipe threshold: Call
     if (diff > 65) {
-      onTriggerCall();
+      onTriggerCall(r);
     }
     // Left swipe threshold: WhatsApp
     else if (diff < -65) {
-      onTriggerWhatsApp();
+      onTriggerWhatsApp(r, waLink);
     }
   };
 
   return (
-    <li className="relative border-b border-[var(--color-border)] overflow-hidden last:border-0">
+    <li className="row-cv relative border-b border-[var(--color-border)] overflow-hidden last:border-0">
       {/* Background Action Reveal Panels during Swipe */}
       <div className="absolute inset-0 flex items-center justify-between pointer-events-none px-4 text-white text-[13px] font-semibold">
         {/* Left reveal: Swipe right for Call */}
@@ -715,7 +742,7 @@ function SwipeableCallCard({
             type="checkbox"
             id={`chk-${r.id}`}
             checked={isSelected}
-            onChange={onToggleSelect}
+            onChange={() => onToggleSelect(r.id)}
             className="h-4 w-4 rounded border-[var(--color-border-strong)] accent-[var(--color-primary)] cursor-pointer"
             aria-label={`Select ${r.name} for batch contact logging`}
           />
@@ -777,7 +804,7 @@ function SwipeableCallCard({
           {r.tel && (
             <button
               type="button"
-              onClick={onTriggerCall}
+              onClick={() => onTriggerCall(r)}
               className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-[var(--color-primary)] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[var(--color-primary-hover)] cursor-pointer"
             >
               <Phone size={15} weight="fill" aria-hidden /> Call
@@ -786,7 +813,7 @@ function SwipeableCallCard({
           {waLink && (
             <button
               type="button"
-              onClick={onTriggerWhatsApp}
+              onClick={() => onTriggerWhatsApp(r, waLink)}
               className="rounded-xl inline-flex min-h-10 items-center gap-1.5 border border-[var(--color-border)] bg-[var(--color-background)] px-3 text-[13px] font-medium transition-colors hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] cursor-pointer"
               title={`Send WhatsApp reminder in ${SUPPORTED_LANGUAGES.find((l) => l.code === selectedLang)?.nativeLabel}`}
             >
@@ -797,7 +824,7 @@ function SwipeableCallCard({
           {onTriggerBot && (
             <button
               type="button"
-              onClick={onTriggerBot}
+              onClick={() => onTriggerBot(r.id)}
               className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-xl text-[var(--color-charcoal)] transition-colors hover:bg-[var(--color-primary-surface)] hover:text-[var(--color-primary)] cursor-pointer"
               title="Test 2-way automated WhatsApp Bot for this patient"
               aria-label={`Open WhatsApp bot simulator for ${r.name}`}
@@ -823,4 +850,4 @@ function SwipeableCallCard({
       )}
     </li>
   );
-}
+});

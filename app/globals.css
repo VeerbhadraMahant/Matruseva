@@ -230,3 +230,9 @@ h1, h2, h3, h4 {
     print-color-adjust: exact !important;
   }
 }
+
+/* Skip layout/paint of off-screen list rows (perf). Not for table rows or overflowing popovers. */
+.row-cv {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 96px;
+}

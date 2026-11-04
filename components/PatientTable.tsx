@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { memo, useCallback, useDeferredValue, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MagnifyingGlass, CaretUp, CaretDown } from "@phosphor-icons/react";
 import { Tag, SEVERITY_TONE, th, td, card, chipClass, chipCountClass, type Tone } from "@/components/ui";
 import type { ClinicalFlag } from "@/lib/clinical";
 import type { FollowUpRisk } from "@/lib/supabase/enums";
+import { PAGE_SIZE, nextLimit, remainingCount } from "@/lib/paging";
 
 export interface PatientListRow {
   id: string;
@@ -79,18 +80,125 @@ function isRecentlyAdded(createdAt: string | null): boolean {
   return diff >= 0 && diff < 24 * 60 * 60 * 1000;
 }
 
+const PatientRow = memo(function PatientRow({
+  r,
+  onOpen,
+  onHover,
+}: {
+  r: PatientListRow;
+  onOpen: (id: string) => void;
+  onHover: (id: string) => void;
+}) {
+  return (
+    <tr
+      onClick={(e) => {
+        if ((e.target as HTMLElement).closest("a")) return;
+        onOpen(r.id);
+      }}
+      onMouseEnter={() => onHover(r.id)}
+      className="cursor-pointer hover:bg-[var(--color-surface-1)]"
+    >
+      <td className={td}>
+        <div className="flex items-center gap-3">
+          <span
+            aria-hidden
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-surface)] text-[12px] font-semibold text-[var(--color-primary)]"
+          >
+            {r.name
+              .split(/\s+/)
+              .map((p) => p[0])
+              .slice(0, 2)
+              .join("")
+              .toUpperCase()}
+          </span>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <Link href={`/patients/${r.id}`} prefetch={true} className="block font-semibold hover:underline">
+                {r.name}
+              </Link>
+              {isRecentlyAdded(r.createdAt) && (
+                <span className="rounded-md bg-[var(--color-on-track-surface)] border border-[var(--color-on-track)]/30 px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-on-track)] tracking-wide">
+                  NEW
+                </span>
+              )}
+            </div>
+            <span className="num block whitespace-nowrap text-[12px] text-[var(--color-charcoal)]">
+              {[r.clinicNo && `#${r.clinicNo}`, r.phone].filter(Boolean).join(" · ") || "—"}
+            </span>
+          </div>
+        </div>
+      </td>
+      <td className={`${td} num hidden whitespace-nowrap sm:table-cell`}>
+        {r.age ?? "—"} <span className="text-[var(--color-charcoal)]">· {r.gp}</span>
+      </td>
+      <td className={`${td} num whitespace-nowrap`}>
+        {r.gaLabel}
+        {r.trimester && <span className="ml-1.5 text-[12px] text-[var(--color-charcoal)]">T{r.trimester}</span>}
+      </td>
+      <td className={`${td} num hidden whitespace-nowrap sm:table-cell`}>
+        {r.eddLabel}
+        {r.eddInDays !== null && r.eddInDays <= 30 && (
+          <span className={`ml-1.5 text-[12px] ${r.eddInDays < 0 ? "text-[var(--color-overdue)]" : "text-[var(--color-on-track)]"}`}>
+            {r.eddInDays < 0 ? `+${-r.eddInDays}d` : `${r.eddInDays}d`}
+          </span>
+        )}
+      </td>
+      <td className={`${td} num hidden whitespace-nowrap md:table-cell`}>{r.nextVisitLabel}</td>
+      <td className={td}>
+        <div className="flex flex-wrap gap-1">
+          <Tag tone={RISK[r.risk].tone}>{RISK[r.risk].label}</Tag>
+          {r.overdueCount > 0 && <Tag tone="warning">{r.overdueCount} overdue</Tag>}
+          {(() => {
+            const alerts = r.flags.filter((f) => f.severity !== "info");
+            const room = r.overdueCount > 0 ? 0 : 1;
+            const extra = alerts.length - room;
+            return (
+              <>
+                {alerts.slice(0, room).map((f) => (
+                  <Tag key={f.code} tone={SEVERITY_TONE[f.severity]}>
+                    {f.label}
+                  </Tag>
+                ))}
+                {extra > 0 && (
+                  <span
+                    className="inline-flex items-center rounded-full bg-[var(--color-surface-2)] px-2 text-[12px] font-medium leading-6 text-[var(--color-charcoal)]"
+                    title={alerts.slice(room).map((f) => f.label).join(", ")}
+                  >
+                    +{extra} alert{extra > 1 ? "s" : ""}
+                  </span>
+                )}
+              </>
+            );
+          })()}
+        </div>
+      </td>
+    </tr>
+  );
+});
+
 export function PatientTable({ rows, initialFilter }: { rows: PatientListRow[]; initialFilter: PatientFilter }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<PatientFilter>(initialFilter);
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "recent", dir: -1 });
 
+  const [limitState, setLimitState] = useState({ key: "", limit: PAGE_SIZE });
+
+  const openPatient = useCallback((id: string) => router.push(`/patients/${id}`), [router]);
+  const prefetchPatient = useCallback((id: string) => router.prefetch(`/patients/${id}`), [router]);
+
+  // Input/chips/sort stay instant; the heavy filtered list follows deferred values.
+  const deferredQuery = useDeferredValue(query);
+  const deferredFilter = useDeferredValue(filter);
+  const deferredSort = useDeferredValue(sort);
+  const isStale = deferredQuery !== query || deferredFilter !== filter || deferredSort !== sort;
+
   const counts = useMemo(() => Object.fromEntries(FILTERS.map((f) => [f.id, rows.filter(f.test).length])), [rows]);
 
   const visible = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = deferredQuery.trim().toLowerCase();
     const digits = q.replace(/\D/g, "");
-    const test = FILTERS.find((f) => f.id === filter)?.test ?? (() => true);
+    const test = FILTERS.find((f) => f.id === deferredFilter)?.test ?? (() => true);
     return rows
       .filter(test)
       .filter(
@@ -100,8 +208,15 @@ export function PatientTable({ rows, initialFilter }: { rows: PatientListRow[]; 
           (digits.length >= 3 && (r.phone ?? "").includes(digits)) ||
           (r.clinicNo ?? "").toLowerCase().includes(q)
       )
-      .sort((a, b) => compare(a, b, sort.key) * sort.dir);
-  }, [rows, query, filter, sort]);
+      .sort((a, b) => compare(a, b, deferredSort.key) * deferredSort.dir);
+  }, [rows, deferredQuery, deferredFilter, deferredSort]);
+
+  // Reset paging whenever the (deferred) search or filter changes.
+  const resetKey = `${deferredFilter}\u0000${deferredQuery}`;
+  if (limitState.key !== resetKey) setLimitState({ key: resetKey, limit: PAGE_SIZE });
+  const limit = limitState.key === resetKey ? limitState.limit : PAGE_SIZE;
+  const shown = useMemo(() => visible.slice(0, limit), [visible, limit]);
+  const remaining = remainingCount(visible.length, limit);
 
   const sortHeader = (key: SortKey, label: string, className = "") => (
     <th className={`${th} ${className}`} aria-sort={sort.key === key ? (sort.dir === 1 ? "ascending" : "descending") : "none"}>
@@ -146,7 +261,7 @@ export function PatientTable({ rows, initialFilter }: { rows: PatientListRow[]; 
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className={`overflow-x-auto transition-opacity ${isStale ? "opacity-60" : ""}`} aria-busy={isStale}>
         <table className="w-full text-[14px]">
           <thead>
             <tr>
@@ -159,91 +274,8 @@ export function PatientTable({ rows, initialFilter }: { rows: PatientListRow[]; 
             </tr>
           </thead>
           <tbody>
-            {visible.map((r) => (
-              <tr
-                key={r.id}
-                onClick={(e) => {
-                  if ((e.target as HTMLElement).closest("a")) return;
-                  router.push(`/patients/${r.id}`);
-                }}
-                onMouseEnter={() => router.prefetch(`/patients/${r.id}`)}
-                className="cursor-pointer hover:bg-[var(--color-surface-1)]"
-              >
-                <td className={td}>
-                  <div className="flex items-center gap-3">
-                    <span
-                      aria-hidden
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-surface)] text-[12px] font-semibold text-[var(--color-primary)]"
-                    >
-                      {r.name
-                        .split(/\s+/)
-                        .map((p) => p[0])
-                        .slice(0, 2)
-                        .join("")
-                        .toUpperCase()}
-                    </span>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <Link href={`/patients/${r.id}`} prefetch={true} className="block font-semibold hover:underline">
-                          {r.name}
-                        </Link>
-                        {isRecentlyAdded(r.createdAt) && (
-                          <span className="rounded-md bg-[var(--color-on-track-surface)] border border-[var(--color-on-track)]/30 px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-on-track)] tracking-wide">
-                            NEW
-                          </span>
-                        )}
-                      </div>
-                      <span className="num block whitespace-nowrap text-[12px] text-[var(--color-charcoal)]">
-                        {[r.clinicNo && `#${r.clinicNo}`, r.phone].filter(Boolean).join(" · ") || "—"}
-                      </span>
-                    </div>
-                  </div>
-                </td>
-                <td className={`${td} num hidden whitespace-nowrap sm:table-cell`}>
-                  {r.age ?? "—"} <span className="text-[var(--color-charcoal)]">· {r.gp}</span>
-                </td>
-                <td className={`${td} num whitespace-nowrap`}>
-                  {r.gaLabel}
-                  {r.trimester && <span className="ml-1.5 text-[12px] text-[var(--color-charcoal)]">T{r.trimester}</span>}
-                </td>
-                <td className={`${td} num hidden whitespace-nowrap sm:table-cell`}>
-                  {r.eddLabel}
-                  {r.eddInDays !== null && r.eddInDays <= 30 && (
-                    <span className={`ml-1.5 text-[12px] ${r.eddInDays < 0 ? "text-[var(--color-overdue)]" : "text-[var(--color-on-track)]"}`}>
-                      {r.eddInDays < 0 ? `+${-r.eddInDays}d` : `${r.eddInDays}d`}
-                    </span>
-                  )}
-                </td>
-                <td className={`${td} num hidden whitespace-nowrap md:table-cell`}>{r.nextVisitLabel}</td>
-                <td className={td}>
-                  <div className="flex flex-wrap gap-1">
-                    <Tag tone={RISK[r.risk].tone}>{RISK[r.risk].label}</Tag>
-                    {r.overdueCount > 0 && <Tag tone="warning">{r.overdueCount} overdue</Tag>}
-                    {(() => {
-                      const alerts = r.flags.filter((f) => f.severity !== "info");
-                      const room = r.overdueCount > 0 ? 0 : 1;
-                      const extra = alerts.length - room;
-                      return (
-                        <>
-                          {alerts.slice(0, room).map((f) => (
-                            <Tag key={f.code} tone={SEVERITY_TONE[f.severity]}>
-                              {f.label}
-                            </Tag>
-                          ))}
-                          {extra > 0 && (
-                            <span
-                              className="inline-flex items-center rounded-full bg-[var(--color-surface-2)] px-2 text-[12px] font-medium leading-6 text-[var(--color-charcoal)]"
-                              title={alerts.slice(room).map((f) => f.label).join(", ")}
-                            >
-                              +{extra} alert{extra > 1 ? "s" : ""}
-                            </span>
-                          )}
-                        </>
-                      );
-                    })()}
-                  </div>
-                </td>
-              </tr>
+            {shown.map((r) => (
+              <PatientRow key={r.id} r={r} onOpen={openPatient} onHover={prefetchPatient} />
             ))}
           </tbody>
         </table>
@@ -253,8 +285,20 @@ export function PatientTable({ rows, initialFilter }: { rows: PatientListRow[]; 
           </p>
         )}
       </div>
-      <p className="num px-4 py-3 text-[12px] text-[var(--color-charcoal)]">
-        Showing {visible.length} of {rows.length}
+      {remaining > 0 && (
+        <div className="px-4 pb-2 text-center">
+          <button
+            type="button"
+            onClick={() => setLimitState((s) => ({ ...s, limit: nextLimit(s.limit, visible.length) }))}
+            className="min-h-10 rounded-full border border-[var(--color-border)] bg-[var(--color-background)] px-4 text-[13px] font-medium hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
+          >
+            Show more ({remaining} remaining)
+          </button>
+        </div>
+      )}
+      <p className="num px-4 py-3 text-[12px] text-[var(--color-charcoal)]" aria-live="polite">
+        Showing {shown.length} of {visible.length}
+        {visible.length !== rows.length ? ` matching (${rows.length} total)` : ""}
       </p>
     </div>
   );
