@@ -24,11 +24,14 @@ import {
 export interface MotherAudioPlayerProps {
   patientData: CounselingPatientData;
   initialLang?: CounselingLanguage;
+  /** Public (token) view for mothers: hides the staff-only "Back" link. */
+  publicView?: boolean;
 }
 
 export function MotherAudioPlayer({
   patientData,
   initialLang = "hi",
+  publicView = false,
 }: MotherAudioPlayerProps) {
   const [lang, setLang] = useState<CounselingLanguage>(initialLang);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -166,6 +169,9 @@ export function MotherAudioPlayer({
       <div className="mx-auto max-w-lg space-y-5">
         {/* Navigation Bar */}
         <div className="flex items-center justify-between">
+          {publicView ? (
+            <span />
+          ) : (
           <Link
             href={`/patients/${patientData.patientId}`}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--color-charcoal)] hover:text-[var(--color-primary)]"
@@ -173,6 +179,7 @@ export function MotherAudioPlayer({
             <ArrowLeft size={16} />
             <span>वापस / Back</span>
           </Link>
+          )}
           <div className="flex items-center gap-1 text-[11px] font-bold text-[var(--color-primary)] bg-[var(--color-primary)]/10 px-2.5 py-1 rounded-full">
             <Sparkle size={12} weight="fill" />
             <span>MatruSetu Voice Bridge</span>

@@ -34,6 +34,15 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // Public signed listen links: the token is in the URL, so keep it out of Referer, caches and indexes.
+        source: "/listen/:path*",
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+          { key: "Cache-Control", value: "private, no-store" },
+        ],
+      },
+      {
         source: "/manifest.webmanifest",
         headers: [
           {

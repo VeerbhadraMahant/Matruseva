@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser, isDemoActive } from "@/lib/auth";
@@ -9,6 +9,8 @@ import { todayInClinicTimezone, toISODate } from "@/lib/today";
 import { parseLocalDate } from "@/lib/format";
 import { closeDemoPregnancy, markDemoCareEventDone, recordDemoVisit, updateDemoPatient } from "@/lib/demo-data";
 import { eddFromLmp } from "@/lib/pregnancy";
+import { createListenToken, ListenLinkConfigError } from "@/lib/listenLink";
+import { COUNSELING_LANGUAGES, type CounselingLanguage } from "@/lib/voiceCounselor";
 import {
   generateSchedule,
   diffRegeneratedSchedule,
@@ -416,4 +418,45 @@ export async function updatePatient(
 
   revalidatePatientViews(patientId);
   return { error: null };
+}
+
+export interface ListenLinkResult {
+  url: string | null;
+  error: string | null;
+}
+
+/**
+ * Builds the signed, expiring public link a mother opens from WhatsApp.
+ * Staff only: the caller must be signed in and the patient must be visible to
+ * them through RLS (i.e. belong to their clinic). Demo mode skips the DB check.
+ */
+export async function createListenLink(patientId: string, lang: CounselingLanguage): Promise<ListenLinkResult> {
+  if (!COUNSELING_LANGUAGES.some((l) => l.code === lang)) return { url: null, error: "Unsupported language" };
+  const me = await getCurrentUser(); // redirects to /login when signed out
+
+  if (!me.isDemo) {
+    if (!z.string().uuid().safeParse(patientId).success) return { url: null, error: "Patient not found" };
+    const supabase = await createClient();
+    const { data: patient } = await supabase
+      .from("patients")
+      .select("id")
+      .eq("id", patientId)
+      .eq("clinic_id", me.clinicId)
+      .maybeSingle();
+    if (!patient) return { url: null, error: "Patient not found" };
+  }
+
+  try {
+    const token = createListenToken(patientId, lang);
+    let base = process.env.NEXT_PUBLIC_SITE_URL;
+    if (!base) {
+      const h = await headers();
+      const host = h.get("x-forwarded-host") ?? h.get("host");
+      base = host ? `${h.get("x-forwarded-proto") ?? "https"}://${host}` : "http://localhost:3000";
+    }
+    return { url: `${base.replace(/\/+$/, "")}/listen/${token}`, error: null };
+  } catch (err) {
+    if (err instanceof ListenLinkConfigError) return { url: null, error: "Listen links are not configured (LISTEN_LINK_SECRET)." };
+    return { url: null, error: "Could not create listen link" };
+  }
 }

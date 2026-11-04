@@ -24,6 +24,7 @@ import {
   type CounselingPatientData,
 } from "@/lib/voiceCounselor";
 import { whatsAppLink } from "@/lib/whatsapp";
+import { createListenLink } from "@/app/(app)/patients/[id]/actions";
 
 
 
@@ -45,10 +46,34 @@ export function VoiceCounselorModal({
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Signed public listen link for the selected language (fetched from the server;
+  // the message omits the link until it is ready, never falls back to a login-only URL).
+  const [listenLink, setListenLink] = useState<{ lang: CounselingLanguage; url: string | null } | null>(null);
+  const [linkError, setLinkError] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    createListenLink(data.patientId, lang)
+      .then((r) => {
+        if (cancelled) return;
+        setListenLink({ lang, url: r.url });
+        setLinkError(r.error);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setListenLink({ lang, url: null });
+        setLinkError("Could not create listen link");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [data.patientId, lang]);
+  const linkReady = listenLink?.lang === lang;
+  const audioListenUrl = linkReady ? listenLink.url : null;
+
   // Generate the counseling object dynamically based on inputs
   const counseling = useMemo(() => {
-    return generateCounseling({ ...data, doctorCustomNote: customNote }, lang);
-  }, [data, customNote, lang]);
+    return generateCounseling({ ...data, doctorCustomNote: customNote, audioListenUrl }, lang);
+  }, [data, customNote, lang, audioListenUrl]);
 
   // Estimated duration in seconds (based on word count & speech rate)
   const estimatedDuration = useMemo(() => {
@@ -178,6 +203,7 @@ export function VoiceCounselorModal({
   };
 
   const handleCopy = async () => {
+    if (!linkReady) return;
     try {
       await navigator.clipboard.writeText(counseling.whatsappMessage);
       setCopied(true);
@@ -454,9 +480,14 @@ export function VoiceCounselorModal({
           </button>
 
           <div className="flex items-center gap-2">
+            {linkError && linkReady && (
+              <span role="alert" className="text-[11px] text-red-600">{linkError}</span>
+            )}
+            {!linkReady && <span className="text-[11px] text-[var(--color-charcoal)]">Preparing listen link…</span>}
             {waLink ? (
               <a
-                href={waLink}
+                href={linkReady ? waLink : undefined}
+                aria-disabled={!linkReady}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-700 text-white px-4 py-2 text-[12px] font-semibold hover:bg-emerald-800 transition shadow-xs"

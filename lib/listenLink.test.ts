@@ -1,0 +1,58 @@
+import { describe, it, expect, afterEach, vi } from "vitest";
+
+vi.mock("server-only", () => ({}));
+
+import { createListenToken, verifyListenToken, LISTEN_LINK_DEFAULT_TTL_SECONDS } from "./listenLink";
+
+const PID = "11111111-2222-3333-4444-555555555555";
+
+afterEach(() => vi.unstubAllEnvs());
+
+describe("listen link tokens", () => {
+  it("round-trips a valid token", () => {
+    vi.stubEnv("LISTEN_LINK_SECRET", "s3cret");
+    const now = Date.now();
+    const p = verifyListenToken(createListenToken(PID, "mr", undefined, now), now);
+    expect(p).toEqual({ patientId: PID, lang: "mr", exp: Math.floor(now / 1000) + LISTEN_LINK_DEFAULT_TTL_SECONDS });
+  });
+
+  it("rejects a tampered payload or signature", () => {
+    vi.stubEnv("LISTEN_LINK_SECRET", "s3cret");
+    const token = createListenToken(PID, "hi");
+    const [payload, sig] = token.split(".");
+    const forged = Buffer.from(JSON.stringify({ p: "other", l: "hi", e: 9999999999 })).toString("base64url");
+    expect(verifyListenToken(`${forged}.${sig}`)).toBeNull();
+    expect(verifyListenToken(`${payload}.${sig.slice(0, -2)}AA`)).toBeNull();
+    expect(verifyListenToken(payload)).toBeNull();
+    expect(verifyListenToken("")).toBeNull();
+    expect(verifyListenToken("a.b.c")).toBeNull();
+  });
+
+  it("rejects an expired token", () => {
+    vi.stubEnv("LISTEN_LINK_SECRET", "s3cret");
+    const now = Date.now();
+    const token = createListenToken(PID, "en", 60, now);
+    expect(verifyListenToken(token, now + 59_000)).not.toBeNull();
+    expect(verifyListenToken(token, now + 61_000)).toBeNull();
+  });
+
+  it("rejects a token signed with a different secret", () => {
+    vi.stubEnv("LISTEN_LINK_SECRET", "one");
+    const token = createListenToken(PID, "gu");
+    vi.stubEnv("LISTEN_LINK_SECRET", "two");
+    expect(verifyListenToken(token)).toBeNull();
+  });
+
+  it("fails closed when the secret is unset", () => {
+    vi.stubEnv("LISTEN_LINK_SECRET", "");
+    vi.stubEnv("DEMO_MODE", "");
+    expect(() => createListenToken(PID, "hi")).toThrow();
+    expect(verifyListenToken("x.y")).toBeNull();
+  });
+
+  it("uses a dev fallback only in demo mode", () => {
+    vi.stubEnv("LISTEN_LINK_SECRET", "");
+    vi.stubEnv("DEMO_MODE", "1");
+    expect(verifyListenToken(createListenToken(PID, "hi"))?.patientId).toBe(PID);
+  });
+});
