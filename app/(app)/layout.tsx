@@ -10,14 +10,14 @@ import { Toaster } from "@/components/Toaster";
 import { OfflineSync } from "@/components/OfflineSync";
 import { getLocale } from "@/lib/i18n/server";
 import { messages } from "@/lib/i18n/messages";
-import { I18nProvider } from "@/lib/i18n/provider";
+import { AppI18nProvider } from "./AppI18nProvider";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const [me, cookieStore, locale] = await Promise.all([getCurrentUser(), cookies(), getLocale()]);
   const collapsed = cookieStore.get(SIDEBAR_COOKIE)?.value === "collapsed";
 
   return (
-    <I18nProvider locale={locale} messages={messages[locale]}>
+    <AppI18nProvider locale={locale} messages={messages[locale]}>
     <AppShell initialCollapsed={collapsed}>
       <AppTopBar
         clinicName={me.clinicName}
@@ -35,6 +35,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <Toaster />
       <OfflineSync userId={me.userId} />
     </AppShell>
-    </I18nProvider>
+    </AppI18nProvider>
   );
 }
