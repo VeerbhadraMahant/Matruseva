@@ -86,7 +86,6 @@ export function SignupForm({ demo }: { demo: boolean }) {
         </div>
         <GoogleSignInButton />
 
-        {demo && (
         <form action={loginDemo} className="mt-3">
           <button
             type="submit"
@@ -96,7 +95,6 @@ export function SignupForm({ demo }: { demo: boolean }) {
             {t("auth.login.demoButton")}
           </button>
         </form>
-        )}
 
         <p className="mt-6 text-sm">
           {t("auth.signup.haveAccount")}{" "}

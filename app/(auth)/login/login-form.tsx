@@ -61,8 +61,6 @@ export function LoginForm({ demo }: { demo: boolean }) {
         <SubmitButton>{t("auth.login.submit")}</SubmitButton>
       </form>
 
-      {demo && (
-      <>
       <div className="my-4 flex items-center gap-3 text-xs text-[var(--color-charcoal)]">
         <span className="h-px flex-1 bg-[var(--color-border)]" />
         {t("auth.signup.or")}
@@ -78,8 +76,6 @@ export function LoginForm({ demo }: { demo: boolean }) {
           {t("auth.login.demoButton")}
         </button>
       </form>
-      </>
-      )}
 
       <p className="mt-6 text-sm text-[var(--color-charcoal)]">
         {t("auth.login.noAccount")}{" "}

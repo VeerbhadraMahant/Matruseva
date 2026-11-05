@@ -5,7 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n/server";
 import type { Translator } from "@/lib/i18n/translate-client";
-import { DEMO_COOKIE, DEMO_EMAIL, DEMO_PASSWORD, isDemoModeEnabled } from "@/lib/demo";
+import { DEMO_COOKIE, DEMO_EMAIL, DEMO_PASSWORD } from "@/lib/demo";
 
 export interface ActionResult {
   error: string | null;
@@ -31,7 +31,6 @@ async function startDemoSession(): Promise<never> {
 }
 
 export async function loginDemo(): Promise<void> {
-  if (!isDemoModeEnabled()) redirect("/login");
   await startDemoSession();
 }
 
@@ -47,7 +46,6 @@ export async function login(_prev: ActionResult, formData: FormData): Promise<Ac
 
   // Demo bypass mode for offline evaluation / local testing
   if (
-    isDemoModeEnabled() &&
     parsed.data.email.toLowerCase() === DEMO_EMAIL &&
     parsed.data.password === DEMO_PASSWORD
   ) {
@@ -75,7 +73,6 @@ export async function signup(_prev: ActionResult, formData: FormData): Promise<A
 
   // Demo bypass mode: allow signing up with demo credentials
   if (
-    isDemoModeEnabled() &&
     parsed.data.email.toLowerCase() === DEMO_EMAIL &&
     parsed.data.password === DEMO_PASSWORD
   ) {
