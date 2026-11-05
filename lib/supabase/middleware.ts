@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "./types";
+import { fetchWithTimeout } from "./fetch";
 import { isDemoSession, isSupabaseConfigured } from "@/lib/demo";
 
 // /offline must stay reachable with no session and no network round-trip —
@@ -26,6 +27,9 @@ function isListenPath(pathname: string): boolean {
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
+  // The webhook verifies its own HMAC; skip the Supabase session round trip.
+  if (request.nextUrl.pathname.startsWith("/api/whatsapp")) return response;
+
   // Demo bypass: only when the deployment opted in via DEMO_MODE=1.
   if (isDemoSession(request.cookies)) {
     return response;
@@ -45,6 +49,7 @@ export async function updateSession(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      global: { fetch: fetchWithTimeout() },
       cookies: {
         getAll() {
           return request.cookies.getAll();
