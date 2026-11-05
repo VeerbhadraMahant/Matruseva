@@ -29,7 +29,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <AppBottomNav />
       <CommandPalette />
       <Toaster />
-      <OfflineSync />
+      <OfflineSync userId={me.userId} />
     </AppShell>
   );
 }
