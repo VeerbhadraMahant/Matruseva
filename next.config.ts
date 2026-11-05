@@ -6,6 +6,9 @@ import withSerwistInit from "@serwist/next";
 process.env.SERWIST_SUPPRESS_TURBOPACK_WARNING = "1";
 
 const nextConfig: NextConfig = {
+  env: {
+    DEMO_MODE: process.env.DEMO_MODE ?? "1",
+  },
   // @serwist/next always injects a webpack() config (even when `disable` is
   // true below), which Next 16's Turbopack dev server otherwise flags as a
   // likely mistake. This acknowledges it's intentional.
