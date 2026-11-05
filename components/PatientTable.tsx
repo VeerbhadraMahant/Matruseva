@@ -8,6 +8,9 @@ import { Tag, SEVERITY_TONE, th, td, card, chipClass, chipCountClass, type Tone 
 import type { ClinicalFlag } from "@/lib/clinical";
 import type { FollowUpRisk } from "@/lib/supabase/enums";
 import { PAGE_SIZE, nextLimit, remainingCount } from "@/lib/paging";
+import { useT } from "@/lib/i18n/provider";
+import type { MessageKey } from "@/lib/i18n/messages";
+import { flagLabel } from "@/lib/clinical";
 
 export interface PatientListRow {
   id: string;
@@ -32,24 +35,24 @@ export interface PatientListRow {
 
 export type PatientFilter = "all" | "t1" | "t2" | "t3" | "overdue" | "at_risk" | "lost" | "alerts" | "term";
 
-const FILTERS: { id: PatientFilter; label: string; test: (r: PatientListRow) => boolean }[] = [
-  { id: "all", label: "All", test: () => true },
-  { id: "t1", label: "T1", test: (r) => r.trimester === 1 },
-  { id: "t2", label: "T2", test: (r) => r.trimester === 2 },
-  { id: "t3", label: "T3", test: (r) => r.trimester === 3 },
-  { id: "overdue", label: "Overdue items", test: (r) => r.overdueCount > 0 },
-  { id: "at_risk", label: "At risk", test: (r) => r.risk === "at_risk" },
-  { id: "lost", label: "Lost", test: (r) => r.risk === "lost" },
-  { id: "alerts", label: "Clinical alerts", test: (r) => r.flags.some((f) => f.severity !== "info") },
-  { id: "term", label: "EDD ≤ 30d", test: (r) => r.eddInDays !== null && r.eddInDays <= 30 },
+const FILTERS: { id: PatientFilter; label: MessageKey; test: (r: PatientListRow) => boolean }[] = [
+  { id: "all", label: "patients.filter.all", test: () => true },
+  { id: "t1", label: "patients.filter.t1", test: (r) => r.trimester === 1 },
+  { id: "t2", label: "patients.filter.t2", test: (r) => r.trimester === 2 },
+  { id: "t3", label: "patients.filter.t3", test: (r) => r.trimester === 3 },
+  { id: "overdue", label: "patients.filter.overdue", test: (r) => r.overdueCount > 0 },
+  { id: "at_risk", label: "patients.filter.atRisk", test: (r) => r.risk === "at_risk" },
+  { id: "lost", label: "patients.filter.lost", test: (r) => r.risk === "lost" },
+  { id: "alerts", label: "patients.filter.alerts", test: (r) => r.flags.some((f) => f.severity !== "info") },
+  { id: "term", label: "patients.filter.term", test: (r) => r.eddInDays !== null && r.eddInDays <= 30 },
 ];
 
 type SortKey = "name" | "ga" | "edd" | "next" | "recent";
 
-const RISK: Record<FollowUpRisk, { tone: Tone; label: string }> = {
-  on_track: { tone: "ok", label: "On track" },
-  at_risk: { tone: "warning", label: "At risk" },
-  lost: { tone: "critical", label: "Lost" },
+const RISK: Record<FollowUpRisk, { tone: Tone; label: MessageKey }> = {
+  on_track: { tone: "ok", label: "patients.risk.onTrack" },
+  at_risk: { tone: "warning", label: "patients.risk.atRisk" },
+  lost: { tone: "critical", label: "patients.risk.lost" },
 };
 
 function compare(a: PatientListRow, b: PatientListRow, key: SortKey): number {
@@ -89,6 +92,7 @@ const PatientRow = memo(function PatientRow({
   onOpen: (id: string) => void;
   onHover: (id: string) => void;
 }) {
+  const t = useT();
   return (
     <tr
       onClick={(e) => {
@@ -118,7 +122,7 @@ const PatientRow = memo(function PatientRow({
               </Link>
               {isRecentlyAdded(r.createdAt) && (
                 <span className="rounded-md bg-[var(--color-on-track-surface)] border border-[var(--color-on-track)]/30 px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-on-track)] tracking-wide">
-                  NEW
+                  {t("patients.table.new")}
                 </span>
               )}
             </div>
@@ -131,23 +135,27 @@ const PatientRow = memo(function PatientRow({
       <td className={`${td} num hidden whitespace-nowrap sm:table-cell`}>
         {r.age ?? "—"} <span className="text-[var(--color-charcoal)]">· {r.gp}</span>
       </td>
-      <td className={`${td} num whitespace-nowrap`}>
+      <td className={`${td} num`}>
         {r.gaLabel}
-        {r.trimester && <span className="ml-1.5 text-[12px] text-[var(--color-charcoal)]">T{r.trimester}</span>}
+        {r.trimester && (
+          <span className="ml-1.5 text-[12px] text-[var(--color-charcoal)]">
+            {t("patients.trimesterShort", { trimester: r.trimester })}
+          </span>
+        )}
       </td>
       <td className={`${td} num hidden whitespace-nowrap sm:table-cell`}>
         {r.eddLabel}
         {r.eddInDays !== null && r.eddInDays <= 30 && (
           <span className={`ml-1.5 text-[12px] ${r.eddInDays < 0 ? "text-[var(--color-overdue)]" : "text-[var(--color-on-track)]"}`}>
-            {r.eddInDays < 0 ? `+${-r.eddInDays}d` : `${r.eddInDays}d`}
+            {r.eddInDays < 0 ? t("patients.daysPast", { count: -r.eddInDays }) : t("patients.daysShort", { count: r.eddInDays })}
           </span>
         )}
       </td>
-      <td className={`${td} num hidden whitespace-nowrap md:table-cell`}>{r.nextVisitLabel}</td>
+      <td className={`${td} num hidden md:table-cell`}>{r.nextVisitLabel}</td>
       <td className={td}>
         <div className="flex flex-wrap gap-1">
-          <Tag tone={RISK[r.risk].tone}>{RISK[r.risk].label}</Tag>
-          {r.overdueCount > 0 && <Tag tone="warning">{r.overdueCount} overdue</Tag>}
+          <Tag tone={RISK[r.risk].tone}>{t(RISK[r.risk].label)}</Tag>
+          {r.overdueCount > 0 && <Tag tone="warning">{t("patients.table.overdueCount", { count: r.overdueCount })}</Tag>}
           {(() => {
             const alerts = r.flags.filter((f) => f.severity !== "info");
             const room = r.overdueCount > 0 ? 0 : 1;
@@ -156,15 +164,15 @@ const PatientRow = memo(function PatientRow({
               <>
                 {alerts.slice(0, room).map((f) => (
                   <Tag key={f.code} tone={SEVERITY_TONE[f.severity]}>
-                    {f.label}
+                    {flagLabel(f, t)}
                   </Tag>
                 ))}
                 {extra > 0 && (
                   <span
                     className="inline-flex items-center rounded-full bg-[var(--color-surface-2)] px-2 text-[12px] font-medium leading-6 text-[var(--color-charcoal)]"
-                    title={alerts.slice(room).map((f) => f.label).join(", ")}
+                    title={alerts.slice(room).map((f) => flagLabel(f, t)).join(", ")}
                   >
-                    +{extra} alert{extra > 1 ? "s" : ""}
+                    {t("patients.table.moreAlerts", { count: extra })}
                   </span>
                 )}
               </>
@@ -177,6 +185,7 @@ const PatientRow = memo(function PatientRow({
 });
 
 export function PatientTable({ rows, initialFilter }: { rows: PatientListRow[]; initialFilter: PatientFilter }) {
+  const t = useT();
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<PatientFilter>(initialFilter);
@@ -240,12 +249,12 @@ export function PatientTable({ rows, initialFilter }: { rows: PatientListRow[]; 
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search name, phone, clinic no."
-            aria-label="Search patients"
+            placeholder={t("patients.table.searchPlaceholder")}
+            aria-label={t("patients.table.searchLabel")}
             className="min-h-10 flex-1 border-0 bg-transparent text-[14px] shadow-none outline-none focus:shadow-none"
           />
         </label>
-        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1" role="tablist" aria-label="Filter patients">
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1" role="tablist" aria-label={t("patients.table.filterLabel")}>
           {FILTERS.map((f) => (
             <button
               key={f.id}
@@ -255,7 +264,7 @@ export function PatientTable({ rows, initialFilter }: { rows: PatientListRow[]; 
               onClick={() => setFilter(f.id)}
               className={chipClass(filter === f.id)}
             >
-              {f.label} <span className={chipCountClass(filter === f.id)}>{counts[f.id]}</span>
+              {t(f.label)} <span className={chipCountClass(filter === f.id)}>{counts[f.id]}</span>
             </button>
           ))}
         </div>
@@ -265,12 +274,12 @@ export function PatientTable({ rows, initialFilter }: { rows: PatientListRow[]; 
         <table className="w-full text-[14px]">
           <thead>
             <tr>
-              {sortHeader("name", "Patient")}
-              <th className={`${th} hidden sm:table-cell`}>Age / G·P</th>
-              {sortHeader("ga", "GA")}
-              {sortHeader("edd", "EDD", "hidden sm:table-cell")}
-              {sortHeader("next", "Next visit", "hidden md:table-cell")}
-              <th className={th}>Status</th>
+              {sortHeader("name", t("patients.table.colPatient"))}
+              <th className={`${th} hidden sm:table-cell`}>{t("patients.table.colAgeGp")}</th>
+              {sortHeader("ga", t("patients.table.colGa"))}
+              {sortHeader("edd", t("patients.table.colEdd"), "hidden sm:table-cell")}
+              {sortHeader("next", t("patients.table.colNextVisit"), "hidden md:table-cell")}
+              <th className={th}>{t("patients.table.colStatus")}</th>
             </tr>
           </thead>
           <tbody>
@@ -281,7 +290,7 @@ export function PatientTable({ rows, initialFilter }: { rows: PatientListRow[]; 
         </table>
         {visible.length === 0 && (
           <p className="px-3 py-8 text-center text-[13px] text-[var(--color-charcoal)]">
-            {rows.length === 0 ? "No active patients yet." : "No patients match this search or filter."}
+            {rows.length === 0 ? t("patients.table.emptyNone") : t("patients.table.emptyNoMatch")}
           </p>
         )}
       </div>
@@ -292,13 +301,14 @@ export function PatientTable({ rows, initialFilter }: { rows: PatientListRow[]; 
             onClick={() => setLimitState((s) => ({ ...s, limit: nextLimit(s.limit, visible.length) }))}
             className="min-h-10 rounded-full border border-[var(--color-border)] bg-[var(--color-background)] px-4 text-[13px] font-medium hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
           >
-            Show more ({remaining} remaining)
+            {t("patients.table.showMore", { count: remaining })}
           </button>
         </div>
       )}
       <p className="num px-4 py-3 text-[12px] text-[var(--color-charcoal)]" aria-live="polite">
-        Showing {shown.length} of {visible.length}
-        {visible.length !== rows.length ? ` matching (${rows.length} total)` : ""}
+        {visible.length !== rows.length
+          ? t("patients.table.showingMatching", { shown: shown.length, visible: visible.length, total: rows.length })
+          : t("patients.table.showing", { shown: shown.length, visible: visible.length })}
       </p>
     </div>
   );

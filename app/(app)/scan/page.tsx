@@ -2,16 +2,18 @@ import { PageHeader, card, pageBody } from "@/components/ui";
 import { ScanQRCardButton } from "@/components/QRScannerModal";
 import Link from "next/link";
 import { Camera, QrCode, ArrowLeft, ShieldCheck } from "@phosphor-icons/react/dist/ssr";
+import { getT } from "@/lib/i18n/server";
 
-export default function ScanPage() {
+export default async function ScanPage() {
+  const { t } = await getT();
   return (
     <>
       <PageHeader
-        title="Scan QR card"
-        meta="Check a patient in from her health pass QR code"
+        title={t("patients.scan.title")}
+        meta={t("patients.scan.meta")}
         actions={
           <Link href="/patients" className="flex min-h-10 items-center gap-1.5 text-[13px] font-medium text-[var(--color-primary)] hover:underline">
-            <ArrowLeft size={14} /> Back to Patients
+            <ArrowLeft size={14} aria-hidden /> {t("patients.scan.back")}
           </Link>
         }
       />
@@ -23,9 +25,9 @@ export default function ScanPage() {
           </div>
 
           <div>
-            <h2 className="text-[18px] font-semibold text-[var(--color-foreground)]">Scan Patient QR Health Pass</h2>
+            <h2 className="text-[18px] font-semibold text-[var(--color-foreground)]">{t("patients.scan.heading")}</h2>
             <p className="text-[13px] text-[var(--color-charcoal)] max-w-sm mx-auto mt-1.5">
-              Hold the mother&apos;s health card QR code or WhatsApp photo in front of the camera to instantly pull up her pregnancy timeline and ANC records.
+              {t("patients.scan.body")}
             </p>
           </div>
 
@@ -36,12 +38,12 @@ export default function ScanPage() {
           <div className="pt-4 border-t border-[var(--color-border)] flex flex-wrap items-center justify-center gap-4 text-[12px] text-[var(--color-charcoal)]">
             <span className="flex items-center gap-1.5">
               <ShieldCheck size={16} className="text-[var(--color-on-track)]" />
-              <span>Instant OPD Match</span>
+              <span>{t("patients.scan.perkMatch")}</span>
             </span>
             <span>•</span>
             <span className="flex items-center gap-1.5">
               <QrCode size={16} className="text-[var(--color-primary)]" />
-              <span>Zero-Type Check-in</span>
+              <span>{t("patients.scan.perkNoType")}</span>
             </span>
           </div>
         </div>

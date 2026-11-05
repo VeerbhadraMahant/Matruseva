@@ -1,4 +1,5 @@
 import { getClinicSnapshot } from "@/lib/snapshot";
+import { getT } from "@/lib/i18n/server";
 
 /**
  * Overdue-patient count for the Call queue nav item. Async server component:
@@ -15,6 +16,7 @@ export async function CallQueueBadge() {
     return null;
   }
   if (count <= 0) return null;
+  const { t } = await getT();
   return (
     <span
       className="ml-auto flex min-w-5 items-center justify-center rounded-full bg-[var(--color-primary)] px-1.5 text-[11px] font-semibold leading-5 text-white group-data-[collapsed=true]/sb:absolute group-data-[collapsed=true]/sb:right-2 group-data-[collapsed=true]/sb:top-2 group-data-[collapsed=true]/sb:ml-0 group-data-[collapsed=true]/sb:h-2.5 group-data-[collapsed=true]/sb:w-2.5 group-data-[collapsed=true]/sb:min-w-0 group-data-[collapsed=true]/sb:p-0 group-data-[collapsed=true]/sb:ring-2 group-data-[collapsed=true]/sb:ring-[var(--color-background)] group-aria-[current=page]/link:bg-white group-aria-[current=page]/link:text-[var(--color-primary)]"
@@ -23,7 +25,7 @@ export async function CallQueueBadge() {
         {count > 99 ? "99+" : count}
       </span>
       <span className="sr-only">
-        {count} {count === 1 ? "patient" : "patients"} overdue
+        {t("shell.callBadge.overdue", { count })}
       </span>
     </span>
   );

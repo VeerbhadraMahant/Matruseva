@@ -6,8 +6,7 @@ import {
   type QueuePayload,
   pickPayload,
 } from "@/lib/offlineQueue";
-
-export const OFFLINE_SAVED_MESSAGE = "Saved offline — will sync when you're back online";
+import { offlineT } from "@/lib/offlineI18n";
 
 export interface SubmitResult {
   error: string | null;
@@ -22,7 +21,7 @@ interface Options {
   fields: Record<string, unknown>;
   /** Performs the real server action with the idempotency key. */
   run: (clientRequestId: string) => Promise<{ error: string | null }>;
-  /** Called with OFFLINE_SAVED_MESSAGE when the change was queued. */
+  /** Called with the localised "saved offline" message when the change was queued. */
   notify?: (message: string) => void;
   /** Injected for tests. */
   queue?: OfflineQueue;
@@ -45,9 +44,9 @@ export async function submitOrQueue(o: Options): Promise<SubmitResult> {
       const queue = o.queue ?? getOfflineQueue();
       await queue.enqueue({ id, type: o.type, patientId: o.patientId, payload: pickPayload(o.type, o.fields) as QueuePayload });
     } catch {
-      return { error: "You're offline and this could not be saved on the device. Please try again when connected." };
+      return { error: offlineT("shell.offline.saveFailed") };
     }
-    o.notify?.(OFFLINE_SAVED_MESSAGE);
+    o.notify?.(offlineT("shell.offline.saved"));
     return { error: null, queued: true };
   };
 

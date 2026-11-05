@@ -4,6 +4,9 @@ import { useState, useTransition, useRef, useEffect } from "react";
 import { CheckCircle, PaperPlaneTilt, ArrowClockwise, X, Robot, ShieldCheck, WhatsappLogo } from "@phosphor-icons/react";
 import { dispatchBotReminder, processBotReply } from "@/app/(app)/calls/actions";
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "@/lib/whatsapp";
+import { useT, useLocale } from "@/lib/i18n/provider";
+import { intlLocale } from "@/lib/i18n/intl";
+import { careEventName } from "@/lib/clinicalLabels";
 
 export interface BotSimulatorPatient {
   id: string;
@@ -27,8 +30,8 @@ function nextMessageId(prefix: string): string {
   return `${prefix}-${globalMsgSeq}`;
 }
 
-function getCurrentTimeString(): string {
-  return new Intl.DateTimeFormat([], { hour: "2-digit", minute: "2-digit" }).format(new Date());
+function getCurrentTimeString(tag: string): string {
+  return new Intl.DateTimeFormat(tag, { hour: "2-digit", minute: "2-digit" }).format(new Date());
 }
 
 export function WhatsAppBotSimulator({
@@ -42,6 +45,9 @@ export function WhatsAppBotSimulator({
   initialLang?: SupportedLanguage;
   onClose: () => void;
 }) {
+  const t = useT();
+  const locale = useLocale();
+  const timeTag = intlLocale(locale);
   const [selectedPatientId, setSelectedPatientId] = useState<string>(
     initialPatientId || patients[0]?.id || ""
   );
@@ -82,17 +88,18 @@ export function WhatsAppBotSimulator({
             id: nextMessageId("msg"),
             sender: "bot",
             text: res.reminderText,
-            time: getCurrentTimeString(),
+            time: getCurrentTimeString(timeTag),
             status: "read",
           },
         ]);
-        setDbUpdateNotice("Dispatched automated WhatsApp reminder → Logged to Supabase contact_log");
+        setDbUpdateNotice(t("calls.bot.noticeDispatched"));
       }
     });
 
     return () => {
       isCancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- t/timeTag are stable per locale; re-dispatching on locale change would resend the reminder
   }, [currentPatient, lang]);
 
   const handleSendPatientReply = (textToSend?: string) => {
@@ -100,7 +107,7 @@ export function WhatsAppBotSimulator({
     if (!text || !currentPatient || isPending) return;
 
     const userMsgId = nextMessageId("usr");
-    const userTime = getCurrentTimeString();
+    const userTime = getCurrentTimeString(timeTag);
 
     // Add user message to UI
     setMessages((prev) => [
@@ -117,7 +124,7 @@ export function WhatsAppBotSimulator({
     // Process via Bot action
     startTransition(async () => {
       const res = await processBotReply(currentPatient.id, text, lang);
-      const replyTime = getCurrentTimeString();
+      const replyTime = getCurrentTimeString(timeTag);
 
       if (res.result) {
         setMessages((prev) => [
@@ -132,14 +139,14 @@ export function WhatsAppBotSimulator({
         ]);
 
         if (res.result.actionTaken === "confirmed_visit") {
-          setDbUpdateNotice("⚡ Supabase contact_log updated: OUTCOME = 'will_visit' (Confirmed)");
+          setDbUpdateNotice(t("calls.bot.noticeConfirmed"));
         } else if (res.result.actionTaken === "reschedule_requested") {
-          setDbUpdateNotice("⚡ Supabase contact_log updated: OUTCOME = 'reached' (Callback Requested)");
+          setDbUpdateNotice(t("calls.bot.noticeCallback"));
         } else {
-          setDbUpdateNotice("⚡ Bot replied with clinical preparation guidelines");
+          setDbUpdateNotice(t("calls.bot.noticeInfo"));
         }
       } else if (res.error) {
-        setDbUpdateNotice(`Error: ${res.error}`);
+        setDbUpdateNotice(t("calls.bot.noticeError", { error: res.error }));
       }
     });
   };
@@ -178,15 +185,15 @@ export function WhatsAppBotSimulator({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-[14px] font-semibold text-[var(--color-foreground)]">
-                  WhatsApp Business Bot Simulator
+                  {t("calls.bot.title")}
                 </h3>
                 <span className="flex items-center gap-1 bg-[#E7F8EE] px-1.5 py-0.5 text-[10px] font-bold text-[#128C7E]">
                   <ShieldCheck size={12} weight="bold" />
-                  Meta Webhook Ready
+                  {t("calls.bot.badge")}
                 </span>
               </div>
               <p className="text-[11px] text-[var(--color-charcoal)]">
-                Live 2-way patient simulation · Syncs with Supabase RLS & Call Queue
+                {t("calls.bot.subtitle")}
               </p>
             </div>
           </div>
@@ -194,7 +201,7 @@ export function WhatsAppBotSimulator({
             type="button"
             onClick={onClose}
             className="flex h-8 w-8 items-center justify-center text-[var(--color-charcoal)] hover:bg-[var(--color-surface-1)] hover:text-black"
-            aria-label="Close simulator"
+            aria-label={t("calls.bot.closeAria")}
           >
             <X size={18} />
           </button>
@@ -203,7 +210,7 @@ export function WhatsAppBotSimulator({
         {/* Configuration Bar: Patient & Language Switcher */}
         <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-[var(--color-border)] bg-[var(--color-surface-1)] px-4 py-2.5 text-[12px]">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="font-semibold text-[var(--color-charcoal)] whitespace-nowrap">Patient:</span>
+            <span className="font-semibold text-[var(--color-charcoal)] whitespace-nowrap">{t("calls.bot.patient")}</span>
             <select
               value={selectedPatientId}
               onChange={(e) => setSelectedPatientId(e.target.value)}
@@ -211,14 +218,14 @@ export function WhatsAppBotSimulator({
             >
               {patients.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} ({p.careEventName || p.reason})
+                  {p.name} ({p.careEventName ? careEventName(p.careEventName.split("(")[0].trim(), t) : t(`calls.reason.${p.reason}`)})
                 </option>
               ))}
             </select>
           </div>
 
           <div className="flex items-center gap-1.5">
-            <span className="font-semibold text-[var(--color-charcoal)]">Language:</span>
+            <span className="font-semibold text-[var(--color-charcoal)]">{t("calls.toolbar.language")}</span>
             <div className="rounded-xl inline-flex border border-[var(--color-border-strong)] bg-[var(--color-background)] p-0.5">
               {SUPPORTED_LANGUAGES.map((l) => (
                 <button
@@ -257,13 +264,13 @@ export function WhatsAppBotSimulator({
               <div>
                 <div className="flex items-center gap-1.5">
                   <span className="text-[13px] font-semibold tracking-wide">
-                    {currentPatient?.name || "Patient"}
+                    {currentPatient?.name || t("calls.bot.patientFallback")}
                   </span>
                   <span className="text-[10px] bg-white/20 px-1 py-0.2 rounded font-mono">
                     {currentPatient?.phone || "+91 98765 43210"}
                   </span>
                 </div>
-                <p className="text-[10px] text-white/80">Online · MatruSetu Verified Care Companion</p>
+                <p className="text-[10px] text-white/80">{t("calls.bot.online")}</p>
               </div>
             </div>
             <button
@@ -284,19 +291,19 @@ export function WhatsAppBotSimulator({
                         id: nextMessageId("msg"),
                         sender: "bot",
                         text: res.reminderText,
-                        time: getCurrentTimeString(),
+                        time: getCurrentTimeString(timeTag),
                         status: "read",
                       },
                     ]);
-                    setDbUpdateNotice("Re-dispatched automated reminder");
+                    setDbUpdateNotice(t("calls.bot.noticeRedispatched"));
                   }
                 });
               }}
               className="flex items-center gap-1 text-[11px] text-white/90 hover:text-white bg-white/10 px-2 py-1"
-              title="Restart simulation"
+              title={t("calls.bot.resetTitle")}
             >
               <ArrowClockwise size={13} />
-              <span>Reset</span>
+              <span>{t("calls.bot.reset")}</span>
             </button>
           </div>
 
@@ -304,7 +311,7 @@ export function WhatsAppBotSimulator({
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             <div className="flex justify-center my-1">
               <span className="rounded bg-white/80 px-2.5 py-0.5 text-[10px] font-semibold text-gray-600 shadow-xs">
-                TODAY · 256-BIT END-TO-END ENCRYPTED
+                {t("calls.bot.encrypted")}
               </span>
             </div>
 
@@ -325,7 +332,7 @@ export function WhatsAppBotSimulator({
                     {isBot && (
                       <div className="flex items-center gap-1 text-[10px] font-semibold text-[#075E54] mb-1">
                         <Robot size={12} weight="bold" />
-                        <span>MatruSetu Clinic Bot</span>
+                        <span>{t("calls.bot.name")}</span>
                       </div>
                     )}
                     <div className="whitespace-pre-wrap">{m.text}</div>
@@ -345,7 +352,7 @@ export function WhatsAppBotSimulator({
           {/* Quick Simulated Response Chips */}
           <div className="border-t border-[#d1d7db] bg-[#f0f2f5] p-2">
             <div className="mb-1 text-[10px] font-bold text-gray-500">
-              Quick Patient Responses (Click to test):
+              {t("calls.bot.quickTitle")}
             </div>
             <div className="flex flex-wrap gap-1.5">
               {getQuickReplies().map((chip, idx) => (
@@ -387,7 +394,8 @@ export function WhatsAppBotSimulator({
               type="submit"
               disabled={!inputText.trim() || isPending}
               className="flex h-9 w-9 items-center justify-center rounded-full bg-[#128C7E] text-white shadow-sm hover:bg-[#075E54] disabled:opacity-40 transition-colors"
-              title="Send reply"
+              title={t("calls.bot.send")}
+              aria-label={t("calls.bot.send")}
             >
               <PaperPlaneTilt size={16} weight="fill" />
             </button>
@@ -397,14 +405,14 @@ export function WhatsAppBotSimulator({
         {/* Modal Footer */}
         <div className="flex items-center justify-between border-t border-[var(--color-border-strong)] bg-[var(--color-surface-1)] px-4 py-2 text-[11px] text-[var(--color-charcoal)]">
           <span>
-            Webhook Route: <code className="font-mono bg-[var(--color-surface-2)] px-1">/api/whatsapp/webhook</code>
+            {t("calls.bot.webhook")} <code className="font-mono bg-[var(--color-surface-2)] px-1">/api/whatsapp/webhook</code>
           </span>
           <button
             type="button"
             onClick={onClose}
             className="rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 py-1 font-semibold text-[var(--color-foreground)] hover:bg-[var(--color-surface-2)]"
           >
-            Done
+            {t("common.done")}
           </button>
         </div>
       </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useT } from "@/lib/i18n/provider";
 
 /*
   Shared line chart for antenatal trends.
@@ -93,6 +94,7 @@ export function TrendChart({
   decimals?: number;
   ariaLabel: string;
 }) {
+  const t = useT();
   const wrapRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(640);
   const [active, setActive] = useState<number | null>(null);
@@ -174,7 +176,7 @@ export function TrendChart({
   return (
     <div className="space-y-3">
       {(series.length > 1 || bands.length > 0 || corridor || refLines.length > 0) && (
-        <ul className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12px] text-[var(--color-charcoal)]" aria-label="Legend">
+        <ul className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12px] text-[var(--color-charcoal)]" aria-label={t("reports.chart.legend")}>
           {series.length > 1 &&
             series.map((s) => (
               <li key={s.key} className="flex items-center gap-1.5">
@@ -207,7 +209,7 @@ export function TrendChart({
         ref={wrapRef}
         tabIndex={0}
         role="group"
-        aria-label={`${ariaLabel}. Use left and right arrow keys to step through visits.`}
+        aria-label={t("reports.chart.groupAria", { label: ariaLabel })}
         aria-describedby={tableId}
         className="relative rounded-xl outline-offset-4"
         onPointerMove={(e) => pickNearest(e.clientX)}
@@ -322,7 +324,7 @@ export function TrendChart({
 
         {activeX !== null && (
           <div
-            className="pointer-events-none absolute top-8 z-10 w-44 rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-3 text-[12px] shadow-[0_12px_28px_-12px_rgb(62_42_92/0.35)]"
+            className="pointer-events-none absolute top-8 z-10 w-44 break-words rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-3 text-[12px] shadow-[0_12px_28px_-12px_rgb(62_42_92/0.35)]"
             style={{ left: tooltipLeft }}
           >
             <p className="font-semibold text-[var(--color-foreground)]">{xMeta(activeX).title}</p>
@@ -351,7 +353,7 @@ export function TrendChart({
           <caption>{ariaLabel}</caption>
           <thead>
             <tr>
-              <th scope="col">Visit</th>
+              <th scope="col">{t("reports.chart.visit")}</th>
               {series.map((s) => (
                 <th key={s.key} scope="col">
                   {s.label} ({unit})

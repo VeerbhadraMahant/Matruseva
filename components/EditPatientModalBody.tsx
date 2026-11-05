@@ -5,7 +5,8 @@ import { useState, useMemo, useEffect, useRef, useActionState } from "react";
 import { NotePencil, X, Calendar, Sparkle, WarningCircle } from "@phosphor-icons/react";
 import { buttonSecondary } from "@/components/ui";
 import { updatePatient, type ActionResult } from "@/app/(app)/patients/[id]/actions";
-import { eddFromLmp, gestationalAge, formatGA, trimester } from "@/lib/pregnancy";
+import { eddFromLmp, formatGALocalized, gestationalAge, trimester } from "@/lib/pregnancy";
+import { useT } from "@/lib/i18n/provider";
 import { SubmitButton } from "@/components/SubmitButton";
 import { withSuccessToast } from "@/components/Toaster";
 
@@ -38,7 +39,8 @@ export function EditPatientModal({
   patient: EditPatientData;
   onClose: () => void;
 }) {
-  const [state, formAction, isPending] = useActionState(withSuccessToast(updatePatient.bind(null, patient.id), "Patient details updated"), initialState);
+  const t = useT();
+  const [state, formAction, isPending] = useActionState(withSuccessToast(updatePatient.bind(null, patient.id), t("patients.edit.toast")), initialState);
   const prevPendingRef = useRef(false);
 
   const [lmp, setLmp] = useState(patient.lmp || "");
@@ -91,16 +93,16 @@ export function EditPatientModal({
     if (!lmpDate) return null;
     const ga = gestationalAge(lmpDate, new Date());
     return {
-      ga: formatGA(ga),
+      ga: formatGALocalized(ga, t),
       trimester: trimester(ga),
     };
-  }, [lmp]);
+  }, [lmp, t]);
 
   return (
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Edit Patient & Pregnancy Dating"
+      aria-label={t("patients.edit.dialogLabel")}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs overflow-y-auto"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
@@ -114,15 +116,16 @@ export function EditPatientModal({
               <NotePencil size={16} weight="bold" />
             </div>
             <div>
-              <h2 className="text-[14px] font-bold text-[var(--color-foreground)]">Edit Patient & Pregnancy Dating</h2>
+              <h2 className="text-[14px] font-bold text-[var(--color-foreground)]">{t("patients.edit.title")}</h2>
               <p className="text-[11px] text-[var(--color-charcoal)]">
-                Update demographics, correct LMP from dating scan, or adjust ANC schedule
+                {t("patients.edit.subtitle")}
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
+            aria-label={t("patients.edit.close")}
             className="rounded-lg p-1.5 text-[var(--color-charcoal)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-foreground)] transition"
           >
             <X size={18} />
@@ -146,11 +149,11 @@ export function EditPatientModal({
             <div className="flex items-center justify-between">
               <span className="text-[12px] font-bold text-[var(--color-primary)] flex items-center gap-1.5">
                 <Calendar size={15} weight="bold" />
-                Pregnancy Dating & Schedule Calibration
+                {t("patients.edit.sectionDating")}
               </span>
               {datingPreview && (
                 <span className="text-[11px] font-mono bg-white px-2 py-0.5 rounded-full border border-[var(--color-border)] text-[var(--color-foreground)]">
-                  GA: <strong>{datingPreview.ga}</strong> (T{datingPreview.trimester})
+                  {t("patients.edit.gaPreview", { ga: datingPreview.ga, trimester: t("patients.trimesterShort", { trimester: datingPreview.trimester }) })}
                 </span>
               )}
             </div>
@@ -158,7 +161,7 @@ export function EditPatientModal({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label htmlFor="eddSource" className={labelClass}>
-                  Dating Basis
+                  {t("patients.edit.datingBasis")}
                 </label>
                 <select
                   id="eddSource"
@@ -167,15 +170,15 @@ export function EditPatientModal({
                   value={eddSource}
                   onChange={(e) => handleEddSourceChange(e.target.value as "lmp" | "scan" | "manual")}
                 >
-                  <option value="lmp">LMP (Natural cycle)</option>
-                  <option value="scan">Ultrasound Dating Scan (CRL/USG)</option>
-                  <option value="manual">Clinical / Manual Correction</option>
+                  <option value="lmp">{t("patients.edit.basisLmp")}</option>
+                  <option value="scan">{t("patients.edit.basisScan")}</option>
+                  <option value="manual">{t("patients.edit.basisManual")}</option>
                 </select>
               </div>
 
               <div>
                 <label htmlFor="lmp" className={labelClass}>
-                  LMP Date *
+                  {t("patients.edit.lmpDate")}
                 </label>
                 <input
                   id="lmp"
@@ -190,7 +193,7 @@ export function EditPatientModal({
 
               <div>
                 <label htmlFor="edd" className={labelClass}>
-                  Estimated Due Date (EDD)
+                  {t("patients.edit.edd")}
                 </label>
                 <input
                   id="edd"
@@ -208,7 +211,7 @@ export function EditPatientModal({
               <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-300 p-2 text-xs text-amber-900">
                 <Sparkle size={15} className="shrink-0 mt-0.5 text-amber-700" />
                 <div>
-                  <strong>Automatic Schedule Adjustment:</strong> Saving these changes will automatically diff and recalculate target windows for all uncompleted ANC scans, tests, and injections. Completed events remain preserved.
+                  <strong>{t("patients.edit.autoAdjustTitle")}</strong> {t("patients.edit.autoAdjustBody")}
                 </div>
               </div>
             )}
@@ -217,20 +220,20 @@ export function EditPatientModal({
           {/* Section 2: Patient Identity */}
           <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-4 space-y-3">
             <span className="text-[11px] font-bold text-[var(--color-charcoal)] block border-b border-[var(--color-border)] pb-1.5">
-              Demographics & Contact
+              {t("patients.edit.sectionDemographics")}
             </span>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="sm:col-span-2">
                 <label htmlFor="name" className={labelClass}>
-                  Full Name *
+                  {t("patients.edit.fullName")}
                 </label>
                 <input id="name" name="name" type="text" required defaultValue={patient.name} className={inputClass} />
               </div>
 
               <div>
                 <label htmlFor="clinicPatientNo" className={labelClass}>
-                  OPD / Card No.
+                  {t("patients.edit.cardNo")}
                 </label>
                 <input
                   id="clinicPatientNo"
@@ -245,7 +248,7 @@ export function EditPatientModal({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label htmlFor="phone" className={labelClass}>
-                  Primary Mobile
+                  {t("patients.edit.primaryMobile")}
                 </label>
                 <input
                   id="phone"
@@ -253,14 +256,14 @@ export function EditPatientModal({
                   type="tel"
                   inputMode="numeric"
                   defaultValue={patient.phone || ""}
-                  placeholder="10-digit"
+                  placeholder={t("patients.edit.mobilePlaceholder")}
                   className={`${inputClass} num`}
                 />
               </div>
 
               <div>
                 <label htmlFor="altPhone" className={labelClass}>
-                  Alternate Mobile
+                  {t("patients.edit.altMobile")}
                 </label>
                 <input
                   id="altPhone"
@@ -274,7 +277,7 @@ export function EditPatientModal({
 
               <div>
                 <label htmlFor="age" className={labelClass}>
-                  Age (years)
+                  {t("patients.edit.ageYears")}
                 </label>
                 <input
                   id="age"
@@ -290,7 +293,7 @@ export function EditPatientModal({
 
             <div>
               <label htmlFor="address" className={labelClass}>
-                Address / Village
+                {t("patients.edit.address")}
               </label>
               <input
                 id="address"
@@ -305,13 +308,13 @@ export function EditPatientModal({
           {/* Section 3: Obstetric History & Blood Group */}
           <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-4 space-y-3">
             <span className="text-[11px] font-bold text-[var(--color-charcoal)] block border-b border-[var(--color-border)] pb-1.5">
-              Obstetric History & Blood Group
+              {t("patients.edit.sectionObstetric")}
             </span>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 items-end">
               <div>
                 <label htmlFor="gravida" className={labelClass}>
-                  Gravida
+                  {t("patients.edit.gravida")}
                 </label>
                 <input
                   id="gravida"
@@ -326,7 +329,7 @@ export function EditPatientModal({
 
               <div>
                 <label htmlFor="para" className={labelClass}>
-                  Para
+                  {t("patients.edit.para")}
                 </label>
                 <input
                   id="para"
@@ -341,10 +344,10 @@ export function EditPatientModal({
 
               <div>
                 <label htmlFor="bloodGroup" className={labelClass}>
-                  Blood Group
+                  {t("patients.edit.bloodGroup")}
                 </label>
                 <select id="bloodGroup" name="bloodGroup" className={inputClass} defaultValue={patient.bloodGroup || ""}>
-                  <option value="">Unknown</option>
+                  <option value="">{t("patients.edit.unknown")}</option>
                   {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((bg) => (
                     <option key={bg} value={bg}>
                       {bg}
@@ -363,14 +366,14 @@ export function EditPatientModal({
                   className="h-4 w-4 accent-[var(--color-primary)]"
                 />
                 <label htmlFor="rhNegative" className="cursor-pointer font-medium text-[var(--color-foreground)] select-none">
-                  Rh Negative
+                  {t("patients.edit.rhNegative")}
                 </label>
               </div>
             </div>
 
             {rhNegative && (
               <p className="text-[11px] text-[var(--color-primary)] bg-[var(--color-surface-1)] p-2 rounded-lg border border-[var(--color-border)]">
-                ℹ️ <strong>Rh Negative Maternal Protocol:</strong> Anti-D Prophylaxis injection milestone at 28 weeks will be automatically verified in the ANC schedule.
+                ℹ️ <strong>{t("patients.edit.rhProtocolTitle")}</strong> {t("patients.edit.rhProtocolBody")}
               </p>
             )}
           </div>
@@ -378,10 +381,10 @@ export function EditPatientModal({
           {/* Form Actions */}
           <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-[var(--color-border)]">
             <button type="button" onClick={onClose} className={buttonSecondary}>
-              Cancel
+              {t("patients.edit.cancel")}
             </button>
             <SubmitButton>
-              Save & Recalculate
+              {t("patients.edit.save")}
             </SubmitButton>
           </div>
         </form>

@@ -1,9 +1,13 @@
+"use client";
+
+import { useT } from "@/lib/i18n/provider";
 import { card } from "@/components/ui";
 
 /** Shared loading state for list pages (patients, call queue, documents, OPD). */
 export default function Loading() {
+  const t = useT();
   return (
-    <div aria-busy="true" aria-label="Loading" className="mx-auto w-full max-w-6xl px-4 pb-12 pt-6 md:px-8 md:pt-9">
+    <div aria-busy="true" aria-label={t("common.loading")} className="mx-auto w-full max-w-6xl px-4 pb-12 pt-6 md:px-8 md:pt-9">
       <div className="pc-skeleton h-8 w-56" />
       <div className="pc-skeleton mt-3 h-4 w-72 max-w-full" />
 

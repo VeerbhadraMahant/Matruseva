@@ -14,7 +14,9 @@ import {
 import { formatShortDate, parseLocalDate } from "@/lib/format";
 import { card } from "@/components/ui";
 import { TrendChart, type TrendXMeta } from "@/components/charts/TrendChart";
-import { gestationalAge, formatGA } from "@/lib/pregnancy";
+import { gestationalAge, formatGALocalized } from "@/lib/pregnancy";
+import { useLocale, useT } from "@/lib/i18n/provider";
+import type { Translator } from "@/lib/i18n/translate-client";
 
 export interface VisitDataPoint {
   id: string;
@@ -56,6 +58,8 @@ interface ParsedVisit {
 }
 
 export function VitalsTrendCharts({ visits, lmp, patientName }: VitalsTrendChartsProps) {
+  const t = useT();
+  const locale = useLocale();
   const [activeTab, setActiveTab] = useState<MetricTab>("bp");
 
   // Chronological order (oldest to newest)
@@ -73,10 +77,10 @@ export function VitalsTrendCharts({ visits, lmp, patientName }: VitalsTrendChart
       if (lmpDate) {
         const ga = gestationalAge(lmpDate, pDate);
         gaWeeks = ga.weeks + ga.daysRemainder / 7;
-        gaLabel = formatGA(ga);
+        gaLabel = formatGALocalized(ga, t);
       } else if (v.ga_weeks !== null) {
         gaWeeks = Number(v.ga_weeks);
-        gaLabel = `${Math.floor(gaWeeks)}w`;
+        gaLabel = t("clinical.ga.weeksShort", { weeks: Math.floor(gaWeeks) });
       }
 
       const map =
@@ -88,7 +92,7 @@ export function VitalsTrendCharts({ visits, lmp, patientName }: VitalsTrendChart
         id: v.id,
         date: v.visit_date,
         parsedDate: pDate,
-        dateLabel: formatShortDate(v.visit_date),
+        dateLabel: formatShortDate(v.visit_date, locale),
         gaWeeks,
         gaLabel,
         bpSys: v.bp_sys,
@@ -101,7 +105,7 @@ export function VitalsTrendCharts({ visits, lmp, patientName }: VitalsTrendChart
         notes: v.notes,
       };
     });
-  }, [sortedVisits, lmp]);
+  }, [sortedVisits, lmp, t, locale]);
 
   // Metric-specific datasets
   const bpVisits = useMemo(() => parsedVisits.filter((v) => v.bpSys !== null && v.bpDia !== null), [parsedVisits]);
@@ -121,39 +125,39 @@ export function VitalsTrendCharts({ visits, lmp, patientName }: VitalsTrendChart
     const isRapidRise = (deltaDia >= 15 || deltaSys >= 30) && bpVisits.length > 1;
     const isElevated = (latest.bpSys! >= 120 && latest.bpSys! < 140) || (latest.bpDia! >= 80 && latest.bpDia! < 90);
 
-    let status = "Normotensive";
+    let status = t("reports.charts.bpNormal");
     let tone: "ok" | "warning" | "critical" = "ok";
     if (isHypertensive) {
-      status = "Stage 1 HTN (≥140/90)";
+      status = t("reports.charts.bpStage1");
       tone = "critical";
     } else if (isRapidRise) {
-      status = `Pre-eclampsia alert (+${deltaDia} mmHg Dia)`;
+      status = t("reports.charts.bpRiseAlert", { delta: deltaDia });
       tone = "warning";
     } else if (isElevated) {
-      status = "Pre-hypertension / Watch";
+      status = t("reports.charts.bpWatch");
       tone = "warning";
     }
 
     return { latest, baseline, deltaDia, deltaSys, status, tone };
-  }, [bpVisits]);
+  }, [bpVisits, t]);
 
   const sfhSummary = useMemo(() => {
     if (sfhVisits.length === 0) return null;
     const latest = sfhVisits[sfhVisits.length - 1];
     const diff = latest.sfh! - latest.gaWeeks!;
-    let status = "Appropriate for GA";
+    let status = t("reports.charts.sfhOk");
     let tone: "ok" | "warning" | "critical" = "ok";
 
     if (diff < -2.5) {
-      status = "Lagging (<10th centile / Suspect IUGR)";
+      status = t("reports.charts.sfhLag");
       tone = "critical";
     } else if (diff > 2.5) {
-      status = "Accelerated (>90th centile / Macrosomia)";
+      status = t("reports.charts.sfhFast");
       tone = "warning";
     }
 
     return { latest, diff, status, tone };
-  }, [sfhVisits]);
+  }, [sfhVisits, t]);
 
   const hbSummary = useMemo(() => {
     if (hbVisits.length === 0) return null;
@@ -161,22 +165,22 @@ export function VitalsTrendCharts({ visits, lmp, patientName }: VitalsTrendChart
     const baseline = hbVisits[0];
     const delta = Number((latest.hb! - baseline.hb!).toFixed(1));
 
-    let status = "Normal (≥11.0 g/dL)";
+    let status = t("reports.charts.hbNormal");
     let tone: "ok" | "warning" | "critical" = "ok";
 
     if (latest.hb! < 7.0) {
-      status = "Severe Anemia (<7.0 g/dL)";
+      status = t("reports.charts.hbSevere");
       tone = "critical";
     } else if (latest.hb! < 10.0) {
-      status = "Moderate Anemia (7.0–9.9 g/dL)";
+      status = t("reports.charts.hbModerate");
       tone = "warning";
     } else if (latest.hb! < 11.0) {
-      status = "Mild Anemia (10.0–10.9 g/dL)";
+      status = t("reports.charts.hbMild");
       tone = "warning";
     }
 
     return { latest, baseline, delta, status, tone };
-  }, [hbVisits]);
+  }, [hbVisits, t]);
 
   const weightFhrSummary = useMemo(() => {
     const latestWeight = weightVisits[weightVisits.length - 1] ?? null;
@@ -200,13 +204,13 @@ export function VitalsTrendCharts({ visits, lmp, patientName }: VitalsTrendChart
       <div className="flex flex-wrap items-center justify-between gap-2 px-4 pb-2 pt-4">
         <div>
           <h2 className="text-[15px] font-semibold text-[var(--color-foreground)] flex items-center gap-2">
-            <span>Vitals trends</span>
+            <span>{t("reports.charts.title")}</span>
             <span className="num font-normal text-[12px] text-[var(--color-charcoal)]">
-              ({parsedVisits.length} {parsedVisits.length === 1 ? "visit" : "visits"} recorded)
+              {t("reports.charts.visitsRecorded", { count: parsedVisits.length })}
             </span>
           </h2>
           <p className="text-[12px] text-[var(--color-charcoal)] mt-0.5">
-            Early signs of pre-eclampsia, growth restriction (IUGR) and anaemia.
+            {t("reports.charts.subtitle")}
           </p>
         </div>
       </div>
@@ -229,7 +233,7 @@ export function VitalsTrendCharts({ visits, lmp, patientName }: VitalsTrendChart
           <div className="flex items-center justify-between text-[12px] font-medium text-[var(--color-charcoal)] mb-1">
             <span className="flex items-center gap-1.5">
               <Heartbeat size={15} className="text-[var(--color-info)]" aria-hidden />
-              Blood Pressure
+              {t("reports.charts.tabBp")}
             </span>
             {bpSummary?.tone === "critical" && (
               <span className="h-2 w-2 rounded-full bg-[var(--color-overdue)]" />
@@ -243,7 +247,7 @@ export function VitalsTrendCharts({ visits, lmp, patientName }: VitalsTrendChart
             <span className="text-[11px] font-normal text-[var(--color-charcoal)] ml-1">mmHg</span>
           </div>
           <p
-            className={`text-[11px] mt-1 truncate ${
+            className={`text-[11px] mt-1 leading-snug ${
               bpSummary?.tone === "critical"
                 ? "text-[var(--color-overdue)] font-medium"
                 : bpSummary?.tone === "warning"
@@ -251,7 +255,7 @@ export function VitalsTrendCharts({ visits, lmp, patientName }: VitalsTrendChart
                 : "text-[var(--color-on-track)] font-medium"
             }`}
           >
-            {bpSummary ? bpSummary.status : "No BP recorded"}
+            {bpSummary ? bpSummary.status : t("reports.charts.noBp")}
           </p>
         </button>
 
@@ -271,7 +275,7 @@ export function VitalsTrendCharts({ visits, lmp, patientName }: VitalsTrendChart
           <div className="flex items-center justify-between text-[12px] font-medium text-[var(--color-charcoal)] mb-1">
             <span className="flex items-center gap-1.5">
               <Ruler size={15} className="text-[var(--color-on-track)]" aria-hidden />
-              Fundal Ht (SFH)
+              {t("reports.charts.tabSfh")}
             </span>
             {sfhSummary?.tone === "critical" && (
               <span className="h-2 w-2 rounded-full bg-[var(--color-overdue)]" />
@@ -284,12 +288,12 @@ export function VitalsTrendCharts({ visits, lmp, patientName }: VitalsTrendChart
             {sfhSummary ? `${sfhSummary.latest.sfh} cm` : "—"}
             {sfhSummary && (
               <span className="text-[11px] font-normal text-[var(--color-charcoal)] ml-1.5">
-                at {sfhSummary.latest.gaLabel}
+                {t("reports.charts.sfhAt", { ga: sfhSummary.latest.gaLabel })}
               </span>
             )}
           </div>
           <p
-            className={`text-[11px] mt-1 truncate ${
+            className={`text-[11px] mt-1 leading-snug ${
               sfhSummary?.tone === "critical"
                 ? "text-[var(--color-overdue)] font-medium"
                 : sfhSummary?.tone === "warning"
@@ -297,7 +301,7 @@ export function VitalsTrendCharts({ visits, lmp, patientName }: VitalsTrendChart
                 : "text-[var(--color-on-track)] font-medium"
             }`}
           >
-            {sfhSummary ? sfhSummary.status : "No SFH recorded"}
+            {sfhSummary ? sfhSummary.status : t("reports.charts.noSfh")}
           </p>
         </button>
 
@@ -317,7 +321,7 @@ export function VitalsTrendCharts({ visits, lmp, patientName }: VitalsTrendChart
           <div className="flex items-center justify-between text-[12px] font-medium text-[var(--color-charcoal)] mb-1">
             <span className="flex items-center gap-1.5">
               <Drop size={15} className="text-[var(--color-overdue)]" aria-hidden />
-              Hemoglobin (Hb)
+              {t("reports.charts.tabHb")}
             </span>
             {hbSummary?.tone === "critical" && (
               <span className="h-2 w-2 rounded-full bg-[var(--color-overdue)]" />
@@ -340,7 +344,7 @@ export function VitalsTrendCharts({ visits, lmp, patientName }: VitalsTrendChart
             )}
           </div>
           <p
-            className={`text-[11px] mt-1 truncate ${
+            className={`text-[11px] mt-1 leading-snug ${
               hbSummary?.tone === "critical"
                 ? "text-[var(--color-overdue)] font-medium"
                 : hbSummary?.tone === "warning"
@@ -348,7 +352,7 @@ export function VitalsTrendCharts({ visits, lmp, patientName }: VitalsTrendChart
                 : "text-[var(--color-on-track)] font-medium"
             }`}
           >
-            {hbSummary ? hbSummary.status : "No Hb recorded"}
+            {hbSummary ? hbSummary.status : t("reports.charts.noHb")}
           </p>
         </button>
 
@@ -368,7 +372,7 @@ export function VitalsTrendCharts({ visits, lmp, patientName }: VitalsTrendChart
           <div className="flex items-center justify-between text-[12px] font-medium text-[var(--color-charcoal)] mb-1">
             <span className="flex items-center gap-1.5">
               <Scales size={15} className="text-[var(--color-charcoal)]" aria-hidden />
-              Weight & FHR
+              {t("reports.charts.tabWeightFhr")}
             </span>
             {weightFhrSummary.fhrAbnormal && (
               <span className="h-2 w-2 rounded-full bg-[var(--color-overdue)]" />
@@ -382,8 +386,8 @@ export function VitalsTrendCharts({ visits, lmp, patientName }: VitalsTrendChart
               </span>
             )}
           </div>
-          <p className="num text-[11px] mt-1 truncate text-[var(--color-charcoal)]">
-            {weightFhrSummary.latestFhr ? `FHR ${weightFhrSummary.latestFhr} bpm (110–160 normal)` : "No FHR recorded"}
+          <p className="num text-[11px] mt-1 leading-snug text-[var(--color-charcoal)]">
+            {weightFhrSummary.latestFhr ? t("reports.charts.fhrLine", { fhr: weightFhrSummary.latestFhr }) : t("reports.charts.noFhr")}
           </p>
         </button>
       </div>
@@ -424,14 +428,14 @@ const CHART_2 = "var(--color-pc-chart-2)";
  * x-axis for a set of visits: gestational weeks when every visit has a GA
  * (so spacing reflects real time), otherwise plain visit order by date.
  */
-function gaAxis(visits: ParsedVisit[], preferred?: [number, number]) {
+function gaAxis(visits: ParsedVisit[], t: Translator, preferred?: [number, number]) {
   const isGa = visits.length > 0 && visits.every((v) => v.gaWeeks !== null);
   const byX = new Map<number, ParsedVisit>();
   const x = (v: ParsedVisit, i: number) => (isGa ? Math.round(v.gaWeeks! * 7) / 7 : i);
   visits.forEach((v, i) => byX.set(x(v, i), v));
   const meta = (xv: number): TrendXMeta => {
     const v = byX.get(xv);
-    return v ? { title: v.dateLabel, sub: v.gaLabel !== "—" ? `GA ${v.gaLabel}` : undefined } : { title: "" };
+    return v ? { title: v.dateLabel, sub: v.gaLabel !== "—" ? t("clinical.ga.atGa", { ga: v.gaLabel }) : undefined } : { title: "" };
   };
 
   if (!isGa) {
@@ -442,7 +446,7 @@ function gaAxis(visits: ParsedVisit[], preferred?: [number, number]) {
       meta,
       domain: [-0.5, n - 0.5] as [number, number],
       ticks: visits.map((_, i) => i),
-      tickLabel: (t: number) => visits[t]?.dateLabel ?? "",
+      tickLabel: (tick: number) => visits[tick]?.dateLabel ?? "",
     };
   }
 
@@ -457,8 +461,8 @@ function gaAxis(visits: ParsedVisit[], preferred?: [number, number]) {
   if (hi - lo < 8) lo = hi - 8;
   const step = hi - lo > 16 ? 4 : 2;
   const ticks: number[] = [];
-  for (let t = Math.ceil(lo / step) * step; t <= hi; t += step) ticks.push(t);
-  return { isGa, x, meta, domain: [lo, hi] as [number, number], ticks, tickLabel: (t: number) => `${t}w` };
+  for (let tick = Math.ceil(lo / step) * step; tick <= hi; tick += step) ticks.push(tick);
+  return { isGa, x, meta, domain: [lo, hi] as [number, number], ticks, tickLabel: (tick: number) => t("clinical.ga.weeksShort", { weeks: tick }) };
 }
 
 /* =========================================================================
@@ -470,11 +474,12 @@ function BpChart({
 }: {
   visits: ParsedVisit[];
 }) {
+  const t = useT();
   if (visits.length === 0) {
     return (
       <EmptyChartState
-        title="No Blood Pressure recorded"
-        message="Record BP readings during OPD visits to monitor trajectory for early signs of gestational hypertension or pre-eclampsia."
+        title={t("reports.charts.emptyBpTitle")}
+        message={t("reports.charts.emptyBpBody")}
       />
     );
   }
@@ -490,20 +495,20 @@ function BpChart({
   return (
     <div className="space-y-3">
       {(() => {
-        const axis = gaAxis(visits);
+        const axis = gaAxis(visits, t);
         const sys = visits.map((v) => v.bpSys!);
         const dia = visits.map((v) => v.bpDia!);
         return (
           <TrendChart
-            ariaLabel="Blood pressure by visit"
+            ariaLabel={t("reports.charts.bpAria")}
             unit="mmHg"
             series={[
-              { key: "sys", label: "Systolic", color: CHART_1, points: visits.map((v, i) => ({ x: axis.x(v, i), y: v.bpSys! })) },
-              { key: "dia", label: "Diastolic", color: CHART_2, points: visits.map((v, i) => ({ x: axis.x(v, i), y: v.bpDia! })) },
+              { key: "sys", label: t("reports.charts.systolic"), color: CHART_1, points: visits.map((v, i) => ({ x: axis.x(v, i), y: v.bpSys! })) },
+              { key: "dia", label: t("reports.charts.diastolic"), color: CHART_2, points: visits.map((v, i) => ({ x: axis.x(v, i), y: v.bpDia! })) },
             ]}
             refLines={[
-              { y: 140, label: "Hypertension threshold (140 / 90)" },
-              { y: 90, label: "Hypertension threshold (140 / 90)" },
+              { y: 140, label: t("reports.charts.htnThreshold") },
+              { y: 90, label: t("reports.charts.htnThreshold") },
             ]}
             yDomain={[Math.min(50, Math.floor((Math.min(...dia) - 10) / 10) * 10), Math.max(170, Math.ceil((Math.max(...sys) + 10) / 10) * 10)]}
             xDomain={axis.domain}
@@ -525,31 +530,17 @@ function BpChart({
           <div className="space-y-1">
             <p className="font-semibold text-[var(--color-foreground)]">
               {latest.bpSys! >= 140 || latest.bpDia! >= 90
-                ? "Gestational Hypertension Detected"
+                ? t("reports.charts.bpHtnTitle")
                 : isRapidRise
-                ? "Pre-eclampsia Trajectory Warning: Accelerated Diastolic Rise"
-                : "Blood Pressure within Normal Limits"}
+                ? t("reports.charts.bpRiseTitle")
+                : t("reports.charts.bpOkTitle")}
             </p>
             <p className="text-[var(--color-charcoal)]">
-              {isRapidRise ? (
-                <>
-                  Diastolic BP has increased by{" "}
-                  <strong className="text-[var(--color-overdue)]">+{deltaDia} mmHg</strong> since booking (
-                  {baseline.bpDia} → {latest.bpDia} mmHg). Even before reaching 140/90, a diastolic rise ≥15 mmHg
-                  indicates systemic vasoconstriction. Strongly recommend checking <strong>Urine Albumin (Dipstick)</strong>,
-                  evaluating for pedal edema / headache / epigastric pain, and scheduling a review in 3–5 days.
-                </>
-              ) : latest.bpSys! >= 140 || latest.bpDia! >= 90 ? (
-                <>
-                  BP is above the diagnostic cut-off of 140/90 mmHg. Re-check in 4 hours. If persistent, initiate workup for
-                  preeclampsia (platelet count, liver enzymes, serum creatinine, urine protein:creatinine ratio).
-                </>
-              ) : (
-                <>
-                  Systolic ({latest.bpSys} mmHg) and Diastolic ({latest.bpDia} mmHg) are tracking stably. Baseline pulse
-                  pressure is normal. Continue routine antenatal blood pressure surveillance at each visit.
-                </>
-              )}
+              {isRapidRise
+                ? t("reports.charts.bpRiseBody", { delta: deltaDia, from: baseline.bpDia!, to: latest.bpDia! })
+                : latest.bpSys! >= 140 || latest.bpDia! >= 90
+                ? t("reports.charts.bpHtnBody")
+                : t("reports.charts.bpOkBody", { sys: latest.bpSys!, dia: latest.bpDia! })}
             </p>
           </div>
         </div>
@@ -569,11 +560,12 @@ function SfhChart({
   visits: ParsedVisit[];
   patientName: string;
 }) {
+  const t = useT();
   if (visits.length === 0) {
     return (
       <EmptyChartState
-        title="No Fundal Height recorded"
-        message="Measure and log Symphysio-Fundal Height (SFH in cm) from 20 weeks onwards to compare against the normal fetal growth curve and detect IUGR or macrosomia early."
+        title={t("reports.charts.emptySfhTitle")}
+        message={t("reports.charts.emptySfhBody")}
       />
     );
   }
@@ -587,16 +579,16 @@ function SfhChart({
   return (
     <div className="space-y-3">
       {(() => {
-        const axis = gaAxis(visits, [16, 40]);
+        const axis = gaAxis(visits, t, [16, 40]);
         const values = visits.map((v) => v.sfh!);
         return (
           <TrendChart
-            ariaLabel={`${patientName}'s symphysio-fundal height against gestational age`}
+            ariaLabel={t("reports.charts.sfhAria", { name: patientName })}
             unit="cm"
-            series={[{ key: "sfh", label: "Fundal height", color: CHART_1, points: visits.map((v, i) => ({ x: axis.x(v, i), y: v.sfh! })) }]}
+            series={[{ key: "sfh", label: t("reports.charts.fundalHeight"), color: CHART_1, points: visits.map((v, i) => ({ x: axis.x(v, i), y: v.sfh! })) }]}
             corridor={
               axis.isGa
-                ? { lower: (x) => x - 2.5, upper: (x) => x + 2.5, mid: (x) => x, label: "Expected range (GA ± 2.5 cm)" }
+                ? { lower: (x) => x - 2.5, upper: (x) => x + 2.5, mid: (x) => x, label: t("reports.charts.sfhCorridor") }
                 : undefined
             }
             yDomain={[
@@ -624,32 +616,17 @@ function SfhChart({
           <div className="space-y-1">
             <p className="font-semibold text-[var(--color-foreground)]">
               {isIugr
-                ? "Fundal Height Lagging (<10th Centile) — High Risk for FGR"
+                ? t("reports.charts.sfhLagTitle")
                 : isMacrosomia
-                ? "Accelerated Fundal Height (>90th Centile)"
-                : "Appropriate for Gestational Age (Fetal Growth Normal)"}
+                ? t("reports.charts.sfhFastTitle")
+                : t("reports.charts.sfhOkTitle")}
             </p>
             <p className="text-[var(--color-charcoal)]">
-              {isIugr ? (
-                <>
-                  The measured SFH ({latest.sfh} cm at {latest.gaLabel}) is lagging by{" "}
-                  <strong className="text-[var(--color-overdue)]">{Math.abs(diff).toFixed(1)} cm</strong> below the
-                  expected gestation line. A discrepancy &gt;2 cm or a flattening curve raises strong suspicion for{" "}
-                  <strong>Intrauterine Growth Restriction (IUGR / FGR)</strong> or oligohydramnios.
-                  <strong> Clinical recommendation:</strong> Schedule an immediate Ultrasound Growth Scan + Umbilical
-                  Artery Doppler to assess fetal biometry (AC, EFW) and amniotic fluid index (AFI).
-                </>
-              ) : isMacrosomia ? (
-                <>
-                  SFH is tracking above the 90th percentile corridor (+{diff.toFixed(1)} cm). Consider differential diagnoses:
-                  fetal macrosomia, polyhydramnios, or gestational diabetes. Check recent OGTT blood sugar reports.
-                </>
-              ) : (
-                <>
-                  Fundal height closely tracks the gestational age (within ±2.5 cm normal corridor). The fetal growth velocity
-                  is satisfactory.
-                </>
-              )}
+              {isIugr
+                ? t("reports.charts.sfhLagBody", { sfh: latest.sfh!, ga: latest.gaLabel, diff: Math.abs(diff).toFixed(1) })
+                : isMacrosomia
+                ? t("reports.charts.sfhFastBody", { diff: diff.toFixed(1) })
+                : t("reports.charts.sfhOkBody")}
             </p>
           </div>
         </div>
@@ -667,11 +644,12 @@ function HbChart({
 }: {
   visits: ParsedVisit[];
 }) {
+  const t = useT();
   if (visits.length === 0) {
     return (
       <EmptyChartState
-        title="No Hemoglobin (Hb) recorded"
-        message="Log maternal hemoglobin values across visits to monitor for physiological hemodilution and evaluate response to oral or IV iron therapy."
+        title={t("reports.charts.emptyHbTitle")}
+        message={t("reports.charts.emptyHbBody")}
       />
     );
   }
@@ -686,18 +664,18 @@ function HbChart({
   return (
     <div className="space-y-3">
       {(() => {
-        const axis = gaAxis(visits);
+        const axis = gaAxis(visits, t);
         const values = visits.map((v) => v.hb!);
         return (
           <TrendChart
-            ariaLabel="Haemoglobin by visit"
+            ariaLabel={t("reports.charts.hbAria")}
             unit="g/dL"
             decimals={1}
-            series={[{ key: "hb", label: "Haemoglobin", color: CHART_1, points: visits.map((v, i) => ({ x: axis.x(v, i), y: v.hb! })) }]}
+            series={[{ key: "hb", label: t("reports.charts.haemoglobin"), color: CHART_1, points: visits.map((v, i) => ({ x: axis.x(v, i), y: v.hb! })) }]}
             bands={[
-              { from: 11, to: 20, label: "Normal (≥ 11)", tone: "ok" },
-              { from: 10, to: 11, label: "Mild (10–10.9)", tone: "warn" },
-              { from: 0, to: 10, label: "Moderate / severe (< 10)", tone: "bad" },
+              { from: 11, to: 20, label: t("reports.charts.bandNormal"), tone: "ok" },
+              { from: 10, to: 11, label: t("reports.charts.bandMild"), tone: "warn" },
+              { from: 0, to: 10, label: t("reports.charts.bandModSevere"), tone: "bad" },
             ]}
             yDomain={[Math.min(6, Math.floor(Math.min(...values) - 1)), Math.max(14, Math.ceil(Math.max(...values) + 1))]}
             xDomain={axis.domain}
@@ -721,43 +699,21 @@ function HbChart({
           <div className="space-y-1">
             <p className="font-semibold text-[var(--color-foreground)]">
               {isSevere
-                ? "Severe Anemia (<7.0 g/dL) — Urgent Hospital Precaution"
+                ? t("reports.charts.hbSevereTitle")
                 : isAnemic
-                ? `Gestational Anemia (${latest.hb} g/dL)`
-                : "Hemoglobin Adequate for Gestational Age"}
+                ? t("reports.charts.hbAnaemicTitle", { hb: latest.hb! })
+                : t("reports.charts.hbOkTitle")}
             </p>
             <p className="text-[var(--color-charcoal)]">
-              {isSevere ? (
-                <>
-                  Maternal hemoglobin is critically low ({latest.hb} g/dL). High risk of maternal cardiac failure,
-                  postpartum hemorrhage (PPH), and fetal compromise.
-                  <strong> Clinical recommendation:</strong> Arrange blood grouping/cross-matching, parenteral iron
-                  infusion (IV Ferric Carboxymaltose) or packed red blood cell transfusion as indicated.
-                </>
-              ) : isAnemic ? (
-                <>
-                  Latest Hb is {latest.hb} g/dL (target ≥11.0 g/dL).
-                  {delta < 0 ? (
-                    <>
-                      {" "}Hemoglobin has dropped by{" "}
-                      <strong className="text-[var(--color-overdue)]">{Math.abs(delta)} g/dL</strong> since booking.
-                      Evaluate patient compliance with daily elemental iron tablets (IFA), check for dietary inhibitors
-                      (tea/coffee), and consider IV iron if oral therapy is not absorbed.
-                    </>
-                  ) : (
-                    <>
-                      {" "}Hemoglobin shows an improvement of{" "}
-                      <strong className="text-[var(--color-on-track)]">+{delta} g/dL</strong> since baseline. Continue
-                      current supplementation and repeat CBC at 28–32 weeks.
-                    </>
-                  )}
-                </>
-              ) : (
-                <>
-                  Hemoglobin ({latest.hb} g/dL) is well maintained above the 11.0 g/dL threshold. Maintain standard prophylactic
-                  IFA supplementation (100 mg elemental iron + 500 mcg folic acid daily).
-                </>
-              )}
+              {isSevere
+                ? t("reports.charts.hbSevereBody", { hb: latest.hb! })
+                : isAnemic
+                ? `${t("reports.charts.hbAnaemicHead", { hb: latest.hb! })} ${
+                    delta < 0
+                      ? t("reports.charts.hbDropped", { delta: Math.abs(delta) })
+                      : t("reports.charts.hbImproved", { delta })
+                  }`
+                : t("reports.charts.hbOkBody", { hb: latest.hb! })}
             </p>
           </div>
         </div>
@@ -777,11 +733,12 @@ function WeightFhrChart({
   weightVisits: ParsedVisit[];
   fhrVisits: ParsedVisit[];
 }) {
+  const t = useT();
   if (weightVisits.length === 0 && fhrVisits.length === 0) {
     return (
       <EmptyChartState
-        title="No Weight or FHR logged"
-        message="Record maternal weight (kg) and Fetal Heart Rate (bpm) at each visit to track gestational weight gain trajectory and fetal cardiac stability."
+        title={t("reports.charts.emptyWfTitle")}
+        message={t("reports.charts.emptyWfBody")}
       />
     );
   }
@@ -798,28 +755,28 @@ function WeightFhrChart({
     <div className="space-y-3">
       {/* Two small charts, one scale each (never a dual-axis chart). */}
       <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-2">
-        <section aria-label="Maternal weight">
+        <section aria-label={t("reports.charts.weightSection")}>
           <h3 className="mb-2 flex flex-wrap items-baseline justify-between gap-2 text-[13px] font-semibold">
-            Maternal weight
+            {t("reports.charts.weightSection")}
             <span className="text-[12px] font-normal text-[var(--color-charcoal)]">
-              Total gain{" "}
+              {t("reports.charts.totalGain")}{" "}
               <strong className="tabular-nums text-[var(--color-foreground)]">
                 {totalGain !== null ? `${totalGain > 0 ? "+" : ""}${totalGain} kg` : "—"}
               </strong>
             </span>
           </h3>
           {weightVisits.length === 0 ? (
-            <p className="rounded-xl bg-[var(--color-surface-1)] px-4 py-8 text-center text-[13px] text-[var(--color-charcoal)]">No weight recorded yet.</p>
+            <p className="rounded-xl bg-[var(--color-surface-1)] px-4 py-8 text-center text-[13px] text-[var(--color-charcoal)]">{t("reports.charts.noWeightYet")}</p>
           ) : (
             (() => {
-              const axis = gaAxis(weightVisits);
+              const axis = gaAxis(weightVisits, t);
               const values = weightVisits.map((v) => v.weight!);
               return (
                 <TrendChart
-                  ariaLabel="Maternal weight by visit"
+                  ariaLabel={t("reports.charts.weightAria")}
                   unit="kg"
                   decimals={1}
-                  series={[{ key: "wt", label: "Weight", color: CHART_1, points: weightVisits.map((v, i) => ({ x: axis.x(v, i), y: v.weight! })) }]}
+                  series={[{ key: "wt", label: t("reports.charts.weightSeries"), color: CHART_1, points: weightVisits.map((v, i) => ({ x: axis.x(v, i), y: v.weight! })) }]}
                   yDomain={[Math.floor(Math.min(...values) - 3), Math.ceil(Math.max(...values) + 3)]}
                   xDomain={axis.domain}
                   xTicks={axis.ticks}
@@ -830,11 +787,11 @@ function WeightFhrChart({
             })()
           )}
         </section>
-        <section aria-label="Fetal heart rate">
+        <section aria-label={t("reports.charts.fhrSection")}>
           <h3 className="mb-2 flex flex-wrap items-baseline justify-between gap-2 text-[13px] font-semibold">
-            Fetal heart rate
+            {t("reports.charts.fhrSection")}
             <span className="text-[12px] font-normal text-[var(--color-charcoal)]">
-              Latest{" "}
+              {t("reports.charts.latest")}{" "}
               <strong
                 className={`tabular-nums ${
                   latestFhr && (latestFhr.fhr! < 110 || latestFhr.fhr! > 160) ? "text-[var(--color-overdue)]" : "text-[var(--color-foreground)]"
@@ -845,17 +802,17 @@ function WeightFhrChart({
             </span>
           </h3>
           {fhrVisits.length === 0 ? (
-            <p className="rounded-xl bg-[var(--color-surface-1)] px-4 py-8 text-center text-[13px] text-[var(--color-charcoal)]">No FHR recorded yet.</p>
+            <p className="rounded-xl bg-[var(--color-surface-1)] px-4 py-8 text-center text-[13px] text-[var(--color-charcoal)]">{t("reports.charts.noFhrYet")}</p>
           ) : (
             (() => {
-              const axis = gaAxis(fhrVisits);
+              const axis = gaAxis(fhrVisits, t);
               const values = fhrVisits.map((v) => v.fhr!);
               return (
                 <TrendChart
-                  ariaLabel="Fetal heart rate by visit"
+                  ariaLabel={t("reports.charts.fhrAria")}
                   unit="bpm"
-                  series={[{ key: "fhr", label: "FHR", color: CHART_1, points: fhrVisits.map((v, i) => ({ x: axis.x(v, i), y: v.fhr! })) }]}
-                  bands={[{ from: 110, to: 160, label: "Normal (110–160)", tone: "ok" }]}
+                  series={[{ key: "fhr", label: t("reports.charts.fhrSeries"), color: CHART_1, points: fhrVisits.map((v, i) => ({ x: axis.x(v, i), y: v.fhr! })) }]}
+                  bands={[{ from: 110, to: 160, label: t("reports.charts.fhrBand"), tone: "ok" }]}
                   yDomain={[Math.min(90, Math.floor(Math.min(...values) / 10) * 10 - 10), Math.max(180, Math.ceil(Math.max(...values) / 10) * 10 + 10)]}
                   xDomain={axis.domain}
                   xTicks={axis.ticks}
@@ -873,18 +830,9 @@ function WeightFhrChart({
         <div className="flex items-start gap-2">
           <CheckCircle size={16} className="text-[var(--color-on-track)] shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <p className="font-semibold text-[var(--color-foreground)]">Weight Gain & Fetal Cardiac Summary</p>
+            <p className="font-semibold text-[var(--color-foreground)]">{t("reports.charts.wfTitle")}</p>
             <p className="text-[var(--color-charcoal)]">
-              {totalGain !== null ? (
-                <>
-                  Patient has gained a total of <strong>{totalGain} kg</strong> since the initial visit. Standard IOM
-                  recommended gestational weight gain for normal BMI is ~0.4 kg/week during the second and third trimesters
-                  (total 11.5–16 kg). Rapid excessive weight gain (&gt;1 kg/week) can be an early indicator of occult fluid
-                  retention in pre-eclampsia.
-                </>
-              ) : (
-                "Continuous weight tracking allows monitoring adequate maternal nutrition and early detection of pathological edema."
-              )}
+              {totalGain !== null ? t("reports.charts.wfBody", { gain: totalGain }) : t("reports.charts.wfNone")}
             </p>
           </div>
         </div>

@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import QRCode from "qrcode";
 import { QrCode, Printer, Download, X, Heart, ShieldCheck, Calendar, Phone } from "@phosphor-icons/react";
 import { buttonPrimary, buttonSecondary } from "@/components/ui";
+import { useT } from "@/lib/i18n/provider";
 
 
 
@@ -15,6 +16,7 @@ export function MotherHealthCardModal({
   patient: MotherCardData;
   onClose: () => void;
 }) {
+  const t = useT();
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -54,7 +56,7 @@ export function MotherHealthCardModal({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Mother's Digital Health Card"
+      aria-label={t("patients.card.dialogLabel")}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
@@ -68,13 +70,14 @@ export function MotherHealthCardModal({
               <QrCode size={16} weight="bold" />
             </div>
             <div>
-              <h2 className="text-[14px] font-bold text-[var(--color-foreground)]">Mother & Child QR Health Pass</h2>
-              <p className="text-[11px] text-[var(--color-charcoal)]">OPD Fast-Track Check-in ID</p>
+              <h2 className="text-[14px] font-bold text-[var(--color-foreground)]">{t("patients.card.title")}</h2>
+              <p className="text-[11px] text-[var(--color-charcoal)]">{t("patients.card.subtitle")}</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
+            aria-label={t("patients.card.close")}
             className="rounded-lg p-1.5 text-[var(--color-charcoal)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-foreground)] transition"
           >
             <X size={18} />
@@ -110,10 +113,10 @@ export function MotherHealthCardModal({
                 />
                 <div>
                   <p className="text-[13px] font-bold tracking-tight text-[#1c1528] leading-tight">
-                    {patient.clinicName || "MatruSetu Maternal Health"}
+                    {patient.clinicName || t("patients.card.clinicFallback")}
                   </p>
                   <p className="text-[10px] font-medium text-[#645a70]">
-                    Mother & Child Health Pass
+                    {t("patients.card.passTitle")}
                   </p>
                 </div>
               </div>
@@ -121,7 +124,7 @@ export function MotherHealthCardModal({
               <div className="text-right">
                 <span className="inline-flex items-center gap-1 rounded-full bg-[#ede5f4] px-2.5 py-0.5 text-[10px] font-bold text-[#523a6c] border border-[#baadca]">
                   <ShieldCheck size={12} weight="fill" />
-                  VERIFIED
+                  {t("patients.card.verified")}
                 </span>
                 {patient.clinicPatientNo && (
                   <p className="text-[10px] font-mono text-[#645a70] mt-0.5">#{patient.clinicPatientNo}</p>
@@ -134,7 +137,7 @@ export function MotherHealthCardModal({
               {/* Left Details */}
               <div className="flex-1 min-w-0 space-y-2">
                 <div>
-                  <p className="text-[10px] font-semibold text-[#645a70]">Mother&apos;s Name</p>
+                  <p className="text-[10px] font-semibold text-[#645a70]">{t("patients.card.motherName")}</p>
                   <h3 className="truncate text-[17px] font-bold tracking-tight text-[#1c1528] leading-snug">
                     {patient.name}
                   </h3>
@@ -143,14 +146,14 @@ export function MotherHealthCardModal({
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   {patient.age && (
                     <div>
-                      <p className="text-[10px] text-[#645a70]">Age</p>
-                      <p className="font-semibold text-[#1c1528]">{patient.age} yrs</p>
+                      <p className="text-[10px] text-[#645a70]">{t("patients.card.age")}</p>
+                      <p className="font-semibold text-[#1c1528]">{t("patients.card.ageYears", { age: patient.age })}</p>
                     </div>
                   )}
 
                   {patient.bloodGroup && (
                     <div>
-                      <p className="text-[10px] text-[#645a70]">Blood Group</p>
+                      <p className="text-[10px] text-[#645a70]">{t("patients.card.bloodGroup")}</p>
                       <p className="font-semibold text-[#1c1528]">
                         {patient.bloodGroup}
                         {patient.rhNegative ? " (Rh-)" : ""}
@@ -160,14 +163,14 @@ export function MotherHealthCardModal({
 
                   {patient.gaLabel && (
                     <div>
-                      <p className="text-[10px] text-[#645a70]">Gestational Age</p>
+                      <p className="text-[10px] text-[#645a70]">{t("patients.card.gestationalAge")}</p>
                       <p className="font-semibold text-[#523a6c]">{patient.gaLabel}</p>
                     </div>
                   )}
 
                   {patient.edd && (
                     <div>
-                      <p className="text-[10px] text-[#645a70]">Est. Due Date (EDD)</p>
+                      <p className="text-[10px] text-[#645a70]">{t("patients.card.edd")}</p>
                       <p className="font-semibold text-[#1c1528]">{patient.edd}</p>
                     </div>
                   )}
@@ -188,7 +191,7 @@ export function MotherHealthCardModal({
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
                       src={qrDataUrl}
-                      alt={`QR Code for ${patient.name}`}
+                      alt={t("patients.card.qrAlt", { name: patient.name })}
                       className="h-28 w-28 object-contain"
                     />
                   ) : (
@@ -196,7 +199,7 @@ export function MotherHealthCardModal({
                   )}
                 </div>
                 <span className="mt-1 text-[9px] font-bold text-[#523a6c]">
-                  Scan at OPD Desk
+                  {t("patients.card.scanAtDesk")}
                 </span>
               </div>
             </div>
@@ -204,9 +207,9 @@ export function MotherHealthCardModal({
             {/* Card Footer */}
             <div className="mt-4 pt-2.5 border-t border-[#e2d9ec] flex items-center justify-between text-[10px] text-[#645a70]">
               <span className="flex items-center gap-1">
-                <Calendar size={12} /> Bring to every OPD visit
+                <Calendar size={12} /> {t("patients.card.bringEveryVisit")}
               </span>
-              <span className="font-mono text-[9px] opacity-75">ID: {patient.id.slice(0, 8).toUpperCase()}</span>
+              <span className="font-mono text-[9px] opacity-75">{t("patients.card.idLabel", { id: patient.id.slice(0, 8).toUpperCase() })}</span>
             </div>
           </div>
         </div>
@@ -214,17 +217,17 @@ export function MotherHealthCardModal({
         {/* Modal Action Buttons */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--color-border)] bg-[var(--color-surface-1)] px-6 py-4">
           <p className="text-[12px] text-[var(--color-charcoal)]">
-            Print this card or save the QR image to share on WhatsApp with the mother.
+            {t("patients.card.printHint")}
           </p>
 
           <div className="flex items-center gap-2">
             <button type="button" onClick={handleDownload} className={buttonSecondary}>
               <Download size={14} />
-              <span>Save QR Image</span>
+              <span>{t("patients.card.saveQr")}</span>
             </button>
             <button type="button" onClick={handlePrint} className={buttonPrimary}>
               <Printer size={14} />
-              <span>Print Health Card</span>
+              <span>{t("patients.card.print")}</span>
             </button>
           </div>
         </div>

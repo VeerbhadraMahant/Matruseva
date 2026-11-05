@@ -4,12 +4,14 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { NotePencil } from "@phosphor-icons/react";
 import { buttonSecondary } from "@/components/ui";
+import { useT } from "@/lib/i18n/provider";
 
 // Modal body is loaded on demand (first open / hover / focus) to keep it out of the page's initial JS.
 const loadModal = () => import("@/components/EditPatientModalBody");
 const EditPatientModal = dynamic(() => loadModal().then((m) => m.EditPatientModal), { ssr: false });
 
 export function EditPatientButton({ patient }: { patient: EditPatientData }) {
+  const t = useT();
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -20,10 +22,10 @@ export function EditPatientButton({ patient }: { patient: EditPatientData }) {
         onFocus={() => void loadModal()}
         onClick={() => setIsOpen(true)}
         className={`${buttonSecondary} gap-1.5`}
-        title="Edit patient demographics or update pregnancy dating from scan"
+        title={t("patients.edit.buttonTitle")}
       >
         <NotePencil size={15} weight="bold" className="text-[var(--color-primary)]" aria-hidden />
-        <span>Edit Patient & Dating</span>
+        <span>{t("patients.edit.button")}</span>
       </button>
 
       {isOpen && <EditPatientModal patient={patient} onClose={() => setIsOpen(false)} />}

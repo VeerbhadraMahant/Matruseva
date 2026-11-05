@@ -11,6 +11,7 @@ import {
   ShieldWarning,
   UsersThree,
 } from "@phosphor-icons/react/dist/ssr";
+import { getT } from "@/lib/i18n/server";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Reveal } from "@/components/marketing/Reveal";
 import {
@@ -22,73 +23,29 @@ import {
   WaveDivider,
 } from "@/components/marketing/Backdrops";
 
-export const metadata: Metadata = {
-  title: "MatruSetu — Antenatal care, organised",
-  description:
-    "MatruSetu helps OB-GYN clinics track every pregnancy's ANC schedule, catch patients who are falling behind, and digitise the OPD register — without the spreadsheets.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getT();
+  return { title: t("landing.meta.title"), description: t("landing.meta.description") };
+}
 
 const FEATURES = [
-  {
-    icon: CalendarCheck,
-    title: "Automatic ANC scheduling",
-    body: "Enter a patient's LMP once and MatruSetu builds her full antenatal care schedule — scans, blood tests, injections, and visits — each one tracked as due, upcoming, or overdue.",
-  },
-  {
-    icon: ShieldWarning,
-    title: "Follow-up risk detection",
-    body: "Every patient is scored on-track, at-risk, or lost based on overdue critical items and missed contact attempts, so staff know exactly who to chase before a pregnancy falls through the cracks.",
-  },
-  {
-    icon: ChatCircleDots,
-    title: "One-tap staff call queue",
-    body: "Overdue and at-risk patients land in a single worklist with one-tap WhatsApp and call links, so your front desk can work through follow-ups in minutes, not a notebook.",
-  },
-  {
-    icon: FileMagnifyingGlass,
-    title: "Searchable document capture",
-    body: "Scan lab reports and prescriptions from the browser. In-browser OCR makes every document full-text searchable — no more digging through folders for an old report.",
-  },
-  {
-    icon: ScanSmiley,
-    title: "OPD register, digitised",
-    body: "Capture your paper OPD register with a phone camera. Every page is tagged by date and searchable, so the register stops being a physical bottleneck.",
-  },
-  {
-    icon: UsersThree,
-    title: "Built for the whole clinic",
-    body: "Doctor and staff roles, per-clinic settings, and multi-staff accounts — so the person on reception and the doctor in consult are always looking at the same patient record.",
-  },
-];
+  { icon: CalendarCheck, key: "schedule" },
+  { icon: ShieldWarning, key: "risk" },
+  { icon: ChatCircleDots, key: "calls" },
+  { icon: FileMagnifyingGlass, key: "documents" },
+  { icon: ScanSmiley, key: "opd" },
+  { icon: UsersThree, key: "team" },
+] as const;
 
 const SHOWCASE = [
-  {
-    src: "/marketing/screenshot-today-720.webp",
-    title: "Today",
-    caption:
-      "A calm view of the clinic's day — patients due today, a week strip, and a worklist of everyone who needs follow-up, ready when staff walk in.",
-  },
-  {
-    src: "/marketing/screenshot-calls-720.webp",
-    title: "Call queue",
-    caption:
-      "Overdue and at-risk patients in one queue, with a WhatsApp and phone link for each — staff-initiated outreach, no automation required.",
-  },
-  {
-    src: "/marketing/screenshot-patient-detail-720.webp",
-    title: "Patient timeline",
-    caption:
-      "GA, EDD, and risk alerts up top, with a visual ANC timeline below showing exactly which scans, tests, and visits are done, due, or overdue.",
-  },
-  {
-    src: "/marketing/screenshot-patients-720.webp",
-    title: "Patient list",
-    caption:
-      "Every patient in the clinic, searchable and filterable — find the record you need without flipping through a register.",
-  },
-];
+  { src: "/marketing/screenshot-today-720.webp", key: "today" },
+  { src: "/marketing/screenshot-calls-720.webp", key: "calls" },
+  { src: "/marketing/screenshot-patient-detail-720.webp", key: "detail" },
+  { src: "/marketing/screenshot-patients-720.webp", key: "patients" },
+] as const;
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const { t } = await getT();
   return (
     <div
       className="bg-[#faf6ec] text-[#221b2b]"
@@ -109,13 +66,13 @@ export default function LandingPage() {
               href="/login"
               className="rounded-full px-4 py-2 text-[14px] font-medium text-[#221b2b] transition-colors hover:bg-[#221b2b]/5"
             >
-              Sign in
+              {t("landing.nav.signIn")}
             </Link>
             <Link
               href="/signup"
               className="rounded-full bg-[#3e2a5c] px-5 py-2 text-[14px] font-semibold text-white shadow-[0_8px_16px_0_rgba(62,42,92,0.28)] transition-colors hover:bg-[#2e1f46]"
             >
-              Get started
+              {t("landing.nav.getStarted")}
             </Link>
           </nav>
         </div>
@@ -127,30 +84,27 @@ export default function LandingPage() {
           <HeroBackdrop />
           <Reveal className="mx-auto max-w-3xl text-center">
             <span className="inline-flex items-center rounded-full bg-[#ebe1f1] px-4 py-1.5 text-[13px] font-semibold text-[#3e2a5c]">
-              Built for OB-GYN clinics in India
+              {t("landing.hero.badge")}
             </span>
             <h1 className="mt-6 text-[36px] font-bold leading-[1.1] tracking-tight sm:text-[48px] lg:text-[56px]">
-              Every pregnancy, tracked. Every follow-up,
-              <span className="text-[#3e2a5c]"> caught.</span>
+              {t("landing.hero.title")}
+              <span className="text-[#3e2a5c]">{t("landing.hero.titleAccent")}</span>
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-[16px] leading-[1.6] text-[#4a4354] sm:text-[18px]">
-              MatruSetu is the clinical worklist for OB-GYN practices —
-              automatic ANC schedules from LMP, a risk score for patients who
-              are drifting away, and a digitised OPD register your staff can
-              actually search.
+              {t("landing.hero.body")}
             </p>
             <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
                 href="/signup"
                 className="w-full rounded-full bg-[#3e2a5c] px-7 py-3.5 text-center text-[16px] font-semibold text-white shadow-[0_12px_24px_0_rgba(62,42,92,0.28)] transition-colors hover:bg-[#2e1f46] sm:w-auto"
               >
-                Create your clinic account
+                {t("landing.cta.create")}
               </Link>
               <Link
                 href="/login"
                 className="w-full rounded-full border border-[#221b2b]/15 bg-white px-7 py-3.5 text-center text-[16px] font-semibold text-[#221b2b] transition-colors hover:bg-[#221b2b]/5 sm:w-auto"
               >
-                Sign in
+                {t("landing.cta.signIn")}
               </Link>
             </div>
           </Reveal>
@@ -160,7 +114,7 @@ export default function LandingPage() {
             <BrowserFrame>
               <Image
                 src="/marketing/screenshot-today-958.webp"
-                alt="MatruSetu Today dashboard showing patients due today, a week strip and the follow-up worklist"
+                alt={t("landing.hero.imageAlt")}
                 width={958}
                 height={958}
                 priority
@@ -179,26 +133,25 @@ export default function LandingPage() {
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <Reveal className="mx-auto max-w-2xl text-center">
               <h2 className="text-[28px] font-bold tracking-tight sm:text-[32px]">
-                Everything an OPD desk needs, nothing it doesn&apos;t
+                {t("landing.features.title")}
               </h2>
               <p className="mt-4 text-[16px] leading-[1.6] text-[#4a4354]">
-                MatruSetu replaces the register and the spreadsheet with one
-                worklist doctors and staff both trust.
+                {t("landing.features.body")}
               </p>
             </Reveal>
 
             <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {FEATURES.map(({ icon: Icon, title, body }, i) => (
-                <Reveal key={title} delay={(i % 3) * 80}>
+              {FEATURES.map(({ icon: Icon, key }, i) => (
+                <Reveal key={key} delay={(i % 3) * 80}>
                   <div className="h-full rounded-2xl border border-[#221b2b]/10 bg-[#faf6ec] p-8 shadow-[rgba(62,42,92,0.05)_0px_4px_4px_0px,rgba(62,42,92,0.08)_0px_32px_16px_0px]">
                     <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#3e2a5c]/10 text-[#3e2a5c]">
                       <Icon size={22} weight="bold" aria-hidden />
                     </div>
                     <h3 className="mt-5 text-[18px] font-semibold tracking-tight">
-                      {title}
+                      {t(`landing.feature.${key}.title`)}
                     </h3>
                     <p className="mt-2 text-[14px] leading-[1.6] text-[#4a4354]">
-                      {body}
+                      {t(`landing.feature.${key}.body`)}
                     </p>
                   </div>
                 </Reveal>
@@ -216,20 +169,20 @@ export default function LandingPage() {
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <Reveal className="mx-auto max-w-2xl text-center">
               <h2 className="text-[28px] font-bold tracking-tight sm:text-[32px]">
-                A worklist built for how a clinic actually runs
+                {t("landing.showcase.title")}
               </h2>
               <p className="mt-4 text-[16px] leading-[1.6] text-[#4a4354]">
-                Four screens your doctors and staff will live in every day.
+                {t("landing.showcase.body")}
               </p>
             </Reveal>
 
             <div className="mt-14 grid grid-cols-1 gap-16 lg:grid-cols-2 lg:gap-x-10 lg:gap-y-20">
               {SHOWCASE.map((item, i) => (
-                <Reveal key={item.title} delay={(i % 2) * 120} className="flex flex-col">
+                <Reveal key={item.key} delay={(i % 2) * 120} className="flex flex-col">
                   <BrowserFrame>
                     <Image
                       src={item.src}
-                      alt={item.caption}
+                      alt={t(`landing.showcase.${item.key}.caption`)}
                       width={720}
                       height={720}
                       loading="lazy"
@@ -237,10 +190,10 @@ export default function LandingPage() {
                     />
                   </BrowserFrame>
                   <h3 className="mt-6 text-[18px] font-semibold tracking-tight">
-                    {item.title}
+                    {t(`landing.showcase.${item.key}.title`)}
                   </h3>
                   <p className="mt-2 text-[14px] leading-[1.6] text-[#4a4354]">
-                    {item.caption}
+                    {t(`landing.showcase.${item.key}.caption`)}
                   </p>
                 </Reveal>
               ))}
@@ -263,11 +216,10 @@ export default function LandingPage() {
                   aria-hidden
                 />
                 <h3 className="mt-4 text-[18px] font-semibold">
-                  No manual scheduling
+                  {t("landing.trust.schedule.title")}
                 </h3>
                 <p className="mt-2 text-[14px] leading-[1.6] text-white/70">
-                  ANC due dates are generated automatically from LMP, following
-                  standard antenatal care timelines.
+                  {t("landing.trust.schedule.body")}
                 </p>
               </Reveal>
               <Reveal delay={80}>
@@ -278,11 +230,10 @@ export default function LandingPage() {
                   aria-hidden
                 />
                 <h3 className="mt-4 text-[18px] font-semibold">
-                  Nobody falls through
+                  {t("landing.trust.safety.title")}
                 </h3>
                 <p className="mt-2 text-[14px] leading-[1.6] text-white/70">
-                  Patients drifting off-track are flagged before a missed scan
-                  becomes a missed pregnancy.
+                  {t("landing.trust.safety.body")}
                 </p>
               </Reveal>
               <Reveal delay={160}>
@@ -293,11 +244,10 @@ export default function LandingPage() {
                   aria-hidden
                 />
                 <h3 className="mt-4 text-[18px] font-semibold">
-                  Works on the desk you have
+                  {t("landing.trust.pwa.title")}
                 </h3>
                 <p className="mt-2 text-[14px] leading-[1.6] text-white/70">
-                  Installs as a PWA on any staff phone or desktop — the app
-                  shell keeps working even when the network doesn&apos;t.
+                  {t("landing.trust.pwa.body")}
                 </p>
               </Reveal>
             </div>
@@ -311,24 +261,23 @@ export default function LandingPage() {
           <CtaBackdrop />
           <Reveal className="mx-auto max-w-3xl px-4 text-center sm:px-6">
             <h2 className="text-[28px] font-bold tracking-tight sm:text-[32px]">
-              Bring your OPD onto one worklist
+              {t("landing.final.title")}
             </h2>
             <p className="mt-4 text-[16px] leading-[1.6] text-[#4a4354]">
-              Set up your clinic in minutes. Doctors and staff sign in with
-              their own accounts from day one.
+              {t("landing.final.body")}
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
                 href="/signup"
                 className="w-full rounded-full bg-[#3e2a5c] px-7 py-3.5 text-center text-[16px] font-semibold text-white shadow-[0_12px_24px_0_rgba(62,42,92,0.28)] transition-colors hover:bg-[#2e1f46] sm:w-auto"
               >
-                Create your clinic account
+                {t("landing.cta.create")}
               </Link>
               <Link
                 href="/login"
                 className="w-full rounded-full border border-[#221b2b]/15 bg-white px-7 py-3.5 text-center text-[16px] font-semibold text-[#221b2b] transition-colors hover:bg-[#221b2b]/5 sm:w-auto"
               >
-                Sign in
+                {t("landing.cta.signIn")}
               </Link>
             </div>
           </Reveal>
@@ -337,7 +286,7 @@ export default function LandingPage() {
 
       <footer className="border-t border-[#221b2b]/10 py-8">
         <div className="mx-auto max-w-6xl px-4 text-[13px] text-[#4a4354] sm:px-6">
-          MatruSetu — antenatal care and OPD digitisation for OB-GYN clinics.
+          {t("landing.footer")}
         </div>
       </footer>
     </div>

@@ -12,6 +12,7 @@ import {
   SplitScreenVisitWorkspace,
   type PatientDocument,
 } from "@/components/SplitScreenVisitWorkspace";
+import { useT } from "@/lib/i18n/provider";
 import {
   SUPPORTED_LANGUAGES,
   type SupportedLanguage,
@@ -41,6 +42,7 @@ export function PatientDetailInteractive({
   defaultLang = "en",
   documents,
 }: PatientDetailInteractiveProps) {
+  const t = useT();
   const [splitOpen, setSplitOpen] = useState(false);
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
   const [selectedLang, setSelectedLang] = useState<SupportedLanguage>(defaultLang);
@@ -60,14 +62,14 @@ export function PatientDetailInteractive({
         <div className="flex items-center gap-2">
           <Columns size={16} className="text-[var(--color-primary)] shrink-0" />
           <span className="text-[12px] text-[var(--color-charcoal)]">
-            Consultation Desk:
+            {t("patientDetail.interactive.desk")}
           </span>
           <button
             type="button"
             onClick={() => handleOpenSplit()}
             className="rounded-xl inline-flex items-center gap-1.5 border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2.5 py-1 text-[12px] font-semibold text-[var(--color-foreground)] hover:border-[var(--color-foreground)] cursor-pointer"
           >
-            <span>Open Split-Screen Review</span>
+            <span>{t("patientDetail.interactive.openSplit")}</span>
           </button>
         </div>
 
@@ -76,7 +78,7 @@ export function PatientDetailInteractive({
           <div className="flex flex-wrap items-center gap-2">
             <span className="flex items-center gap-1 text-[11px] font-medium text-[var(--color-charcoal)]">
               <Translate size={13} className="text-[var(--color-primary)]" />
-              <span>WA Language:</span>
+              <span>{t("patientDetail.interactive.waLanguage")}</span>
             </span>
             <div className="rounded-xl inline-flex border border-[var(--color-border-strong)] bg-[var(--color-background)] p-0.5">
               {SUPPORTED_LANGUAGES.map((l) => (
@@ -103,7 +105,7 @@ export function PatientDetailInteractive({
               className="inline-flex items-center gap-1.5 bg-[#25D366] text-black px-2.5 py-1 text-[12px] font-semibold hover:opacity-90"
             >
               <WhatsappLogo size={15} weight="fill" />
-              <span>Send {SUPPORTED_LANGUAGES.find((l) => l.code === selectedLang)?.nativeLabel}</span>
+              <span>{t("patientDetail.interactive.sendLang", { language: SUPPORTED_LANGUAGES.find((l) => l.code === selectedLang)?.nativeLabel ?? "" })}</span>
             </a>
           </div>
         )}
@@ -122,21 +124,21 @@ export function PatientDetailInteractive({
 
       {/* Sticky Bottom Action Bar for Mobile & Tablet (md:hidden) */}
       <nav
-        aria-label="Mobile quick actions"
+        aria-label={t("patientDetail.interactive.navAria")}
         className="fixed bottom-0 inset-x-0 z-30 flex h-14 items-center justify-around border-t border-white/10 bg-[var(--color-rail)] px-2 text-white shadow-2xl md:hidden"
       >
         {tel ? (
           <a
             href={tel}
-            className="flex flex-col items-center justify-center min-w-[56px] py-1 text-center hover:text-white"
+            className="flex flex-col items-center justify-center min-w-[56px] px-1 py-1 text-center hover:text-white"
           >
             <Phone size={18} weight="fill" className="text-[var(--color-rail-accent)]" />
-            <span className="text-[10px] mt-0.5 font-medium tracking-tight">Call</span>
+            <span className="text-[10px] mt-0.5 font-medium tracking-tight">{t("patientDetail.header.call")}</span>
           </a>
         ) : (
-          <span className="flex flex-col items-center justify-center min-w-[56px] py-1 text-center opacity-40">
+          <span className="flex flex-col items-center justify-center min-w-[56px] px-1 py-1 text-center opacity-40">
             <Phone size={18} />
-            <span className="text-[10px] mt-0.5">No phone</span>
+            <span className="text-[10px] mt-0.5">{t("patientDetail.interactive.noPhone")}</span>
           </span>
         )}
 
@@ -145,35 +147,35 @@ export function PatientDetailInteractive({
             href={currentWaLink}
             target="_blank"
             rel="noreferrer"
-            className="flex flex-col items-center justify-center min-w-[56px] py-1 text-center hover:text-white"
+            className="flex flex-col items-center justify-center min-w-[56px] px-1 py-1 text-center hover:text-white"
           >
             <WhatsappLogo size={18} weight="fill" className="text-[#25D366]" />
             <span className="text-[10px] mt-0.5 font-medium tracking-tight">
-              WA ({selectedLang.toUpperCase()})
+              {t("patientDetail.interactive.waShort", { lang: selectedLang.toUpperCase() })}
             </span>
           </a>
         ) : (
-          <span className="flex flex-col items-center justify-center min-w-[56px] py-1 text-center opacity-40">
+          <span className="flex flex-col items-center justify-center min-w-[56px] px-1 py-1 text-center opacity-40">
             <WhatsappLogo size={18} />
-            <span className="text-[10px] mt-0.5">No WA</span>
+            <span className="text-[10px] mt-0.5">{t("patientDetail.interactive.noWa")}</span>
           </span>
         )}
 
         <button
           type="button"
           onClick={() => handleOpenSplit()}
-          className="flex flex-col items-center justify-center min-w-[64px] py-1 text-center hover:text-white"
+          className="flex flex-col items-center justify-center min-w-[64px] px-1 py-1 text-center hover:text-white"
         >
           <Columns size={18} weight="bold" className="text-[var(--color-rail-accent)]" />
-          <span className="text-[10px] mt-0.5 font-medium tracking-tight">Split Review</span>
+          <span className="text-[10px] mt-0.5 font-medium tracking-tight">{t("patientDetail.interactive.splitShort")}</span>
         </button>
 
         <a
           href="#record-visit"
-          className="flex flex-col items-center justify-center min-w-[56px] py-1 text-center hover:text-white"
+          className="flex flex-col items-center justify-center min-w-[56px] px-1 py-1 text-center hover:text-white"
         >
           <NotePencil size={18} weight="fill" className="text-white" />
-          <span className="text-[10px] mt-0.5 font-medium tracking-tight">Log Visit</span>
+          <span className="text-[10px] mt-0.5 font-medium tracking-tight">{t("patientDetail.interactive.logVisit")}</span>
         </a>
       </nav>
     </>

@@ -17,6 +17,9 @@ import { saveVisitAction } from "@/components/offlineActions";
 import { SubmitButton } from "@/components/SubmitButton";
 import { bpFlag, hbFlag, fhrFlag } from "@/lib/clinical";
 import { formatShortDate } from "@/lib/format";
+import { useLocale, useT } from "@/lib/i18n/provider";
+import { flagLabel } from "@/lib/clinical";
+import type { MessageKey } from "@/lib/i18n/messages";
 
 export interface PatientDocument {
   id: string;
@@ -43,13 +46,13 @@ const inputClass =
   "num min-h-9 w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2 py-1 text-[14px] focus:border-[var(--color-primary)]";
 const labelClass = "mb-1 block text-[12px] font-medium text-[var(--color-charcoal)]";
 
-const DOC_TYPE_LABEL: Record<string, string> = {
-  report: "Lab Report",
-  scan: "Ultrasound Scan",
-  prescription: "Prescription",
-  case_paper: "Case Paper",
-  register_page: "Register Page",
-  other: "Document",
+const DOC_TYPE_KEYS: Record<string, MessageKey> = {
+  report: "clinical.docTypeLong.report",
+  scan: "clinical.docTypeLong.scan",
+  prescription: "clinical.docTypeLong.prescription",
+  case_paper: "clinical.docTypeLong.case_paper",
+  register_page: "clinical.docTypeLong.register_page",
+  other: "clinical.docTypeLong.other",
 };
 
 export function SplitScreenVisitWorkspace({
@@ -61,6 +64,9 @@ export function SplitScreenVisitWorkspace({
   isOpen,
   onClose,
 }: SplitScreenVisitWorkspaceProps) {
+  const t = useT();
+  const locale = useLocale();
+  const docLabel = (type: string) => (DOC_TYPE_KEYS[type] ? t(DOC_TYPE_KEYS[type]) : type);
   const [selectedDocId, setSelectedDocId] = useState<string>(
     initialDocId ?? (documents[0]?.id || "")
   );
@@ -105,8 +111,8 @@ export function SplitScreenVisitWorkspace({
 
   const handleCopyOcrToNotes = () => {
     if (!currentDoc?.ocr_text) return;
-    const textSnippet = currentDoc.ocr_text.slice(0, 300);
-    setNotes((prev) => (prev ? `${prev}\n[Scan/Report Text]: ${textSnippet}` : `[Scan/Report Text]: ${textSnippet}`));
+    const textSnippet = t("visits.split.ocrNotePrefix", { text: currentDoc.ocr_text.slice(0, 300) });
+    setNotes((prev) => (prev ? `${prev}\n${textSnippet}` : textSnippet));
     setCopiedOcr(true);
     setTimeout(() => setCopiedOcr(false), 1500);
   };
@@ -115,7 +121,7 @@ export function SplitScreenVisitWorkspace({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Split-Screen Document Review & Visit Entry"
+      aria-label={t("visits.split.dialogAria")}
       className="fixed inset-0 z-50 flex flex-col bg-black/60 backdrop-blur-xs"
     >
       {/* Workspace Header */}
@@ -124,7 +130,7 @@ export function SplitScreenVisitWorkspace({
           <Columns size={20} className="text-[var(--color-rail-accent)]" aria-hidden />
           <div>
             <h2 className="text-[14px] font-semibold flex items-center gap-2">
-              <span>Split-Screen Review & Visit Entry</span>
+              <span>{t("visits.split.title")}</span>
               <span className="text-[12px] font-normal text-[var(--color-rail-text)]">
                 · {patientName} {gaLabel ? `(${gaLabel})` : ""}
               </span>
@@ -135,14 +141,14 @@ export function SplitScreenVisitWorkspace({
         {/* Right Header Actions */}
         <div className="flex items-center gap-3">
           <span className="hidden sm:inline text-[11px] text-[var(--color-rail-text)]">
-            Review scan/report on left, enter visit vitals on right
+            {t("visits.split.hint")}
           </span>
           <button
             type="button"
             onClick={onClose}
             className="flex h-9 w-9 items-center justify-center border border-white/20 text-white hover:bg-white/10"
-            aria-label="Close split screen"
-            title="Close (Esc)"
+            aria-label={t("visits.split.closeAria")}
+            title={t("visits.split.closeTitle")}
           >
             <X size={18} />
           </button>
@@ -159,7 +165,7 @@ export function SplitScreenVisitWorkspace({
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2">
             <div className="flex items-center gap-2 flex-1 min-w-[200px]">
               <span className="text-[12px] font-medium text-[var(--color-charcoal)]">
-                Document:
+                {t("visits.split.document")}
               </span>
               {documents.length > 0 ? (
                 <select
@@ -172,12 +178,12 @@ export function SplitScreenVisitWorkspace({
                 >
                   {documents.map((d) => (
                     <option key={d.id} value={d.id}>
-                      {DOC_TYPE_LABEL[d.doc_type] ?? d.doc_type} · {formatShortDate(d.doc_date ?? d.created_at)}
+                      {docLabel(d.doc_type)} · {formatShortDate(d.doc_date ?? d.created_at, locale)}
                     </option>
                   ))}
                 </select>
               ) : (
-                <span className="text-[12px] text-[var(--color-charcoal)]">No documents uploaded</span>
+                <span className="text-[12px] text-[var(--color-charcoal)]">{t("visits.split.noDocs")}</span>
               )}
             </div>
 
@@ -190,7 +196,8 @@ export function SplitScreenVisitWorkspace({
                       type="button"
                       onClick={() => setZoom((z) => Math.max(0.6, z - 0.2))}
                       className="flex h-8 w-8 items-center justify-center border border-[var(--color-border)] bg-[var(--color-background)] hover:bg-[var(--color-surface-1)] text-[var(--color-foreground)]"
-                      title="Zoom Out"
+                      title={t("visits.split.zoomOut")}
+                      aria-label={t("visits.split.zoomOut")}
                     >
                       <MagnifyingGlassMinus size={15} />
                     </button>
@@ -201,7 +208,8 @@ export function SplitScreenVisitWorkspace({
                       type="button"
                       onClick={() => setZoom((z) => Math.min(2.5, z + 0.2))}
                       className="flex h-8 w-8 items-center justify-center border border-[var(--color-border)] bg-[var(--color-background)] hover:bg-[var(--color-surface-1)] text-[var(--color-foreground)]"
-                      title="Zoom In"
+                      title={t("visits.split.zoomIn")}
+                      aria-label={t("visits.split.zoomIn")}
                     >
                       <MagnifyingGlassPlus size={15} />
                     </button>
@@ -209,9 +217,9 @@ export function SplitScreenVisitWorkspace({
                       type="button"
                       onClick={() => setZoom(1)}
                       className="rounded-xl h-8 px-2 border border-[var(--color-border)] bg-[var(--color-background)] hover:bg-[var(--color-surface-1)] text-[11px] text-[var(--color-charcoal)]"
-                      title="Reset Zoom"
+                      title={t("visits.split.zoomReset")}
                     >
-                      Reset
+                      {t("visits.split.reset")}
                     </button>
                   </>
                 )}
@@ -227,7 +235,7 @@ export function SplitScreenVisitWorkspace({
                     }`}
                   >
                     <FileText size={14} />
-                    {showOcr ? "Hide OCR" : "View OCR"}
+                    {showOcr ? t("visits.split.hideOcr") : t("visits.split.viewOcr")}
                   </button>
                 )}
               </div>
@@ -245,7 +253,7 @@ export function SplitScreenVisitWorkspace({
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={currentDoc.url}
-                    alt="Ultrasound scan or report preview"
+                    alt={t("visits.split.imageAlt")}
                     className="max-w-full max-h-[70vh] object-contain shadow-md border border-[var(--color-border)] bg-black"
                   />
                 </div>
@@ -253,23 +261,22 @@ export function SplitScreenVisitWorkspace({
                 <div className="w-full h-full min-h-[400px] border border-[var(--color-border)] bg-white shadow-xs">
                   <iframe
                     src={currentDoc.url}
-                    title="PDF Document Preview"
+                    title={t("visits.split.pdfTitle")}
                     className="w-full h-full min-h-[450px]"
                   />
                 </div>
               ) : (
                 <div className="text-center p-8 text-[var(--color-charcoal)]">
                   <FilePdf size={48} className="mx-auto mb-2 opacity-50" />
-                  <p>Document URL expired or unavailable.</p>
+                  <p>{t("visits.split.urlExpired")}</p>
                 </div>
               )
             ) : (
               <div className="text-center p-8 text-[var(--color-charcoal)] max-w-sm">
                 <FileText size={48} className="mx-auto mb-2 opacity-40" />
-                <p className="font-medium text-[14px]">No attached documents</p>
+                <p className="font-medium text-[14px]">{t("visits.split.noAttached")}</p>
                 <p className="text-[12px] mt-1">
-                  Upload patient ultrasound reports, WhatsApp lab slips, or OPD cards in the Documents section to review
-                  them side-by-side with consultation entry.
+                  {t("visits.split.noAttachedHint")}
                 </p>
               </div>
             )}
@@ -280,7 +287,7 @@ export function SplitScreenVisitWorkspace({
                 <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-1.5 mb-2">
                   <span className="text-[12px] font-medium text-[var(--color-foreground)] flex items-center gap-1.5">
                     <FileText size={14} className="text-[var(--color-primary)]" />
-                    Indexed OCR Text Layer
+                    {t("visits.split.ocrLayer")}
                   </span>
                   <div className="flex items-center gap-2">
                     <button
@@ -289,11 +296,12 @@ export function SplitScreenVisitWorkspace({
                       className="inline-flex items-center gap-1 text-[11px] bg-[var(--color-primary)] text-white px-2 py-0.5 font-medium hover:bg-[var(--color-primary-hover)]"
                     >
                       {copiedOcr ? <Check size={12} /> : <ClipboardText size={12} />}
-                      {copiedOcr ? "Copied to Notes!" : "Insert into Visit Notes"}
+                      {copiedOcr ? t("visits.split.ocrCopied") : t("visits.split.ocrInsert")}
                     </button>
                     <button
                       type="button"
                       onClick={() => setShowOcr(false)}
+                      aria-label={t("visits.split.ocrClose")}
                       className="text-[var(--color-charcoal)] hover:text-black"
                     >
                       <X size={15} />
@@ -314,10 +322,10 @@ export function SplitScreenVisitWorkspace({
         <div className="flex flex-col h-full overflow-y-auto bg-[var(--color-background)] p-4 sm:p-6">
           <div className="border-b border-[var(--color-border)] pb-3 mb-4">
             <h3 className="text-[16px] font-semibold text-[var(--color-foreground)]">
-              Consultation Visit Entry
+              {t("visits.split.entryTitle")}
             </h3>
             <p className="text-[12px] text-[var(--color-charcoal)]">
-              Document clinical findings from today&apos;s OPD and ultrasound scan review.
+              {t("visits.split.entryHint")}
             </p>
           </div>
 
@@ -326,12 +334,12 @@ export function SplitScreenVisitWorkspace({
             <div className="rounded-xl mb-4 p-2.5 border border-[var(--color-overdue)] bg-[var(--color-overdue-surface)] text-[12px] space-y-1">
               <div className="font-semibold text-[var(--color-overdue)] flex items-center gap-1.5">
                 <Warning size={15} weight="fill" />
-                Abnormal Vitals Detected in Form:
+                {t("visits.split.abnormal")}
               </div>
               <ul className="list-disc list-inside text-[var(--color-foreground)] space-y-0.5">
-                {currentBpAlert && <li>{currentBpAlert.label} ({bpSys}/{bpDia} mmHg)</li>}
-                {currentHbAlert && <li>{currentHbAlert.label} ({hb} g/dL)</li>}
-                {currentFhrAlert && <li>{currentFhrAlert.label} ({fhr} bpm)</li>}
+                {currentBpAlert && <li>{flagLabel(currentBpAlert, t)} ({bpSys}/{bpDia} mmHg)</li>}
+                {currentHbAlert && <li>{flagLabel(currentHbAlert, t)} ({hb} g/dL)</li>}
+                {currentFhrAlert && <li>{flagLabel(currentFhrAlert, t)} ({fhr} bpm)</li>}
               </ul>
             </div>
           )}
@@ -340,7 +348,7 @@ export function SplitScreenVisitWorkspace({
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div>
                 <label htmlFor="splitVisitDate" className={labelClass}>
-                  Visit date
+                  {t("visits.form.visitDate")}
                 </label>
                 <input
                   id="splitVisitDate"
@@ -353,7 +361,7 @@ export function SplitScreenVisitWorkspace({
 
               <div>
                 <label htmlFor="splitBpSys" className={labelClass}>
-                  BP sys (mmHg)
+                  {t("visits.form.bpSys")}
                 </label>
                 <input
                   id="splitBpSys"
@@ -368,7 +376,7 @@ export function SplitScreenVisitWorkspace({
 
               <div>
                 <label htmlFor="splitBpDia" className={labelClass}>
-                  BP dia (mmHg)
+                  {t("visits.form.bpDia")}
                 </label>
                 <input
                   id="splitBpDia"
@@ -383,7 +391,7 @@ export function SplitScreenVisitWorkspace({
 
               <div>
                 <label htmlFor="splitWeight" className={labelClass}>
-                  Weight (kg)
+                  {t("visits.form.weight")}
                 </label>
                 <input
                   id="splitWeight"
@@ -397,7 +405,7 @@ export function SplitScreenVisitWorkspace({
 
               <div>
                 <label htmlFor="splitHb" className={labelClass}>
-                  Hb (g/dL)
+                  {t("visits.form.hb")}
                 </label>
                 <input
                   id="splitHb"
@@ -413,7 +421,7 @@ export function SplitScreenVisitWorkspace({
 
               <div>
                 <label htmlFor="splitFhr" className={labelClass}>
-                  FHR (bpm)
+                  {t("visits.form.fhr")}
                 </label>
                 <input
                   id="splitFhr"
@@ -428,7 +436,7 @@ export function SplitScreenVisitWorkspace({
 
               <div>
                 <label htmlFor="splitFundalHeight" className={labelClass}>
-                  Fundal ht (cm)
+                  {t("visits.form.fundalHeight")}
                 </label>
                 <input
                   id="splitFundalHeight"
@@ -442,7 +450,7 @@ export function SplitScreenVisitWorkspace({
 
               <div>
                 <label htmlFor="splitNextVisitDate" className={labelClass}>
-                  Next visit
+                  {t("visits.form.nextVisit")}
                 </label>
                 <input
                   id="splitNextVisitDate"
@@ -457,18 +465,18 @@ export function SplitScreenVisitWorkspace({
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label htmlFor="splitNotes" className={labelClass}>
-                  Clinical Notes & Scan Findings
+                  {t("visits.split.notes")}
                 </label>
                 {currentDoc && (
                   <button
                     type="button"
                     onClick={() => {
-                      const prefix = `[Reviewed ${DOC_TYPE_LABEL[currentDoc.doc_type] ?? currentDoc.doc_type} dated ${formatShortDate(currentDoc.doc_date ?? currentDoc.created_at)}]: `;
+                      const prefix = t("visits.split.tagText", { docType: docLabel(currentDoc.doc_type), date: formatShortDate(currentDoc.doc_date ?? currentDoc.created_at, locale) });
                       setNotes((prev) => (prev ? `${prev}\n${prefix}` : prefix));
                     }}
                     className="text-[11px] text-[var(--color-primary)] hover:underline"
                   >
-                    + Tag selected doc in notes
+                    {t("visits.split.tagDoc")}
                   </button>
                 )}
               </div>
@@ -478,7 +486,7 @@ export function SplitScreenVisitWorkspace({
                 rows={4}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Ultrasound biometric observations, lab report findings, prescribed supplements (IFA, Calcium), patient complaints..."
+                placeholder={t("visits.split.notesPlaceholder")}
                 className="rounded-xl w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] p-2 text-[13px] font-sans focus:border-[var(--color-primary)] outline-none"
               />
             </div>
@@ -495,9 +503,9 @@ export function SplitScreenVisitWorkspace({
                 onClick={onClose}
                 className="rounded-xl px-3 py-2 border border-[var(--color-border-strong)] text-[13px] font-medium hover:bg-[var(--color-surface-1)]"
               >
-                Cancel
+                {t("common.cancel")}
               </button>
-              <SubmitButton>Save Visit & Update Trajectory</SubmitButton>
+              <SubmitButton>{t("visits.split.save")}</SubmitButton>
             </div>
           </form>
         </div>

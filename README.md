@@ -94,6 +94,7 @@ Auth/onboarding (email/password + Google OAuth), patient registration with auto-
 
 Also in the app:
 
+- **Hindi and Marathi staff UI**: the whole app (landing, auth, dashboard, patients, visits, call queue, documents, OPD, settings, reports) is available in English, हिन्दी and मराठी. Switch with the language control in the sidebar (stored in the `ms_locale` cookie). Catalogues live in `lib/i18n/messages/` with compile-time and test-time key parity; see `docs/I18N.md` and `lib/i18n/GLOSSARY.md`. **The Hindi/Marathi wording has not been clinician- or native-speaker-reviewed** and must be before clinical use.
 - **Offline write queue**: recording a visit or logging a contact while offline (or when the request can't reach the server) saves it in the browser's IndexedDB and replays it when the connection returns, with a status pill, retry/discard for failures, and an idempotency key (`client_request_id`) so replays never duplicate (`lib/offlineQueue.ts`, `components/OfflineSync.tsx`). See `docs/SECURITY.md` for what is stored.
 - **WhatsApp bot**: reminders and replies (confirm / reschedule / info; English, Hindi, Marathi) via the signed `/api/whatsapp/webhook`, plus an in-app simulator on the call queue that uses the authenticated `processBotReply` server action, not the webhook (`lib/whatsappBot.ts`).
 - **Voice counselling**: generates a counselling script in Hindi, Marathi, Gujarati or English from the patient's data (`lib/voiceCounselor.ts`); the doctor can create a signed public listen link for the mother.

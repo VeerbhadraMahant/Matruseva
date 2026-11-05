@@ -3,10 +3,11 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser, isDemoActive } from "@/lib/auth";
 import { getDemoPatientDetail } from "@/lib/demo-data";
-import { gestationalAge, formatGA, trimester } from "@/lib/pregnancy";
+import { gestationalAge, formatGALocalized, trimester } from "@/lib/pregnancy";
+import { getT } from "@/lib/i18n/server";
 import { todayInClinicTimezone, toISODate } from "@/lib/today";
 import { parseLocalDate } from "@/lib/format";
-import { patientFlags, vitalsFlags, sortFlags } from "@/lib/clinical";
+import { patientFlags, vitalsFlags, sortFlags, localizeFlags } from "@/lib/clinical";
 import { getPatientObstetricData } from "@/lib/obstetricReportData";
 import { OnePagePatientReport } from "@/components/OnePagePatientReport";
 import type { Database } from "@/lib/supabase/types";
@@ -29,6 +30,7 @@ export default async function PatientReportPage({ params }: { params: Promise<{ 
   const { id } = await params;
   const cookieStore = await cookies();
   const isDemo = isDemoActive(cookieStore);
+  const { t } = await getT();
   const [me, supabase] = await Promise.all([getCurrentUser(), createClient()]);
 
   let patient: PatientRecord | null = null;
@@ -121,7 +123,7 @@ export default async function PatientReportPage({ params }: { params: Promise<{ 
   const formattedVisits = visits.map((v, idx) => {
     const prev = visits[idx + 1];
     const weightChange = v.weight !== null && prev?.weight != null ? v.weight - prev.weight : null;
-    const vga = lmp ? formatGA(gestationalAge(lmp, parseLocalDate(v.visit_date))) : null;
+    const vga = lmp ? formatGALocalized(gestationalAge(lmp, parseLocalDate(v.visit_date)), t) : null;
 
     return {
       visitDate: v.visit_date,
@@ -174,7 +176,7 @@ export default async function PatientReportPage({ params }: { params: Promise<{ 
       scans={scans}
       visits={formattedVisits}
       careEvents={formattedCareEvents}
-      riskFlags={clinicalFlags.map((f) => f.label)}
+      riskFlags={localizeFlags(clinicalFlags, t).map((f) => f.label)}
     />
   );
 }

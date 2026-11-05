@@ -8,6 +8,7 @@
  * IndexedDB implementation for the browser and an in-memory one for tests.
  * Replays are idempotent server-side via `client_request_id` (= entry id).
  */
+import { offlineT } from "./offlineI18n";
 
 export type QueueEntryType = "visit" | "contact";
 export type QueueEntryStatus = "pending" | "failed";
@@ -274,7 +275,7 @@ export async function flushQueue(
     try {
       outcome = await send(entry);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Sync failed";
+      const message = err instanceof Error ? err.message : offlineT("shell.offline.syncError");
       await queue.markRetryLater(entry.id, message);
       result.stopped = true;
       break;
@@ -345,9 +346,7 @@ export async function discardQueueForLogout(): Promise<boolean> {
     const q = getOfflineQueue();
     const n = (await q.list()).length;
     if (n > 0) {
-      const ok = window.confirm(
-        `${n} change${n === 1 ? "" : "s"} saved offline ${n === 1 ? "has" : "have"} not synced yet. Signing out will discard ${n === 1 ? "it" : "them"}. Sign out anyway?`,
-      );
+      const ok = window.confirm(offlineT("shell.offline.logoutConfirm", { count: n }));
       if (!ok) return false;
     }
     await q.clear();

@@ -4,8 +4,10 @@ import { useOptimistic, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { markCareEventDone } from "@/app/(app)/patients/[id]/actions";
 import { showToast } from "@/components/Toaster";
+import { useT } from "@/lib/i18n/provider";
 
 function Button() {
+  const t = useT();
   const { pending } = useFormStatus();
   return (
     <button
@@ -13,12 +15,13 @@ function Button() {
       disabled={pending}
       className="rounded-xl min-h-8 whitespace-nowrap border border-[var(--color-border-strong)] px-2.5 text-[13px] font-medium hover:border-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-white disabled:cursor-wait disabled:opacity-60"
     >
-      Mark done
+      {t("patientDetail.markDone.button")}
     </button>
   );
 }
 
 export function MarkDoneButton({ careEventId, patientId }: { careEventId: string; patientId: string }) {
+  const t = useT();
   const [error, setError] = useState<string | null>(null);
   // Optimistic: flips to "Done" immediately while the action + revalidation are in flight,
   // and reverts automatically when the action finishes with an error.
@@ -30,9 +33,9 @@ export function MarkDoneButton({ careEventId, patientId }: { careEventId: string
     try {
       const result = await markCareEventDone(careEventId, patientId);
       if (result.error) setError(result.error);
-      else showToast("Marked as done");
+      else showToast(t("patientDetail.markDone.toast"));
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Could not mark as done");
+      setError(err instanceof Error ? err.message : t("patientDetail.error.markDoneFailed"));
     }
   }
 
@@ -43,7 +46,7 @@ export function MarkDoneButton({ careEventId, patientId }: { careEventId: string
           role="status"
           className="inline-flex min-h-8 items-center whitespace-nowrap rounded-xl bg-[var(--color-primary)] px-2.5 text-[13px] font-medium text-white"
         >
-          ✓ Done
+          {t("patientDetail.markDone.done")}
         </span>
       ) : (
         <Button />

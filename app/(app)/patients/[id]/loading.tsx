@@ -1,9 +1,13 @@
+"use client";
+
+import { useT } from "@/lib/i18n/provider";
 import { card } from "@/components/ui";
 
 /** Loading state shaped like the patient record: header card, timeline, vitals, schedule. */
 export default function PatientLoading() {
+  const t = useT();
   return (
-    <div aria-busy="true" aria-label="Loading patient" className="mx-auto w-full max-w-6xl space-y-5 px-4 pb-12 pt-6 md:px-8 md:pt-8">
+    <div aria-busy="true" aria-label={t("shell.loading.patient")} className="mx-auto w-full max-w-6xl space-y-5 px-4 pb-12 pt-6 md:px-8 md:pt-8">
       <div className="pc-skeleton h-4 w-32" />
 
       <div className={`overflow-hidden ${card}`}>

@@ -1,15 +1,15 @@
+"use client";
+
 import Link from "next/link";
 import { CheckCircle } from "@phosphor-icons/react/dist/ssr";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useT } from "@/lib/i18n/provider";
 
-const POINTS = [
-  "ANC schedule built automatically from the LMP",
-  "Overdue and at-risk patients surfaced every morning",
-  "Searchable case papers and OPD register",
-];
+const POINTS = ["auth.shell.point1", "auth.shell.point2", "auth.shell.point3"] as const;
 
 /** Split-screen frame for sign-in, sign-up and onboarding. Decorative shapes only, no imagery. */
 export function AuthShell({ children }: { children: React.ReactNode }) {
+  const t = useT();
   return (
     <main className="flex min-h-dvh">
       <aside className="relative isolate hidden w-[42%] max-w-[520px] flex-col justify-between overflow-hidden bg-[linear-gradient(160deg,var(--color-pc-plum)_0%,var(--color-pc-plum-hover)_100%)] px-12 py-12 text-white md:flex">
@@ -43,21 +43,21 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
 
         <div>
           <h2 className="text-[30px] font-semibold leading-tight tracking-[-0.02em]">
-            Every pregnancy tracked.
+            {t("auth.shell.headline1")}
             <br />
-            Every follow-up caught.
+            {t("auth.shell.headline2")}
           </h2>
           <ul className="mt-8 space-y-3">
             {POINTS.map((p) => (
               <li key={p} className="flex items-start gap-3 text-[14px] text-[#e6ddef]">
                 <CheckCircle size={18} weight="fill" className="mt-0.5 shrink-0 text-[var(--color-pc-lilac-strong)]" aria-hidden />
-                {p}
+                {t(p)}
               </li>
             ))}
           </ul>
         </div>
 
-        <p className="text-[12px] text-[#e6ddef]/80">Antenatal care and OPD digitisation for OB-GYN clinics.</p>
+        <p className="text-[12px] text-[#e6ddef]/80">{t("auth.shell.tagline")}</p>
       </aside>
 
       <div className="relative flex flex-1 flex-col items-center justify-center px-4 py-10">
@@ -87,7 +87,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
             />
             <div>
               <p className="text-[17px] font-bold tracking-tight text-[var(--color-foreground)]">MatruSetu</p>
-              <p className="text-[12px] text-[var(--color-charcoal)]">Maternal & Child Health</p>
+              <p className="text-[12px] text-[var(--color-charcoal)]">{t("auth.shell.subtitle")}</p>
             </div>
           </div>
           {children}

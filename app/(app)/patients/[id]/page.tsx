@@ -3,10 +3,13 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Phone, WhatsappLogo, FilePdf, Baby, FileText } from "@phosphor-icons/react/dist/ssr";
 import { createClient } from "@/lib/supabase/server";
-import { gestationalAge, formatGA, trimester } from "@/lib/pregnancy";
+import { gestationalAge, formatGALocalized, trimester } from "@/lib/pregnancy";
+import { getT } from "@/lib/i18n/server";
+import { intlLocale } from "@/lib/i18n/intl";
+import { careEventKind, careEventName, careStatusLabel, contactOutcomeLabel, documentTypeLabel, followUpRiskLabel } from "@/lib/clinicalLabels";
 import { todayInClinicTimezone, toISODate } from "@/lib/today";
 import { daysBetween, formatDate, formatGravidaPara, formatShortDate, parseLocalDate, relativeDays } from "@/lib/format";
-import { bpFlag, hbFlag, fhrFlag, patientFlags, vitalsFlags, sortFlags } from "@/lib/clinical";
+import { bpFlag, hbFlag, fhrFlag, patientFlags, vitalsFlags, sortFlags, localizeFlags } from "@/lib/clinical";
 import {
   telLink,
   whatsAppLink,
@@ -29,35 +32,18 @@ import { Panel, Tag, Empty, SEVERITY_TONE, buttonPrimary, buttonSecondary, card,
 import type { CareEventStatus, ContactOutcome, FollowUpRisk } from "@/lib/supabase/enums";
 import { getDemoPatientDetail } from "@/lib/demo-data";
 
-const STATUS: Record<CareEventStatus, { label: string; tone: Tone }> = {
-  done: { label: "Done", tone: "ok" },
-  skipped: { label: "Skipped", tone: "neutral" },
-  upcoming: { label: "Upcoming", tone: "neutral" },
-  due: { label: "Due now", tone: "warning" },
-  overdue: { label: "Overdue", tone: "critical" },
+const STATUS_TONE: Record<CareEventStatus, Tone> = {
+  done: "ok",
+  skipped: "neutral",
+  upcoming: "neutral",
+  due: "warning",
+  overdue: "critical",
 };
 
-const RISK: Record<FollowUpRisk, { label: string; tone: Tone }> = {
-  on_track: { label: "On track", tone: "ok" },
-  at_risk: { label: "At risk", tone: "warning" },
-  lost: { label: "Lost to follow-up", tone: "critical" },
-};
-
-const OUTCOME: Record<ContactOutcome, string> = {
-  reached: "Reached",
-  will_visit: "Will visit",
-  no_answer: "No answer",
-  wrong_number: "Wrong number",
-  refused: "Refused",
-};
-
-const DOC_TYPE: Record<string, string> = {
-  report: "Report",
-  scan: "Scan",
-  prescription: "Prescription",
-  case_paper: "Case paper",
-  register_page: "Register page",
-  other: "Other",
+const RISK_TONE: Record<FollowUpRisk, Tone> = {
+  on_track: "ok",
+  at_risk: "warning",
+  lost: "critical",
 };
 
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {
@@ -114,6 +100,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
   const { id } = await params;
   const cookieStore = await cookies();
   const isDemo = isDemoActive(cookieStore);
+  const { t, locale } = await getT();
   const [me, supabase] = await Promise.all([getCurrentUser(), createClient()]);
 
   let patient: PatientRecord | null = null;
@@ -205,7 +192,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
   const ga = lmp ? gestationalAge(lmp, today) : null;
   const eddIso =
     patient.edd ?? (lmp ? toISODate(new Date(lmp.getFullYear(), lmp.getMonth(), lmp.getDate() + 280)) : null);
-  const followUp = RISK[(risk?.risk as FollowUpRisk) ?? "on_track"];
+  const followUpRisk = (risk?.risk as FollowUpRisk) ?? "on_track";
   const nextVisit = risk?.next_visit_date ?? null;
 
   const events = (careEvents ?? []).map((ce) => ({
@@ -225,6 +212,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
     ...(latest ? vitalsFlags({ bpSys: latest.bp_sys, bpDia: latest.bp_dia, hb: latest.hb, fhr: latest.fhr }) : []),
     ...patientFlags({ age: patient.age, gravida: patient.gravida, rhNegative: patient.rh_negative, bloodGroup: patient.blood_group, gaWeeks: ga?.weeks ?? null }),
   ]);
+  const alertFlags = localizeFlags(flags, t);
 
   const [{ data: clinic }] = await Promise.all([
     supabase.from("clinics").select("name, message_templates").eq("id", patient.clinic_id).single(),
@@ -253,9 +241,9 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
   return (
     <>
       <header className="mx-auto w-full max-w-6xl px-4 pt-6 md:px-8 md:pt-8">
-        <nav aria-label="Breadcrumb" className="mb-3 text-[13px] text-[var(--color-charcoal)]">
+        <nav aria-label={t("patientDetail.breadcrumb.aria")} className="mb-3 text-[13px] text-[var(--color-charcoal)]">
           <Link href="/patients" className="font-medium text-[var(--color-primary)] hover:underline">
-            Patients
+            {t("patientDetail.breadcrumb.patients")}
           </Link>
           {patient.clinic_patient_no ? <span className="num"> / #{patient.clinic_patient_no}</span> : null}
         </nav>
@@ -277,7 +265,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
             <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em]">{patient.name}</h1>
             <p className="num mt-0.5 text-[13px] text-[var(--color-charcoal)]">
               {[
-                patient.age ? `${patient.age} y` : null,
+                patient.age ? t("patientDetail.header.ageYears", { age: patient.age }) : null,
                 formatGravidaPara(patient.gravida, patient.para),
                 patient.blood_group,
                 patient.phone,
@@ -292,10 +280,10 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
             <Link
               href={`/patients/${patient.id}/report`}
               className="${buttonSecondary} gap-1.5"
-              title="Open official 1-Page Obstetric Clinical Dossier & Print Summary"
+              title={t("patientDetail.header.reportTitle")}
             >
               <FileText size={16} weight="bold" className="text-[var(--color-primary)]" aria-hidden />
-              <span>1-Page Report</span>
+              <span>{t("patientDetail.header.report")}</span>
             </Link>
             <VoiceCounselorButton
               data={{
@@ -342,8 +330,8 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
                 altPhone: patient.alt_phone,
                 bloodGroup: patient.blood_group,
                 rhNegative: patient.rh_negative,
-                edd: eddIso ? formatShortDate(eddIso) : null,
-                gaLabel: ga ? `${formatGA(ga)} · T${trimester(ga)}` : null,
+                edd: eddIso ? formatShortDate(eddIso, locale) : null,
+                gaLabel: ga ? `${formatGALocalized(ga, t)} · ${t("clinical.trimester.short", { n: trimester(ga) })}` : null,
                 gravida: patient.gravida,
                 para: patient.para,
                 clinicName: me.clinicName,
@@ -362,7 +350,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
             />
             {tel && (
               <a href={tel} className={buttonPrimary}>
-                <Phone size={15} weight="fill" aria-hidden /> Call
+                <Phone size={15} weight="fill" aria-hidden /> {t("patientDetail.header.call")}
               </a>
             )}
             {wa && (
@@ -373,7 +361,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
             {!(patient.status === "delivered" || patient.status === "closed" || patient.pregnancy_status === "delivered" || patient.pregnancy_status === "closed") ? (
               <>
                 <a href="#record-visit" className={buttonSecondary}>
-                  Record visit
+                  {t("patientDetail.header.recordVisit")}
                 </a>
                 <ClosePregnancyForm
                   patient={{
@@ -391,50 +379,50 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
         </div>
 
         <div className="grid grid-cols-2 divide-[var(--color-border)] border-t border-[var(--color-border)] sm:grid-cols-3 lg:grid-cols-6 lg:divide-x">
-          <Fact label="Gestational age">
+          <Fact label={t("patientDetail.fact.ga")}>
             {(patient.status === "delivered" || patient.status === "closed" || patient.pregnancy_status === "delivered" || patient.pregnancy_status === "closed") ? (
-              <span className="font-semibold text-[var(--color-on-track)]">Delivered</span>
+              <span className="font-semibold text-[var(--color-on-track)]">{t("patientDetail.fact.delivered")}</span>
             ) : ga ? (
               <>
-                {formatGA(ga)} <span className="text-[12px] text-[var(--color-charcoal)]">T{trimester(ga)}</span>
+                {formatGALocalized(ga, t)} <span className="text-[12px] text-[var(--color-charcoal)]">{t("clinical.trimester.short", { n: trimester(ga) })}</span>
               </>
             ) : (
               "—"
             )}
           </Fact>
-          <Fact label="EDD">
-            {formatDate(eddIso)}
-            {eddIso && <span className="ml-1.5 text-[12px] text-[var(--color-charcoal)]">{relativeDays(eddIso, today)}</span>}
+          <Fact label={t("patientDetail.fact.edd")}>
+            {formatDate(eddIso, locale)}
+            {eddIso && <span className="ml-1.5 text-[12px] text-[var(--color-charcoal)]">{relativeDays(eddIso, today, locale)}</span>}
           </Fact>
-          <Fact label="LMP">{formatDate(patient.lmp)}</Fact>
-          <Fact label="Next visit">
+          <Fact label={t("patientDetail.fact.lmp")}>{formatDate(patient.lmp, locale)}</Fact>
+          <Fact label={t("patientDetail.fact.nextVisit")}>
             {(patient.status === "delivered" || patient.status === "closed" || patient.pregnancy_status === "delivered" || patient.pregnancy_status === "closed") ? (
-              <span className="text-[var(--color-charcoal)]">Concluded</span>
+              <span className="text-[var(--color-charcoal)]">{t("patientDetail.fact.concluded")}</span>
             ) : nextVisit ? (
               <>
-                {formatShortDate(nextVisit)}{" "}
+                {formatShortDate(nextVisit, locale)}{" "}
                 <span
                   className={`text-[12px] ${
                     daysBetween(today, parseLocalDate(nextVisit)) < 0 ? "text-[var(--color-overdue)]" : "text-[var(--color-charcoal)]"
                   }`}
                 >
-                  {relativeDays(nextVisit, today)}
+                  {relativeDays(nextVisit, today, locale)}
                 </span>
               </>
             ) : (
-              "Not booked"
+              t("patientDetail.fact.notBooked")
             )}
           </Fact>
-          <Fact label="Follow-up">
+          <Fact label={t("patientDetail.fact.followUp")}>
             {(patient.status === "delivered" || patient.status === "closed" || patient.pregnancy_status === "delivered" || patient.pregnancy_status === "closed") ? (
-              <Tag tone="ok">Delivered</Tag>
+              <Tag tone="ok">{t("patientDetail.fact.delivered")}</Tag>
             ) : (
-              <Tag tone={followUp.tone}>{followUp.label}</Tag>
+              <Tag tone={RISK_TONE[followUpRisk]}>{followUpRiskLabel(followUpRisk, t)}</Tag>
             )}
           </Fact>
-          <Fact label="Schedule">
-            {events.filter((e) => e.status === "done").length}/{events.length} done
-            {openCount > 0 && <span className="ml-1.5 text-[12px] text-[var(--color-overdue)]">{openCount} overdue</span>}
+          <Fact label={t("patientDetail.fact.schedule")}>
+            {t("patientDetail.fact.scheduleDone", { done: events.filter((e) => e.status === "done").length, total: events.length })}
+            {openCount > 0 && <span className="ml-1.5 text-[12px] text-[var(--color-overdue)]">{t("patientDetail.fact.scheduleOverdue", { count: openCount })}</span>}
           </Fact>
         </div>
         </div>
@@ -450,40 +438,42 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
                 </div>
                 <div>
                   <h3 className="text-[15px] font-semibold text-[var(--color-on-track)]">
-                    Delivery outcome · pregnancy closed
+                    {t("patientDetail.closed.title")}
                   </h3>
                   <p className="text-[12px] text-[var(--color-charcoal)]">
-                    Active ANC schedule closed on {patient.closed_at ? formatShortDate(patient.closed_at) : (patient.delivery_date ? formatShortDate(patient.delivery_date) : "record")}
+                    {patient.closed_at || patient.delivery_date
+                      ? t("patientDetail.closed.closedOn", { date: formatShortDate(patient.closed_at ?? patient.delivery_date, locale) })
+                      : t("patientDetail.closed.closedOnRecord")}
                   </p>
                 </div>
               </div>
-              <Tag tone="ok">Delivered</Tag>
+              <Tag tone="ok">{t("patientDetail.fact.delivered")}</Tag>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-3 text-[13px]">
               <div>
-                <p className="text-[12px] font-medium text-[var(--color-charcoal)]">Delivery Date</p>
-                <p className="font-semibold mt-0.5">{patient.delivery_date ? formatDate(patient.delivery_date) : "Recorded"}</p>
+                <p className="text-[12px] font-medium text-[var(--color-charcoal)]">{t("patientDetail.closed.deliveryDate")}</p>
+                <p className="font-semibold mt-0.5">{patient.delivery_date ? formatDate(patient.delivery_date, locale) : t("patientDetail.closed.recorded")}</p>
               </div>
               <div>
-                <p className="text-[12px] font-medium text-[var(--color-charcoal)]">Delivery Mode</p>
-                <p className="font-semibold mt-0.5">{patient.delivery_mode === "LSCS" ? "LSCS (Cesarean Section)" : "NVD (Normal Vaginal Delivery)"}</p>
+                <p className="text-[12px] font-medium text-[var(--color-charcoal)]">{t("patientDetail.closed.deliveryMode")}</p>
+                <p className="font-semibold mt-0.5">{patient.delivery_mode === "LSCS" ? t("clinical.delivery.LSCS") : t("clinical.delivery.NVD")}</p>
               </div>
               <div>
-                <p className="text-[12px] font-medium text-[var(--color-charcoal)]">Birth Weight</p>
+                <p className="text-[12px] font-medium text-[var(--color-charcoal)]">{t("patientDetail.closed.birthWeight")}</p>
                 <p className="num font-semibold mt-0.5">{patient.birth_weight_kg ? `${patient.birth_weight_kg} kg` : "—"}</p>
               </div>
               <div>
-                <p className="text-[12px] font-medium text-[var(--color-charcoal)]">Status</p>
-                <p className="font-semibold text-[var(--color-on-track)] mt-0.5">Discharged from ANC</p>
+                <p className="text-[12px] font-medium text-[var(--color-charcoal)]">{t("patientDetail.closed.status")}</p>
+                <p className="font-semibold text-[var(--color-on-track)] mt-0.5">{t("patientDetail.closed.discharged")}</p>
               </div>
             </div>
           </div>
         )}
         {flags.length > 0 && (
           <div className={`flex flex-wrap items-center gap-2 px-4 py-3 ${card}`}>
-            <span className="mr-1 text-[13px] font-semibold text-[var(--color-foreground)]">Clinical alerts</span>
-            {flags.map((f) => (
+            <span className="mr-1 text-[13px] font-semibold text-[var(--color-foreground)]">{t("patientDetail.alerts.title")}</span>
+            {alertFlags.map((f) => (
               <Tag key={f.code} tone={SEVERITY_TONE[f.severity]}>
                 {f.label}
               </Tag>
@@ -492,7 +482,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
         )}
 
         {lmp && ga && (
-          <Panel title="Pregnancy timeline">
+          <Panel title={t("patientDetail.panel.timeline")}>
             <PregnancyTimeline lmp={patient.lmp!} gaDays={ga.days} events={events} />
           </Panel>
         )}
@@ -506,19 +496,19 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
 
         <div className="grid grid-cols-[minmax(0,1fr)] gap-5 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
           <div className="space-y-5">
-            <Panel title="ANC schedule" count={events.length}>
+            <Panel title={t("patientDetail.panel.schedule")} count={events.length}>
               {events.length === 0 ? (
-                <Empty>No schedule generated for this patient.</Empty>
+                <Empty>{t("patientDetail.schedule.empty")}</Empty>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-[14px]">
                     <thead>
                       <tr>
-                        <th className={th}>Item</th>
-                        <th className={th}>Window</th>
-                        <th className={th}>Status</th>
+                        <th className={th}>{t("patientDetail.schedule.item")}</th>
+                        <th className={th}>{t("patientDetail.schedule.window")}</th>
+                        <th className={th}>{t("common.status")}</th>
                         <th className={th}>
-                          <span className="sr-only">Action</span>
+                          <span className="sr-only">{t("patientDetail.schedule.action")}</span>
                         </th>
                       </tr>
                     </thead>
@@ -526,16 +516,16 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
                       {events.map((e) => (
                         <tr key={e.id} className={e.status === "done" || e.status === "skipped" ? "text-[var(--color-charcoal)]" : ""}>
                           <td className={td}>
-                            <p className={e.status === "done" ? "" : "font-medium"}>{e.name}</p>
-                            <p className="text-[12px] capitalize text-[var(--color-charcoal)]">{e.kind}</p>
+                            <p className={e.status === "done" ? "" : "font-medium"}>{careEventName(e.name, t)}</p>
+                            <p className="text-[12px] capitalize text-[var(--color-charcoal)]">{careEventKind(e.kind, t)}</p>
                           </td>
                           <td className={`${td} num whitespace-nowrap text-[13px]`}>
-                            {formatShortDate(e.dueFrom)} – {formatShortDate(e.dueTo)}
+                            {formatShortDate(e.dueFrom, locale)} – {formatShortDate(e.dueTo, locale)}
                           </td>
                           <td className={td}>
-                            <Tag tone={STATUS[e.status].tone}>{STATUS[e.status].label}</Tag>
+                            <Tag tone={STATUS_TONE[e.status]}>{careStatusLabel(e.status, t)}</Tag>
                             {e.status === "done" && e.completedAt && (
-                              <span className="num ml-1.5 text-[12px]">{formatShortDate(e.completedAt)}</span>
+                              <span className="num ml-1.5 text-[12px]">{formatShortDate(e.completedAt, locale)}</span>
                             )}
                           </td>
                           <td className={`${td} text-right`}>
@@ -549,33 +539,33 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
               )}
             </Panel>
 
-            <Panel title="Visits & vitals" count={visitList.length}>
+            <Panel title={t("patientDetail.panel.visits")} count={visitList.length}>
               {visitList.length === 0 ? (
-                <Empty>No visits recorded yet.</Empty>
+                <Empty>{t("patientDetail.visits.empty")}</Empty>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-[14px]">
                     <thead>
                       <tr>
-                        <th className={th}>Date</th>
+                        <th className={th}>{t("common.date")}</th>
                         <th className={th}>GA</th>
                         <th className={th}>BP</th>
-                        <th className={th}>Wt kg</th>
+                        <th className={th}>{t("patientDetail.visits.weightKg")}</th>
                         <th className={th}>Hb</th>
                         <th className={th}>FHR</th>
-                        <th className={th}>FH cm</th>
-                        <th className={th}>Notes</th>
+                        <th className={th}>{t("patientDetail.visits.fundalCm")}</th>
+                        <th className={th}>{t("common.notes")}</th>
                       </tr>
                     </thead>
                     <tbody className="num">
                       {visitList.map((v, i) => {
                         const prev = visitList[i + 1];
                         const dw = v.weight !== null && prev?.weight != null ? v.weight - prev.weight : null;
-                        const vga = lmp ? formatGA(gestationalAge(lmp, parseLocalDate(v.visit_date))) : "—";
+                        const vga = lmp ? formatGALocalized(gestationalAge(lmp, parseLocalDate(v.visit_date)), t) : "—";
                         return (
                           <tr key={v.id}>
-                            <td className={`${td} whitespace-nowrap`}>{formatShortDate(v.visit_date)}</td>
-                            <td className={`${td} text-[var(--color-charcoal)]`}>{vga}</td>
+                            <td className={`${td} whitespace-nowrap`}>{formatShortDate(v.visit_date, locale)}</td>
+                            <td className={`${td} whitespace-nowrap text-[var(--color-charcoal)]`}>{vga}</td>
                             <td className={`${td} whitespace-nowrap`}>
                               {v.bp_sys && v.bp_dia ? (
                                 <Abn abnormal={bpFlag(v.bp_sys, v.bp_dia) !== null}>
@@ -609,12 +599,12 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
           </div>
 
           <div className="space-y-5">
-            <Panel title="Record visit" className="scroll-mt-4" >
+            <Panel title={t("patientDetail.panel.recordVisit")} className="scroll-mt-4" >
               <div id="record-visit" className="p-4 pt-1">
                 <PatientDetailInteractive
                   patientId={id}
                   patientName={patient.name}
-                  gaLabel={ga ? formatGA(ga) : null}
+                  gaLabel={ga ? formatGALocalized(ga, t) : null}
                   phone={patient.phone}
                   tel={tel}
                   wa={wa}
@@ -627,19 +617,19 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
               </div>
             </Panel>
 
-            <Panel title="Contact history" count={(contacts ?? []).length}>
+            <Panel title={t("patientDetail.panel.contacts")} count={(contacts ?? []).length}>
               {(contacts ?? []).length === 0 ? (
-                <Empty>No calls or messages logged.</Empty>
+                <Empty>{t("patientDetail.contacts.empty")}</Empty>
               ) : (
                 <ul>
                   {(contacts ?? []).map((c) => (
                     <li key={c.id} className="flex items-center justify-between gap-2 border-t border-[var(--color-border)]/70 px-4 py-3 text-[13px]">
                       <span>
-                        {c.channel === "whatsapp" ? "WhatsApp" : "Call"} ·{" "}
-                        <span className="font-medium">{OUTCOME[c.outcome as ContactOutcome] ?? c.outcome}</span>
+                        {c.channel === "whatsapp" ? t("clinical.channel.whatsapp") : t("clinical.channel.call")} ·{" "}
+                        <span className="font-medium">{contactOutcomeLabel(c.outcome as ContactOutcome, t)}</span>
                       </span>
                       <span className="num text-[12px] text-[var(--color-charcoal)]">
-                        {new Date(c.created_at).toLocaleString("en-IN", {
+                        {new Date(c.created_at).toLocaleString(intlLocale(locale), {
                           day: "2-digit",
                           month: "short",
                           hour: "2-digit",
@@ -654,16 +644,16 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
             </Panel>
 
             <Panel
-              title="Documents"
+              title={t("patientDetail.panel.documents")}
               count={docs.length}
               action={
                 <Link href="/documents" className="text-[13px] font-medium text-[var(--color-primary)] hover:underline">
-                  Upload →
+                  {t("patientDetail.documents.upload")}
                 </Link>
               }
             >
               {docs.length === 0 ? (
-                <Empty>No documents filed yet.</Empty>
+                <Empty>{t("patientDetail.documents.empty")}</Empty>
               ) : (
                 <ul className="grid grid-cols-2 gap-3 p-4 pt-1">
                   {docs.map((doc) => {
@@ -681,9 +671,9 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
                             </div>
                           )}
                           <p className="px-2 py-1.5 text-[12px]">
-                            <span className="font-medium">{DOC_TYPE[doc.doc_type] ?? doc.doc_type}</span>{" "}
+                            <span className="font-medium">{documentTypeLabel(doc.doc_type, t)}</span>{" "}
                             <span className="num text-[var(--color-charcoal)]">
-                              {formatShortDate(doc.doc_date ?? doc.created_at)}
+                              {formatShortDate(doc.doc_date ?? doc.created_at, locale)}
                             </span>
                           </p>
                         </a>

@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans, IBM_Plex_Mono, Noto_Sans_Devanagari } from "next/font/google";
 import "./globals.css";
-import { getLocale } from "@/lib/i18n/server";
+import { getLocale, getT } from "@/lib/i18n/server";
 import { messages } from "@/lib/i18n/messages";
 import { I18nProvider } from "@/lib/i18n/provider";
 
@@ -28,12 +28,14 @@ const devanagari = Noto_Sans_Devanagari({
   preload: false,
 });
 
-export const metadata: Metadata = {
-  title: "MatruSetu",
-  description:
-    "Assistive pregnancy tracking and OPD digitisation for OB-GYN practices.",
-  manifest: "/manifest.webmanifest",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getT();
+  return {
+    title: "MatruSetu",
+    description: t("shell.meta.description"),
+    manifest: "/manifest.webmanifest",
+  };
+}
 
 export const viewport: Viewport = {
   width: "device-width",

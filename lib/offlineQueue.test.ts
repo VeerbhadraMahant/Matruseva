@@ -12,6 +12,10 @@ import {
   pickPayload,
 } from "./offlineQueue";
 import { submitOrQueue } from "./offlineSubmit";
+import { setOfflineTranslator } from "./offlineI18n";
+import { makeTranslator } from "./i18n/translate";
+
+setOfflineTranslator(makeTranslator("en"));
 
 function setup(start = 1_000) {
   let t = start;

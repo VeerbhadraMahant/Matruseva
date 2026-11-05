@@ -1,3 +1,4 @@
+import type { MessageKey } from "@/lib/i18n/messages";
 import type { RowStatus } from "./types";
 
 export type BadgeTone = "overdue" | "risk" | "active" | "delivered" | "plum";
@@ -18,19 +19,20 @@ const DOT: Record<BadgeTone, string> = {
   plum: "bg-pc-plum",
 };
 
-export const STATUS_BADGE: Record<RowStatus, { tone: BadgeTone; label: string }> = {
-  overdue: { tone: "overdue", label: "Overdue" },
-  lost: { tone: "overdue", label: "Lost to follow-up" },
-  atRisk: { tone: "risk", label: "At risk" },
-  due: { tone: "plum", label: "Due" },
-  onTrack: { tone: "active", label: "On track" },
+/** `label` is a message key: translate with t(label) in the consuming component. */
+export const STATUS_BADGE: Record<RowStatus, { tone: BadgeTone; label: MessageKey }> = {
+  overdue: { tone: "overdue", label: "today.status.overdue" },
+  lost: { tone: "overdue", label: "today.status.lost" },
+  atRisk: { tone: "risk", label: "today.status.atRisk" },
+  due: { tone: "plum", label: "today.status.due" },
+  onTrack: { tone: "active", label: "today.status.onTrack" },
 };
 
 /** Colour is never the only signal: every badge carries a text label. */
 export function Badge({ tone, children }: { tone: BadgeTone; children: React.ReactNode }) {
   return (
     <span
-      className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-[12px] font-medium leading-5 ${TONE[tone]}`}
+      className={`inline-flex max-w-full shrink-0 items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[12px] font-medium leading-5 ${TONE[tone]}`}
     >
       <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${DOT[tone]}`} />
       {children}

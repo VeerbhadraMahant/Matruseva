@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
+import { getT } from "@/lib/i18n/server";
 import { Badge } from "./StatusBadge";
 
 export interface DeliveryItem {
@@ -10,19 +11,20 @@ export interface DeliveryItem {
   relative: string;
 }
 
-export function UpcomingDeliveries({ items, total }: { items: DeliveryItem[]; total: number }) {
+export async function UpcomingDeliveries({ items, total }: { items: DeliveryItem[]; total: number }) {
+  const { t } = await getT();
   return (
     <section aria-labelledby="deliveries-title" className="pc-glass overflow-hidden rounded-[22px]">
       <div className="flex items-center justify-between gap-2 px-4 pb-2 pt-4">
         <h2 id="deliveries-title" className="text-[15px] font-semibold">
-          Expected deliveries <span className="font-normal text-pc-muted">· 30 days</span>
+          {t("today.deliveries.title")} <span className="font-normal text-pc-muted">· {t("today.deliveries.window")}</span>
         </h2>
         <span className="rounded-full bg-pc-lilac px-2 text-[12px] font-semibold leading-5 text-pc-plum tabular-nums">
           {total}
         </span>
       </div>
       {items.length === 0 ? (
-        <p className="px-4 pb-5 pt-1 text-[13px] text-pc-muted">No EDDs in the next 30 days.</p>
+        <p className="px-4 pb-5 pt-1 text-[13px] text-pc-muted">{t("today.deliveries.empty")}</p>
       ) : (
         <ul>
           {items.map((d) => (
@@ -33,9 +35,9 @@ export function UpcomingDeliveries({ items, total }: { items: DeliveryItem[]; to
               >
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[14px] font-medium">{d.name}</span>
-                  <span className="block text-[12px] text-pc-muted tabular-nums">EDD {d.eddLabel}</span>
+                  <span className="block text-[12px] text-pc-muted tabular-nums">{t("today.deliveries.edd", { date: d.eddLabel })}</span>
                 </span>
-                <Badge tone={d.inDays < 0 ? "overdue" : "delivered"}>{d.inDays < 0 ? `Post-dates · ${d.relative}` : d.relative}</Badge>
+                <Badge tone={d.inDays < 0 ? "overdue" : "delivered"}>{d.inDays < 0 ? t("today.deliveries.postDates", { when: d.relative }) : d.relative}</Badge>
               </Link>
             </li>
           ))}
@@ -46,7 +48,7 @@ export function UpcomingDeliveries({ items, total }: { items: DeliveryItem[]; to
           href="/patients?f=term"
           className="flex min-h-11 items-center justify-center gap-1 border-t border-pc-line/70 text-[13px] font-semibold text-pc-plum hover:bg-pc-lilac/35"
         >
-          View all {total} <ArrowRight size={13} aria-hidden />
+          {t("today.deliveries.viewAll", { count: total })} <ArrowRight size={13} aria-hidden />
         </Link>
       )}
     </section>

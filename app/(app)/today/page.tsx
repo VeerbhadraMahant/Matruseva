@@ -1,4 +1,6 @@
 import { cookies } from "next/headers";
+import { getT } from "@/lib/i18n/server";
+import { intlLocale } from "@/lib/i18n/intl";
 import { getCurrentUser, isDemoActive } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getClinicSnapshot } from "@/lib/snapshot";
@@ -12,12 +14,12 @@ import { getDemoContactStats, getDemoDeliveriesThisMonthCount } from "@/lib/demo
 import { buildWorklist, upcomingDeliveries } from "./view-model";
 
 export default async function TodayPage() {
-  const [me, { rows, today }] = await Promise.all([getCurrentUser(), getClinicSnapshot()]);
+  const [me, { rows, today }, { t, locale }] = await Promise.all([getCurrentUser(), getClinicSnapshot(), getT()]);
 
-  const worklist = buildWorklist(rows, today);
+  const worklist = buildWorklist(rows, today, t, locale);
   const overduePatients = rows.filter((r) => r.overdue.length > 0);
   const atRiskPatients = rows.filter((r) => r.risk !== "on_track");
-  const deliveries = upcomingDeliveries(rows, today);
+  const deliveries = upcomingDeliveries(rows, today, locale);
 
   const cookieStore = await cookies();
   const isDemo = isDemoActive(cookieStore);
@@ -64,7 +66,7 @@ export default async function TodayPage() {
   const compliantCount = Math.max(0, totalActive - overdueMothers);
   const complianceRate = totalActive > 0 ? Math.round((compliantCount / totalActive) * 100) : 0;
 
-  const dateLabel = today.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  const dateLabel = today.toLocaleDateString(intlLocale(locale), { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
   return (
     <div className="pc-scope min-h-dvh px-4 pb-12 pt-6 md:px-8 md:pt-9">
@@ -72,7 +74,7 @@ export default async function TodayPage() {
         <header>
           <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-pc-muted">{dateLabel}</p>
           <h1 className="mt-1 text-[26px] font-semibold leading-tight tracking-[-0.02em] md:text-[32px]">
-            Welcome back, {me.fullName}
+            {t("today.welcome", { name: me.fullName })}
           </h1>
         </header>
 

@@ -5,12 +5,16 @@ import { Baby, X, Warning, CheckCircle, ArrowRight, ArrowLeft } from "@phosphor-
 import { buttonPrimary, buttonSecondary } from "@/components/ui";
 import { closePregnancy } from "@/app/(app)/patients/[id]/actions";
 import type { ClosePregnancyFormProps } from "@/components/ClosePregnancyForm";
+import { useLocale, useT } from "@/lib/i18n/provider";
+import { formatDate } from "@/lib/format";
 
 export function ClosePregnancyModal({
   patient,
   todayIso,
   onClose,
 }: ClosePregnancyFormProps & { onClose: () => void }) {
+  const t = useT();
+  const locale = useLocale();
   const [step, setStep] = useState<"form" | "confirm">("form");
 
   // Form states
@@ -44,23 +48,23 @@ export function ClosePregnancyModal({
     setError(null);
 
     if (!deliveryDate) {
-      setError("Please select the delivery date.");
+      setError(t("patientDetail.closure.errSelectDate"));
       return;
     }
 
     if (deliveryDate > todayIso) {
-      setError("Delivery date cannot be in the future.");
+      setError(t("patientDetail.error.deliveryFuture"));
       return;
     }
 
     if (patient.lmp && deliveryDate < patient.lmp) {
-      setError(`Delivery date cannot be earlier than LMP date (${patient.lmp}).`);
+      setError(t("patientDetail.closure.errBeforeLmp", { lmp: formatDate(patient.lmp, locale) }));
       return;
     }
 
     const weightNum = parseFloat(birthWeightKg);
     if (isNaN(weightNum) || weightNum < 0.5 || weightNum > 6.5) {
-      setError("Birth weight must be between 0.50 kg and 6.50 kg.");
+      setError(t("patientDetail.closure.errWeightRange"));
       return;
     }
 
@@ -106,7 +110,7 @@ export function ClosePregnancyModal({
             </div>
             <div>
               <h2 id="close-pregnancy-title" className="text-[16px] font-bold text-[var(--color-foreground)]">
-                Record Delivery Outcome
+                {t("patientDetail.closure.title")}
               </h2>
               <p className="text-[12px] text-[var(--color-charcoal)]">
                 {patient.name} {patient.clinicPatientNo ? `(${patient.clinicPatientNo})` : ""}
@@ -118,7 +122,7 @@ export function ClosePregnancyModal({
             onClick={handleClose}
             disabled={isPending}
             className="p-1 text-[var(--color-charcoal)] hover:text-[var(--color-foreground)] transition-colors cursor-pointer"
-            aria-label="Close dialog"
+            aria-label={t("common.close")}
           >
             <X size={18} />
           </button>
@@ -128,9 +132,9 @@ export function ClosePregnancyModal({
         {success ? (
           <div className="flex flex-col items-center justify-center py-8 text-center space-y-2">
             <CheckCircle size={48} weight="fill" className="text-[var(--color-on-track)] animate-bounce" />
-            <h3 className="text-base font-bold text-[var(--color-foreground)]">Delivery Recorded Successfully</h3>
+            <h3 className="text-base font-bold text-[var(--color-foreground)]">{t("patientDetail.closure.successTitle")}</h3>
             <p className="text-xs text-[var(--color-charcoal)]">
-              Active ANC record closed. Patient updated to delivered.
+              {t("patientDetail.closure.successBody")}
             </p>
           </div>
         ) : (
@@ -147,7 +151,7 @@ export function ClosePregnancyModal({
                 {/* Delivery Date */}
                 <div>
                   <label htmlFor="delivery-date" className="block text-[12px] font-medium text-[var(--color-charcoal)]">
-                    Delivery Date <span className="text-[var(--color-overdue)]">*</span>
+                    {t("patientDetail.closure.deliveryDate")} <span className="text-[var(--color-overdue)]">*</span>
                   </label>
                   <input
                     id="delivery-date"
@@ -161,7 +165,7 @@ export function ClosePregnancyModal({
                   />
                   {patient.lmp && (
                     <p className="mt-1 text-[11px] text-[var(--color-charcoal)]">
-                      LMP: {patient.lmp} · Must be on or after LMP
+                      {t("patientDetail.closure.lmpHint", { lmp: formatDate(patient.lmp, locale) })}
                     </p>
                   )}
                 </div>
@@ -169,7 +173,7 @@ export function ClosePregnancyModal({
                 {/* Delivery Mode */}
                 <div>
                   <label htmlFor="delivery-mode" className="block text-[12px] font-medium text-[var(--color-charcoal)]">
-                    Delivery Mode <span className="text-[var(--color-overdue)]">*</span>
+                    {t("patientDetail.closure.deliveryMode")} <span className="text-[var(--color-overdue)]">*</span>
                   </label>
                   <select
                     id="delivery-mode"
@@ -178,15 +182,15 @@ export function ClosePregnancyModal({
                     onChange={(e) => setDeliveryMode(e.target.value as "NVD" | "LSCS")}
                     className="rounded-xl mt-1 w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
                   >
-                    <option value="NVD">NVD — Normal Vaginal Delivery</option>
-                    <option value="LSCS">LSCS — Lower Segment Cesarean Section</option>
+                    <option value="NVD">{t("clinical.delivery.NVD")}</option>
+                    <option value="LSCS">{t("clinical.delivery.LSCS")}</option>
                   </select>
                 </div>
 
                 {/* Birth Weight (kg) */}
                 <div>
                   <label htmlFor="birth-weight" className="block text-[12px] font-medium text-[var(--color-charcoal)]">
-                    Birth Weight (kg) <span className="text-[var(--color-overdue)]">*</span>
+                    {t("patientDetail.closure.birthWeight")} <span className="text-[var(--color-overdue)]">*</span>
                   </label>
                   <input
                     id="birth-weight"
@@ -198,24 +202,24 @@ export function ClosePregnancyModal({
                     value={birthWeightKg}
                     onChange={(e) => setBirthWeightKg(e.target.value)}
                     className="rounded-xl mt-1 w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
-                    placeholder="e.g. 3.10"
+                    placeholder={t("patientDetail.closure.birthWeightPlaceholder")}
                   />
                   <p className="mt-1 text-[11px] text-[var(--color-charcoal)]">
-                    Standard clinical range: 0.50 kg to 6.50 kg
+                    {t("patientDetail.closure.birthWeightHint")}
                   </p>
                 </div>
 
                 {/* Optional Notes */}
                 <div>
                   <label htmlFor="closure-notes" className="block text-[12px] font-medium text-[var(--color-charcoal)]">
-                    Clinical Remarks / Neonatal Notes (Optional)
+                    {t("patientDetail.closure.remarks")}
                   </label>
                   <textarea
                     id="closure-notes"
                     rows={2}
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Baby sex, APGAR score, pediatrician remarks, etc."
+                    placeholder={t("patientDetail.closure.remarksPlaceholder")}
                     className="rounded-xl mt-1 w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
                   />
                 </div>
@@ -228,13 +232,13 @@ export function ClosePregnancyModal({
                     disabled={isPending}
                     className={buttonSecondary}
                   >
-                    Cancel
+                    {t("common.cancel")}
                   </button>
                   <button
                     type="submit"
                     className={buttonPrimary}
                   >
-                    <span>Next: Confirm</span>
+                    <span>{t("patientDetail.closure.next")}</span>
                     <ArrowRight size={14} />
                   </button>
                 </div>
@@ -245,33 +249,33 @@ export function ClosePregnancyModal({
                 <div className="rounded-xl border border-[var(--color-due)] bg-[var(--color-due-surface)] p-3 text-[13px] text-[var(--color-foreground)]">
                   <div className="flex items-center gap-1.5 font-semibold text-[var(--color-due)]">
                     <Warning size={16} weight="fill" />
-                    <span>Confirm Pregnancy Closure</span>
+                    <span>{t("patientDetail.closure.confirmTitle")}</span>
                   </div>
                   <p className="mt-1.5 text-[12px] text-[var(--color-charcoal)] leading-relaxed">
-                    Recording this delivery will mark the pregnancy as <strong>delivered</strong> and close all open ANC schedule items. The mother will stop appearing as &quot;at risk&quot; or &quot;overdue&quot; on the daily OPD worklist and call queue.
+                    {t("patientDetail.closure.confirmBody")}
                   </p>
                 </div>
 
                 <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] p-3 space-y-2 text-[13px]">
-                  <div className="flex justify-between border-b border-[var(--color-border)] pb-1.5">
-                    <span className="text-[var(--color-charcoal)]">Patient:</span>
+                  <div className="flex justify-between gap-3 border-b border-[var(--color-border)] pb-1.5">
+                    <span className="text-[var(--color-charcoal)]">{t("patientDetail.closure.sumPatient")}</span>
                     <span className="font-semibold">{patient.name}</span>
                   </div>
-                  <div className="flex justify-between border-b border-[var(--color-border)] pb-1.5">
-                    <span className="text-[var(--color-charcoal)]">Delivery Date:</span>
-                    <span className="font-semibold">{deliveryDate}</span>
+                  <div className="flex justify-between gap-3 border-b border-[var(--color-border)] pb-1.5">
+                    <span className="text-[var(--color-charcoal)]">{t("patientDetail.closure.sumDate")}</span>
+                    <span className="font-semibold">{formatDate(deliveryDate, locale)}</span>
                   </div>
-                  <div className="flex justify-between border-b border-[var(--color-border)] pb-1.5">
-                    <span className="text-[var(--color-charcoal)]">Mode:</span>
-                    <span className="font-semibold">{deliveryMode === "NVD" ? "Normal Vaginal (NVD)" : "Cesarean (LSCS)"}</span>
+                  <div className="flex justify-between gap-3 border-b border-[var(--color-border)] pb-1.5">
+                    <span className="text-[var(--color-charcoal)]">{t("patientDetail.closure.sumMode")}</span>
+                    <span className="font-semibold">{deliveryMode === "NVD" ? t("clinical.delivery.NVD") : t("clinical.delivery.LSCS")}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-[var(--color-charcoal)]">Baby Birth Weight:</span>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-[var(--color-charcoal)]">{t("patientDetail.closure.sumWeight")}</span>
                     <span className="font-semibold font-mono">{birthWeightKg} kg</span>
                   </div>
                   {notes && (
                     <div className="pt-1.5 border-t border-[var(--color-border)] text-xs text-[var(--color-charcoal)]">
-                      <span className="font-medium">Remarks:</span> {notes}
+                      <span className="font-medium">{t("patientDetail.closure.sumRemarks")}</span> {notes}
                     </div>
                   )}
                 </div>
@@ -284,7 +288,7 @@ export function ClosePregnancyModal({
                     className={buttonSecondary}
                   >
                     <ArrowLeft size={14} />
-                    <span>Back to Edit</span>
+                    <span>{t("patientDetail.closure.backToEdit")}</span>
                   </button>
 
                   <button
@@ -294,11 +298,11 @@ export function ClosePregnancyModal({
                     className={`${buttonPrimary} bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)]`}
                   >
                     {isPending ? (
-                      <span>Closing pregnancy...</span>
+                      <span>{t("patientDetail.closure.closing")}</span>
                     ) : (
                       <>
                         <CheckCircle size={15} weight="bold" />
-                        <span>Confirm & Close Record</span>
+                        <span>{t("patientDetail.closure.confirm")}</span>
                       </>
                     )}
                   </button>

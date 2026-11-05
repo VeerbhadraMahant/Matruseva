@@ -6,6 +6,9 @@ import { ArrowsClockwise, CloudSlash, WarningCircle } from "@phosphor-icons/reac
 import { recordVisit } from "@/app/(app)/patients/[id]/actions";
 import { logContact, quickLogContact } from "@/app/(app)/calls/actions";
 import { showToast } from "@/components/Toaster";
+import { useLocale, useT } from "@/lib/i18n/provider";
+import { intlLocale } from "@/lib/i18n/intl";
+import { setOfflineTranslator } from "@/lib/offlineI18n";
 import {
   flushQueue,
   getOfflineQueue,
@@ -71,14 +74,14 @@ async function runExclusive(fn: () => Promise<void>) {
   }
 }
 
-const label = (e: QueueEntry) => (e.type === "visit" ? "Visit" : "Contact");
-
 /**
  * Replays queued offline writes (visits and contact logs) and shows a small
  * status pill. Mounted once from the (app) layout.
  */
 export function OfflineSync() {
   const router = useRouter();
+  const t = useT();
+  const locale = useLocale();
   const online = useSyncExternalStore(subscribeOnline, getOnline, getServerOnline);
   const [entries, setEntries] = useState<QueueEntry[]>([]);
   const [syncing, setSyncing] = useState(false);
@@ -93,6 +96,11 @@ export function OfflineSync() {
       setEntries([]); // IndexedDB unavailable: nothing is queued
     }
   }, []);
+
+  // Lets non-React code (offline queue, submit helpers) translate its messages.
+  useEffect(() => {
+    setOfflineTranslator(t);
+  }, [t]);
 
   const flush = useCallback(async () => {
     if (!navigator.onLine) return;
@@ -112,7 +120,7 @@ export function OfflineSync() {
     });
     await refresh();
     if (sent > 0) {
-      showToast(`Synced ${sent} offline change${sent === 1 ? "" : "s"}`);
+      showToast(t("shell.offline.synced", { count: sent }));
       router.refresh();
     }
     // Exponential backoff: wake up when the earliest pending entry is due again.
@@ -120,7 +128,7 @@ export function OfflineSync() {
     if (retryAt !== null) {
       timer.current = setTimeout(() => void flushRef.current(), Math.max(1_000, retryAt - Date.now()));
     }
-  }, [refresh, router]);
+  }, [refresh, router, t]);
 
   useEffect(() => {
     flushRef.current = flush;
@@ -153,25 +161,26 @@ export function OfflineSync() {
   if (online && !syncing && entries.length === 0) return null;
 
   const text = syncing
-    ? "Syncing…"
+    ? t("shell.offline.syncing")
     : pending.length > 0
-      ? `${online ? "" : "Offline — "}${pending.length} change${pending.length === 1 ? "" : "s"} waiting`
+      ? t(online ? "shell.offline.waiting" : "shell.offline.offlineWaiting", { count: pending.length })
       : !online
-        ? "Offline"
+        ? t("shell.offline.offline")
         : null;
 
   return (
     <div className="fixed bottom-28 left-3 z-[55] md:left-[calc(var(--sb-w,0rem)+1rem)] flex max-w-[calc(100vw-1.5rem)] flex-col items-start gap-2 md:bottom-4">
       {open && failed.length > 0 && (
         <div className="w-80 max-w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-background)] p-3 text-[13px] shadow-lg">
-          <p className="mb-2 font-semibold text-[var(--color-foreground)]">Changes that could not sync</p>
+          <p className="mb-2 font-semibold text-[var(--color-foreground)]">{t("shell.offline.failedTitle")}</p>
           <ul className="space-y-2">
             {failed.map((e) => (
               <li key={e.id} className="rounded-lg bg-[var(--color-surface-1)] p-2">
                 <p className="font-medium text-[var(--color-foreground)]">
-                  {label(e)} · {new Date(e.createdAt).toLocaleString()}
+                  {t(e.type === "visit" ? "shell.offline.kind.visit" : "shell.offline.kind.contact")} ·{" "}
+                  {new Date(e.createdAt).toLocaleString(intlLocale(locale))}
                 </p>
-                <p className="mt-0.5 break-words text-[var(--color-overdue)]">{e.lastError ?? "Unknown error"}</p>
+                <p className="mt-0.5 break-words text-[var(--color-overdue)]">{e.lastError ?? t("shell.offline.unknownError")}</p>
                 <div className="mt-1.5 flex gap-2">
                   <button
                     type="button"
@@ -181,14 +190,14 @@ export function OfflineSync() {
                       void flushRef.current();
                     }}
                   >
-                    Retry
+                    {t("shell.offline.retry")}
                   </button>
                   <button
                     type="button"
                     className="min-h-9 rounded-lg border border-[var(--color-border-strong)] px-3 font-semibold text-[var(--color-foreground)]"
                     onClick={() => void getOfflineQueue().remove(e.id)}
                   >
-                    Discard
+                    {t("common.discard")}
                   </button>
                 </div>
               </li>
@@ -215,7 +224,7 @@ export function OfflineSync() {
             className="flex min-h-7 items-center gap-1 rounded-full bg-white/15 px-2 hover:bg-white/25"
           >
             <WarningCircle size={14} aria-hidden />
-            {failed.length} failed
+            {t("shell.offline.failedCount", { count: failed.length })}
           </button>
         )}
       </div>

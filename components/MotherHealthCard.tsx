@@ -4,12 +4,14 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { QrCode } from "@phosphor-icons/react";
 import { buttonSecondary } from "@/components/ui";
+import { useT } from "@/lib/i18n/provider";
 
 // Modal body is loaded on demand (first open / hover / focus) to keep it out of the page's initial JS.
 const loadModal = () => import("@/components/MotherHealthCardBody");
 const MotherHealthCardModal = dynamic(() => loadModal().then((m) => m.MotherHealthCardModal), { ssr: false });
 
 export function MotherHealthCardButton({ patient }: { patient: MotherCardData }) {
+  const t = useT();
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -20,10 +22,10 @@ export function MotherHealthCardButton({ patient }: { patient: MotherCardData })
         onFocus={() => void loadModal()}
         onClick={() => setIsOpen(true)}
         className={`${buttonSecondary} gap-1.5`}
-        title="View and print Mother's QR Health ID Card"
+        title={t("patients.card.buttonTitle")}
       >
         <QrCode size={16} weight="bold" className="text-[var(--color-primary)]" aria-hidden />
-        <span>Health Card & QR</span>
+        <span>{t("patients.card.button")}</span>
       </button>
 
       {isOpen && <MotherHealthCardModal patient={patient} onClose={() => setIsOpen(false)} />}

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { BowlFood, WhatsappLogo, X, Heart, Plant, Pill } from "@phosphor-icons/react";
 import { whatsAppLink } from "@/lib/whatsapp";
 import { buttonPrimary, buttonSecondary } from "@/components/ui";
+import { useT } from "@/lib/i18n/provider";
 
 
 
@@ -15,6 +16,7 @@ export function NutritionDietModal({
   data: NutritionPatientData;
   onClose: () => void;
 }) {
+  const t = useT();
   const [lang, setLang] = useState<"en" | "hi" | "mr">("hi");
 
   const currentTrimester = data.trimester || 2;
@@ -22,53 +24,33 @@ export function NutritionDietModal({
 
   const anemiaStatus =
     hb < 7.0
-      ? { level: "Severe Anemia", tone: "critical", color: "text-[var(--color-overdue)] bg-[var(--color-overdue-surface)] border-[var(--color-overdue)]/30" }
+      ? { level: t("clinical.flag.hb_severe"), msgKey: "severe" as const, color: "text-[var(--color-overdue)] bg-[var(--color-overdue-surface)] border-[var(--color-overdue)]/30" }
       : hb < 10.0
-      ? { level: "Moderate Anemia", tone: "warning", color: "text-[var(--color-due)] bg-[var(--color-due-surface)] border-[var(--color-due)]/30" }
+      ? { level: t("clinical.flag.hb_moderate"), msgKey: "moderate" as const, color: "text-[var(--color-due)] bg-[var(--color-due-surface)] border-[var(--color-due)]/30" }
       : hb < 11.0
-      ? { level: "Mild Anemia", tone: "caution", color: "text-[var(--color-due)] bg-[var(--color-due-surface)] border-[var(--color-due)]/30" }
-      : { level: "Normal Hemoglobin", tone: "ok", color: "text-[var(--color-on-track)] bg-[var(--color-on-track-surface)] border-[var(--color-on-track)]/30" };
+      ? { level: t("clinical.flag.hb_mild"), msgKey: "mild" as const, color: "text-[var(--color-due)] bg-[var(--color-due-surface)] border-[var(--color-due)]/30" }
+      : { level: t("patientDetail.nutrition.normalHb"), msgKey: "normal" as const, color: "text-[var(--color-on-track)] bg-[var(--color-on-track-surface)] border-[var(--color-on-track)]/30" };
 
-  const trimesterFocus = {
-    1: {
-      title: "Trimester 1 (Weeks 1–12): Neural Tube & Organ Formation",
-      focus: "High Folate, Vitamin B6, Hydration & Anti-Nausea Foods",
-      calorieSurplus: "+0 kcal (Focus on micro-nutrient density)",
-    },
-    2: {
-      title: "Trimester 2 (Weeks 13–26): Bone Growth & Blood Volume Surge",
-      focus: "High Iron, Calcium, Protein & Omega-3 for Fetal Growth",
-      calorieSurplus: "+340 kcal/day (1 extra balanced meal)",
-    },
-    3: {
-      title: "Trimester 3 (Weeks 27–40): Fetal Brain & Weight Maturation",
-      focus: "Iron replenishment, Pre-delivery stamina, Fiber against constipation",
-      calorieSurplus: "+450 kcal/day with frequent small meals",
-    },
-  }[currentTrimester];
+  // The WhatsApp text is written in the language chosen for the mother, not the staff UI language.
+  const MSG_LEVEL = {
+    en: { severe: "Severe Anemia", moderate: "Moderate Anemia", mild: "Mild Anemia", normal: "Normal Hemoglobin" },
+    hi: { severe: "गंभीर खून की कमी", moderate: "मध्यम खून की कमी", mild: "हल्की खून की कमी", normal: "सामान्य हीमोग्लोबिन" },
+    mr: { severe: "गंभीर रक्तक्षय", moderate: "मध्यम रक्तक्षय", mild: "सौम्य रक्तक्षय", normal: "सामान्य हिमोग्लोबिन" },
+  } as const;
+  const msgLevel = MSG_LEVEL[lang][anemiaStatus.msgKey];
 
-  // Superfoods list
+  const TRI = {
+    1: { title: t("patientDetail.nutrition.tri1.title"), focus: t("patientDetail.nutrition.tri1.focus"), calorieSurplus: t("patientDetail.nutrition.tri1.energy") },
+    2: { title: t("patientDetail.nutrition.tri2.title"), focus: t("patientDetail.nutrition.tri2.focus"), calorieSurplus: t("patientDetail.nutrition.tri2.energy") },
+    3: { title: t("patientDetail.nutrition.tri3.title"), focus: t("patientDetail.nutrition.tri3.focus"), calorieSurplus: t("patientDetail.nutrition.tri3.energy") },
+  } as const;
+  const trimesterFocus = TRI[currentTrimester];
+
   const superfoods = [
-    {
-      name: "Moringa / Drumstick Leaves (सहजन / शेवगा)",
-      benefit: "Rich in iron, vitamin A, and calcium. 4x more iron than spinach.",
-      usage: "Add cooked leaves to dal or make paratha.",
-    },
-    {
-      name: "Jaggery + Roasted Chana (गुड़ और भुना चना)",
-      benefit: "Classic Indian iron booster. 100g gives ~5mg bioavailable iron.",
-      usage: "Mid-day healthy snack with a glass of water.",
-    },
-    {
-      name: "Sprouted Ragi / Nachni Porridge (नाचणी खीर)",
-      benefit: "Unmatched calcium & iron for baby's bone development.",
-      usage: "Morning breakfast or evening porridge.",
-    },
-    {
-      name: "Amla, Lemon & Guava (आंवला, नींबू, अमरूद)",
-      benefit: "Vitamin C triples intestinal absorption of dietary & medicinal iron.",
-      usage: "Squeeze fresh lemon over dal; eat raw amla after meals.",
-    },
+    { name: t("patientDetail.nutrition.food1.name"), benefit: t("patientDetail.nutrition.food1.benefit"), usage: t("patientDetail.nutrition.food1.usage") },
+    { name: t("patientDetail.nutrition.food2.name"), benefit: t("patientDetail.nutrition.food2.benefit"), usage: t("patientDetail.nutrition.food2.usage") },
+    { name: t("patientDetail.nutrition.food3.name"), benefit: t("patientDetail.nutrition.food3.benefit"), usage: t("patientDetail.nutrition.food3.usage") },
+    { name: t("patientDetail.nutrition.food4.name"), benefit: t("patientDetail.nutrition.food4.benefit"), usage: t("patientDetail.nutrition.food4.usage") },
   ];
 
   // Build WhatsApp shareable message
@@ -77,7 +59,7 @@ export function NutritionDietModal({
       return (
         `🥗 *${data.clinicName || "मातृसेतू क्लिनिक"} - गरोदरपणातील पोषण व आहार सल्ला*\n\n` +
         `नमस्ते *${data.patientName} ताई*,\n` +
-        `आपला हिमोग्लोबिन (Hb): *${hb} g/dL* (${anemiaStatus.level})\n` +
+        `आपला हिमोग्लोबिन (Hb): *${hb} g/dL* (${msgLevel})\n` +
         `सध्याचा टप्पा: *तिमाही ${currentTrimester} (${data.gaWeeks || "—"} आठवडे)*\n\n` +
         `🌿 *रक्त वाढवण्यासाठी महत्त्वाचे घरगुती उपाय:*\n` +
         `1. *शेवग्याची पाने:* डाळीत घालून खा, लोह भरपूर वाढते.\n` +
@@ -91,7 +73,7 @@ export function NutritionDietModal({
       return (
         `🥗 *${data.clinicName || "मातृसेतु क्लिनिक"} - गर्भावस्था पोषण एवं आहार परामर्श*\n\n` +
         `नमस्ते *${data.patientName} जी*,\n` +
-        `आपका हीमोग्लोबिन (Hb): *${hb} g/dL* (${anemiaStatus.level})\n` +
+        `आपका हीमोग्लोबिन (Hb): *${hb} g/dL* (${msgLevel})\n` +
         `वर्तमान अवधि: *तिमाही ${currentTrimester} (${data.gaWeeks || "—"} सप्ताह)*\n\n` +
         `🌿 *खून और ताकत बढ़ाने वाले पौष्टिक आहार:*\n` +
         `1. *सहजन (मोरिंगा) के पत्ते:* दाल या सब्जी में पकाकर खाएं, आयरन का बेहतरीन स्रोत।\n` +
@@ -105,7 +87,7 @@ export function NutritionDietModal({
       return (
         `🥗 *${data.clinicName || "MatruSetu Clinic"} - Pregnancy Nutrition Guide*\n\n` +
         `Hello *${data.patientName}*,\n` +
-        `Your Hemoglobin (Hb): *${hb} g/dL* (${anemiaStatus.level})\n` +
+        `Your Hemoglobin (Hb): *${hb} g/dL* (${msgLevel})\n` +
         `Current Stage: *Trimester ${currentTrimester} (${data.gaWeeks || "—"} weeks)*\n\n` +
         `🌿 *Iron-Rich Superfoods for Healthy Baby & Mother:*\n` +
         `1. *Drumstick (Moringa) leaves:* Cook with dal; extremely rich in iron.\n` +
@@ -124,7 +106,7 @@ export function NutritionDietModal({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Personalized Nutrition and Anemia Plan"
+      aria-label={t("patientDetail.nutrition.aria")}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs overflow-y-auto"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
@@ -140,20 +122,21 @@ export function NutritionDietModal({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-[14px] font-bold text-[var(--color-foreground)]">
-                  Personalized Nutrition & Anemia Care Plan
+                  {t("patientDetail.nutrition.title")}
                 </h2>
                 <span className="rounded-full bg-[var(--color-primary-surface)] px-2 py-0.5 text-[10px] font-bold text-[var(--color-primary)] border border-[var(--color-primary)]/20">
-                  Trimester {currentTrimester}
+                  {t("clinical.trimester.short", { n: currentTrimester })}
                 </span>
               </div>
               <p className="text-[11px] text-[var(--color-charcoal)]">
-                Tailored for {data.patientName} · Hb: <strong>{hb} g/dL</strong>
+                {t("patientDetail.nutrition.tailored", { name: data.patientName })} · Hb: <strong>{hb} g/dL</strong>
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
+            aria-label={t("common.close")}
             className="rounded-lg p-1.5 text-[var(--color-charcoal)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-foreground)] transition"
           >
             <X size={18} />
@@ -172,10 +155,10 @@ export function NutritionDietModal({
                 </div>
                 <div className="text-[11px] opacity-90">
                   {hb < 7.0
-                    ? "Emergency: Maternal IV Iron Sucrose or Blood Transfusion referral strongly indicated."
+                    ? t("patientDetail.nutrition.adviceSevere")
                     : hb < 11.0
-                    ? "Target: 2 Iron-Folic Acid (IFA) tablets daily + high iron bioavailable diet."
-                    : "Hemoglobin within safe target. Continue 1 prophylactic IFA tablet daily."}
+                    ? t("patientDetail.nutrition.adviceAnaemia")
+                    : t("patientDetail.nutrition.adviceNormal")}
                 </div>
               </div>
             </div>
@@ -185,10 +168,10 @@ export function NutritionDietModal({
           <div className="rounded-[var(--radius-cards)] border border-[var(--color-border)] bg-[var(--color-surface-1)] p-3 space-y-1">
             <div className="text-[12px] font-bold text-[var(--color-foreground)]">{trimesterFocus.title}</div>
             <div className="text-[12px] text-[var(--color-charcoal)]">
-              <strong>Clinical Goal:</strong> {trimesterFocus.focus}
+              <strong>{t("patientDetail.nutrition.goal")}</strong> {trimesterFocus.focus}
             </div>
             <div className="text-[11px] text-[var(--color-primary)] font-semibold">
-              Energy Recommendation: {trimesterFocus.calorieSurplus}
+              {t("patientDetail.nutrition.energy", { value: trimesterFocus.calorieSurplus })}
             </div>
           </div>
 
@@ -197,7 +180,7 @@ export function NutritionDietModal({
             <div className="flex items-center gap-1.5 mb-2">
               <Plant size={15} weight="bold" className="text-[var(--color-primary)]" />
               <h3 className="text-[12px] font-bold text-[var(--color-foreground)]">
-                Indigenous High-Iron Indian Superfoods
+                {t("patientDetail.nutrition.superfoods")}
               </h3>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -208,7 +191,7 @@ export function NutritionDietModal({
                 >
                   <div className="text-[12px] font-bold text-[var(--color-primary)]">{food.name}</div>
                   <div className="text-[11px] text-[var(--color-foreground)]">{food.benefit}</div>
-                  <div className="text-[10px] text-[var(--color-charcoal)] italic">How to eat: {food.usage}</div>
+                  <div className="text-[10px] text-[var(--color-charcoal)] italic">{t("patientDetail.nutrition.howToEat", { usage: food.usage })}</div>
                 </div>
               ))}
             </div>
@@ -218,17 +201,17 @@ export function NutritionDietModal({
           <div className="rounded-[var(--radius-cards)] border border-[var(--color-due)]/30 bg-[var(--color-due-surface)] p-3 space-y-2">
             <div className="flex items-center gap-2 text-[var(--color-foreground)] font-bold text-[12px]">
               <Pill size={16} weight="bold" className="text-[var(--color-due)]" />
-              <span>3 Non-Negotiable Iron Tablet Rules (Counseling for Mother)</span>
+              <span>{t("patientDetail.nutrition.rulesTitle")}</span>
             </div>
             <ul className="text-[11px] text-[var(--color-foreground)] space-y-1 pl-4 list-disc opacity-90">
               <li>
-                <strong>No Tea / Chai with Tablets:</strong> Tannins in tea block 80% of iron absorption. Wait 1 hour before or after.
+                <strong>{t("patientDetail.nutrition.rule1.title")}</strong> {t("patientDetail.nutrition.rule1.body")}
               </li>
               <li>
-                <strong>Always Pair with Vitamin C:</strong> Squeeze half a lemon into water or eat an orange/amla with the tablet.
+                <strong>{t("patientDetail.nutrition.rule2.title")}</strong> {t("patientDetail.nutrition.rule2.body")}
               </li>
               <li>
-                <strong>Overcoming Nausea:</strong> If the red iron tablet causes stomach distress, advise taking it immediately after dinner right before bedtime.
+                <strong>{t("patientDetail.nutrition.rule3.title")}</strong> {t("patientDetail.nutrition.rule3.body")}
               </li>
             </ul>
           </div>
@@ -237,14 +220,14 @@ export function NutritionDietModal({
         {/* Footer Actions with WhatsApp Share */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--color-border)] bg-[var(--color-surface-1)] px-5 py-3">
           <div className="flex items-center gap-2">
-            <span className="text-[11px] text-[var(--color-charcoal)] font-medium">WhatsApp Language:</span>
+            <span className="text-[11px] text-[var(--color-charcoal)] font-medium">{t("patientDetail.nutrition.waLang")}</span>
             <select
               value={lang}
               onChange={(e) => setLang(e.target.value as "en" | "hi" | "mr")}
               className="text-[11px] rounded-[var(--radius-buttons)] border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2 py-1 font-semibold text-[var(--color-foreground)]"
             >
-              <option value="hi">हिंदी (Hindi)</option>
-              <option value="mr">मराठी (Marathi)</option>
+              <option value="hi">हिंदी</option>
+              <option value="mr">मराठी</option>
               <option value="en">English</option>
             </select>
           </div>
@@ -258,19 +241,19 @@ export function NutritionDietModal({
                 className={`${buttonPrimary} min-h-8 px-3 text-[12px]`}
               >
                 <WhatsappLogo size={14} weight="bold" />
-                <span>Send via WhatsApp</span>
+                <span>{t("patientDetail.nutrition.send")}</span>
               </a>
             ) : (
               <button
                 type="button"
                 onClick={() => {
                   navigator.clipboard.writeText(generateWhatsAppMessage());
-                  alert("Diet Plan copied to clipboard!");
+                  alert(t("patientDetail.nutrition.copied"));
                 }}
                 className={`${buttonPrimary} min-h-8 px-3 text-[12px]`}
               >
                 <WhatsappLogo size={14} weight="bold" />
-                <span>Copy Vernacular Diet Plan</span>
+                <span>{t("patientDetail.nutrition.copy")}</span>
               </button>
             )}
             <button
@@ -278,7 +261,7 @@ export function NutritionDietModal({
               onClick={onClose}
               className={`${buttonSecondary} min-h-8 px-3 text-[12px]`}
             >
-              Close
+              {t("common.close")}
             </button>
           </div>
         </div>

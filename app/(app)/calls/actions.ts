@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser, isDemoActive } from "@/lib/auth";
 import { logDemoBatchContacts, logDemoContact } from "@/lib/demo-data";
 import { isDuplicateRequest } from "@/lib/idempotency";
+import { getT } from "@/lib/i18n/server";
 import type { ContactOutcome } from "@/lib/supabase/enums";
 
 export interface ActionResult {
@@ -36,10 +37,11 @@ const contactSchema = z.object({
 });
 
 export async function logContact(patientId: string, _prev: ActionResult, formData: FormData): Promise<ActionResult> {
+  const { t } = await getT();
   const raw = Object.fromEntries(formData.entries());
   const parsed = contactSchema.safeParse(raw);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0].message };
+    return { error: t("calls.error.invalid") };
   }
   const clientRequestId = parsed.data.clientRequestId || undefined;
 
@@ -70,7 +72,7 @@ export async function logContact(patientId: string, _prev: ActionResult, formDat
     revalidateContactViews(patientId);
     return { error: null };
   } catch (err: unknown) {
-    return { error: err instanceof Error ? err.message : "Database connection failed" };
+    return { error: err instanceof Error ? err.message : t("calls.error.db") };
   }
 }
 
@@ -81,8 +83,9 @@ export async function quickLogContact(
   notes?: string,
   clientRequestId?: string
 ): Promise<ActionResult> {
+  const { t } = await getT();
   if (clientRequestId !== undefined && !z.uuid().safeParse(clientRequestId).success) {
-    return { error: "Invalid request id" };
+    return { error: t("calls.error.invalidRequest") };
   }
   const cookieStore = await cookies();
   const isDemo = isDemoActive(cookieStore);
@@ -110,17 +113,17 @@ export async function quickLogContact(
     revalidateContactViews(patientId);
     return { error: null };
   } catch (err: unknown) {
-    return { error: err instanceof Error ? err.message : "Database connection failed" };
+    return { error: err instanceof Error ? err.message : t("calls.error.db") };
   }
 }
 
-const batchContactSchema = z.object({
+const batchContactSchema = (msg: { none: string; tooMany: string; outcome: string }) => z.object({
   patientIds: z
     .array(z.string().min(1))
-    .min(1, "At least one patient must be selected")
-    .max(100, "Cannot batch log more than 100 contacts at a time"),
+    .min(1, msg.none)
+    .max(100, msg.tooMany),
   outcome: z.enum(["reached", "no_answer", "wrong_number", "will_visit", "refused"], {
-    message: "Invalid contact outcome selected",
+    message: msg.outcome,
   }),
   channel: z.enum(["call", "whatsapp"]).default("call"),
   notes: z.string().optional(),
@@ -132,10 +135,15 @@ export async function logBatchContacts(
   notes?: string,
   channel: "call" | "whatsapp" = "call"
 ): Promise<BatchContactResult> {
-  const parsed = batchContactSchema.safeParse({ patientIds, outcome, notes, channel });
+  const { t } = await getT();
+  const parsed = batchContactSchema({
+    none: t("calls.error.noPatients"),
+    tooMany: t("calls.error.tooMany"),
+    outcome: t("calls.error.badOutcome"),
+  }).safeParse({ patientIds, outcome, notes, channel });
   if (!parsed.success) {
     return {
-      error: parsed.error.issues[0]?.message || "Invalid batch contact input",
+      error: parsed.error.issues[0]?.message || t("calls.error.batchInvalid"),
       loggedCount: 0,
       skippedCount: 0,
     };
@@ -214,7 +222,7 @@ export async function logBatchContacts(
     return { error: null, loggedCount: toInsert.length, skippedCount };
   } catch (err: unknown) {
     return {
-      error: err instanceof Error ? err.message : "Database connection failed",
+      error: err instanceof Error ? err.message : t("calls.error.db"),
       loggedCount: 0,
       skippedCount: 0,
     };
@@ -228,6 +236,7 @@ export async function dispatchBotReminder(
   reason: "overdue" | "due_soon" | "at_risk" | "lost",
   lang: import("@/lib/whatsapp").SupportedLanguage
 ): Promise<{ error: string | null; reminderText?: string }> {
+  const { t } = await getT();
   const { buildAutomatedReminderMessage } = await import("@/lib/whatsappBot");
   const cookieStore = await cookies();
   const isDemo = isDemoActive(cookieStore);
@@ -276,7 +285,7 @@ export async function dispatchBotReminder(
     revalidatePath(`/patients/${patientId}`);
     return { error: null, reminderText: liveReminderText };
   } catch (err: unknown) {
-    return { error: err instanceof Error ? err.message : "Database connection failed" };
+    return { error: err instanceof Error ? err.message : t("calls.error.db") };
   }
 }
 
@@ -285,15 +294,16 @@ export async function processBotReply(
   replyText: string,
   lang: import("@/lib/whatsapp").SupportedLanguage
 ): Promise<{ error: string | null; result?: import("@/lib/whatsappBot").BotProcessResult }> {
+  const { t } = await getT();
   const cookieStore = await cookies();
   const isDemo = isDemoActive(cookieStore);
 
   if (isDemo) {
     const { detectLanguage } = await import("@/lib/whatsappBot");
     const detectedLang = lang || detectLanguage(replyText, "en");
-    const t = replyText.trim().toLowerCase();
-    const isConfirm = t === "1" || t === "१" || t.includes("confirm") || t.includes("yes") || t.includes("haan") || t.includes("हो") || t.includes("आएंगे") || t.includes("आऊंगी");
-    const isDanger = t.includes("headache") || t.includes("bleed") || t.includes("pain") || t.includes("चक्कर") || t.includes("दर्द") || t.includes("रक्त");
+    const lowered = replyText.trim().toLowerCase();
+    const isConfirm = lowered === "1" || lowered === "१" || lowered.includes("confirm") || lowered.includes("yes") || lowered.includes("haan") || lowered.includes("हो") || lowered.includes("आएंगे") || lowered.includes("आऊंगी");
+    const isDanger = lowered.includes("headache") || lowered.includes("bleed") || lowered.includes("pain") || lowered.includes("चक्कर") || lowered.includes("दर्द") || lowered.includes("रक्त");
     const reply = isDanger
       ? "⚠️ DANGER SIGN ALERT: Please visit the 24x7 emergency maternity unit or call 108 immediately."
       : isConfirm
@@ -320,7 +330,7 @@ export async function processBotReply(
   // through the RLS-scoped client that this patient belongs to the caller's clinic.
   const [supabase] = await Promise.all([createClient(), getCurrentUser()]);
   const { data: owned } = await supabase.from("patients").select("id").eq("id", patientId).maybeSingle();
-  if (!owned) return { error: "Patient not found" };
+  if (!owned) return { error: t("calls.error.patientNotFound") };
 
   const { handleIncomingWhatsAppMessage } = await import("@/lib/whatsappBot");
   const result = await handleIncomingWhatsAppMessage({

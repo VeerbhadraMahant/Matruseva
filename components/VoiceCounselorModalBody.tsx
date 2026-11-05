@@ -25,6 +25,7 @@ import {
 } from "@/lib/voiceCounselor";
 import { whatsAppLink } from "@/lib/whatsapp";
 import { createListenLink } from "@/app/(app)/patients/[id]/actions";
+import { useLocale, useT } from "@/lib/i18n/provider";
 
 
 
@@ -35,6 +36,8 @@ export function VoiceCounselorModal({
   data: CounselingPatientData;
   onClose: () => void;
 }) {
+  const t = useT();
+  const locale = useLocale();
   const [lang, setLang] = useState<CounselingLanguage>("hi");
   const [customNote, setCustomNote] = useState("");
   const [isPlaying, setIsPlaying] = useState(false);
@@ -61,12 +64,12 @@ export function VoiceCounselorModal({
       .catch(() => {
         if (cancelled) return;
         setListenLink({ lang, url: null });
-        setLinkError("Could not create listen link");
+        setLinkError(t("patientDetail.listen.createFailed"));
       });
     return () => {
       cancelled = true;
     };
-  }, [data.patientId, lang]);
+  }, [data.patientId, lang, t]);
   const linkReady = listenLink?.lang === lang;
   const audioListenUrl = linkReady ? listenLink.url : null;
 
@@ -131,7 +134,7 @@ export function VoiceCounselorModal({
 
   const handlePlayPause = () => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-      alert("Text-to-speech is not supported on this browser.");
+      alert(t("patientDetail.counselor.ttsUnsupported"));
       return;
     }
 
@@ -242,7 +245,7 @@ export function VoiceCounselorModal({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="AI Multilingual Patient Voice Counseling"
+      aria-label={t("patientDetail.counselor.aria")}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-3 sm:p-5 backdrop-blur-xs"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
@@ -261,20 +264,21 @@ export function VoiceCounselorModal({
             <div>
               <div className="flex items-center gap-1.5">
                 <h2 className="text-[15px] font-bold text-[var(--color-foreground)]">
-                  AI Vernacular Audio Counseling
+                  {t("patientDetail.counselor.title")}
                 </h2>
                 <span className="inline-flex items-center gap-0.5 rounded-full bg-[var(--color-primary)]/10 px-2 py-0.5 text-[10px] font-bold text-[var(--color-primary)]">
                   <Sparkle size={10} weight="fill" />
-                  Mother Bridge
+                  {t("patientDetail.counselor.badge")}
                 </span>
               </div>
               <p className="text-[11px] text-[var(--color-charcoal)]">
-                {data.patientName} · GA {data.gaWeeks ?? 24}w · Vitals-tailored counseling in regional language
+                {t("patientDetail.counselor.subtitle", { name: data.patientName, weeks: data.gaWeeks ?? 24 })}
               </p>
             </div>
           </div>
           <button
             type="button"
+            aria-label={t("common.close")}
             onClick={() => {
               stopSpeech();
               onClose();
@@ -290,7 +294,7 @@ export function VoiceCounselorModal({
           {/* Language Selector Bar */}
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--color-border)] pb-3">
             <span className="text-[12px] font-semibold text-[var(--color-charcoal)]">
-              Choose Mother&apos;s Language:
+              {t("patientDetail.counselor.chooseLang")}
             </span>
             <div className="flex flex-wrap gap-1.5">
               {COUNSELING_LANGUAGES.map((l) => (
@@ -305,7 +309,7 @@ export function VoiceCounselorModal({
                   }`}
                 >
                   <span>{l.nativeLabel}</span>
-                  <span className="ml-1 text-[10px] opacity-75 font-normal">({l.label})</span>
+                  {locale === "en" && <span className="ml-1 text-[10px] opacity-75 font-normal">({l.label})</span>}
                 </button>
               ))}
             </div>
@@ -323,7 +327,8 @@ export function VoiceCounselorModal({
                       ? "bg-amber-600 hover:bg-amber-700"
                       : "bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)]"
                   }`}
-                  title={isPlaying && !isPaused ? "Pause playback" : "Play Vernacular Counseling Audio"}
+                  title={isPlaying && !isPaused ? t("patientDetail.counselor.pause") : t("patientDetail.counselor.play")}
+                  aria-label={isPlaying && !isPaused ? t("patientDetail.counselor.pause") : t("patientDetail.counselor.play")}
                 >
                   {isPlaying && !isPaused ? (
                     <Pause size={20} weight="fill" />
@@ -335,14 +340,14 @@ export function VoiceCounselorModal({
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-[13px] font-bold text-[var(--color-foreground)]">
-                      {isPlaying && !isPaused ? "Speaking to Patient..." : isPaused ? "Paused" : "Listen Audio Preview"}
+                      {isPlaying && !isPaused ? t("patientDetail.counselor.speaking") : isPaused ? t("patientDetail.counselor.paused") : t("patientDetail.counselor.preview")}
                     </span>
                     <span className="rounded bg-[var(--color-primary)]/10 px-1.5 py-0.2 text-[10px] font-semibold text-[var(--color-primary)]">
                       {counseling.nativeLabel}
                     </span>
                   </div>
                   <p className="text-[11px] text-[var(--color-charcoal)]">
-                    {formatTimer(currentTime)} / {formatTimer(estimatedDuration)} · Calibrated maternal tone
+                    {t("patientDetail.counselor.tone", { time: formatTimer(currentTime), duration: formatTimer(estimatedDuration) })}
                   </p>
                 </div>
               </div>
@@ -375,11 +380,11 @@ export function VoiceCounselorModal({
             {/* Playback Controls (Speed + Reset) */}
             <div className="flex items-center justify-between text-[11px] text-[var(--color-charcoal)] pt-1 border-t border-[var(--color-border)]/60">
               <div className="flex items-center gap-1.5">
-                <span>Speed:</span>
+                <span>{t("patientDetail.counselor.speed")}</span>
                 {[
-                  { rate: 0.82, label: "0.8x (Calm/Elder)" },
-                  { rate: 0.95, label: "1.0x (Normal)" },
-                  { rate: 1.15, label: "1.2x (Fast)" },
+                  { rate: 0.82, label: t("patientDetail.counselor.speedSlow") },
+                  { rate: 0.95, label: t("patientDetail.counselor.speedNormal") },
+                  { rate: 1.15, label: t("patientDetail.counselor.speedFast") },
                 ].map((s) => (
                   <button
                     key={s.rate}
@@ -406,7 +411,7 @@ export function VoiceCounselorModal({
                   className="flex items-center gap-1 text-[var(--color-charcoal)] hover:text-red-600 transition cursor-pointer"
                 >
                   <ArrowCounterClockwise size={12} />
-                  <span>Stop</span>
+                  <span>{t("patientDetail.counselor.stop")}</span>
                 </button>
               )}
             </div>
@@ -416,10 +421,10 @@ export function VoiceCounselorModal({
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-[12px] font-bold uppercase tracking-wider text-[var(--color-charcoal)]">
-                Structured Clinical Advice Overview
+                {t("patientDetail.counselor.overview")}
               </h3>
               <span className="text-[11px] text-[var(--color-charcoal)]">
-                Auto-aligned to FOGSI & GoI ANC guidelines
+                {t("patientDetail.counselor.guidelines")}
               </span>
             </div>
 
@@ -446,12 +451,12 @@ export function VoiceCounselorModal({
           {/* Optional Doctor Note Field */}
           <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] p-3 space-y-1.5">
             <label htmlFor="doctor-note" className="block text-[11px] font-bold text-[var(--color-foreground)]">
-              Add Specific Doctor Note to Speech & WhatsApp (Optional):
+              {t("patientDetail.counselor.noteLabel")}
             </label>
             <input
               id="doctor-note"
               type="text"
-              placeholder="e.g. Next USG growth scan scheduled for Monday 10:00 AM..."
+              placeholder={t("patientDetail.counselor.notePlaceholder")}
               value={customNote}
               onChange={(e) => setCustomNote(e.target.value)}
               className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-1.5 text-[12px] text-[var(--color-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] placeholder:text-[var(--color-charcoal)]/50"
@@ -469,12 +474,12 @@ export function VoiceCounselorModal({
             {copied ? (
               <>
                 <Check size={14} className="text-emerald-600" weight="bold" />
-                <span className="text-emerald-700 font-semibold">Copied!</span>
+                <span className="text-emerald-700 font-semibold">{t("patientDetail.counselor.copied")}</span>
               </>
             ) : (
               <>
                 <Copy size={14} />
-                <span>Copy Counseling Text</span>
+                <span>{t("patientDetail.counselor.copyText")}</span>
               </>
             )}
           </button>
@@ -483,7 +488,7 @@ export function VoiceCounselorModal({
             {linkError && linkReady && (
               <span role="alert" className="text-[11px] text-red-600">{linkError}</span>
             )}
-            {!linkReady && <span className="text-[11px] text-[var(--color-charcoal)]">Preparing listen link…</span>}
+            {!linkReady && <span className="text-[11px] text-[var(--color-charcoal)]">{t("patientDetail.counselor.preparing")}</span>}
             {waLink ? (
               <a
                 href={linkReady ? waLink : undefined}
@@ -493,7 +498,7 @@ export function VoiceCounselorModal({
                 className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-700 text-white px-4 py-2 text-[12px] font-semibold hover:bg-emerald-800 transition shadow-xs"
               >
                 <WhatsappLogo size={16} weight="fill" />
-                <span>Send WhatsApp Voice Summary</span>
+                <span>{t("patientDetail.counselor.sendWa")}</span>
               </a>
             ) : (
               <button
@@ -502,7 +507,7 @@ export function VoiceCounselorModal({
                 className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-primary)] text-white px-4 py-2 text-[12px] font-semibold hover:bg-[var(--color-primary-hover)] transition shadow-xs cursor-pointer"
               >
                 <WhatsappLogo size={16} weight="fill" />
-                <span>Copy WhatsApp Note</span>
+                <span>{t("patientDetail.counselor.copyWa")}</span>
               </button>
             )}
           </div>

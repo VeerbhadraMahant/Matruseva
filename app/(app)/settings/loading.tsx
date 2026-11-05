@@ -1,8 +1,12 @@
+"use client";
+
+import { useT } from "@/lib/i18n/provider";
 import { card, pageBody } from "@/components/ui";
 
 export default function SettingsLoading() {
+  const t = useT();
   return (
-    <div aria-busy="true" aria-label="Loading settings" className={`${pageBody} pt-6 md:pt-9`}>
+    <div aria-busy="true" aria-label={t("shell.loading.settings")} className={`${pageBody} pt-6 md:pt-9`}>
       <div className="pc-skeleton h-8 w-40" />
       <div className="grid grid-cols-[minmax(0,1fr)] gap-5 xl:grid-cols-2">
         {Array.from({ length: 2 }, (_, i) => (

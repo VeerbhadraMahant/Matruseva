@@ -23,6 +23,8 @@ import { discardQueueForLogout } from "@/lib/offlineQueue";
 import { openCommandPalette } from "@/components/CommandPalette";
 import { useSidebar } from "@/components/AppShell";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useT } from "@/lib/i18n/provider";
+import type { MessageKey } from "@/lib/i18n/messages";
 
 /** Sign out, first wiping the offline queue (patient data must not outlive the session). */
 async function logoutAndClearQueue() {
@@ -40,14 +42,15 @@ function useModKeyLabel() {
   return { search: apple ? "⌘K" : "Ctrl K", toggle: apple ? "⌘B" : "Ctrl+B" };
 }
 
-const NAV_ITEMS = [
-  { href: "/today", label: "Today", icon: CalendarCheck },
-  { href: "/patients", label: "Patients", icon: Users },
-  { href: "/scan", label: "Scan QR Card", short: "Scan", icon: QrCode },
-  { href: "/calls", label: "Call queue", short: "Calls", icon: PhoneCall },
-  { href: "/documents", label: "Documents", short: "Docs", icon: Tray },
-  { href: "/opd", label: "OPD register", short: "OPD", icon: BookOpenText },
+const NAV_ITEMS: { href: string; label: MessageKey; short?: MessageKey; icon: Icon }[] = [
+  { href: "/today", label: "shell.nav.today", icon: CalendarCheck },
+  { href: "/patients", label: "shell.nav.patients", icon: Users },
+  { href: "/scan", label: "shell.nav.scan", short: "shell.nav.scan.short", icon: QrCode },
+  { href: "/calls", label: "shell.nav.calls", short: "shell.nav.calls.short", icon: PhoneCall },
+  { href: "/documents", label: "shell.nav.documents", short: "shell.nav.documents.short", icon: Tray },
+  { href: "/opd", label: "shell.nav.opd", short: "shell.nav.opd.short", icon: BookOpenText },
 ];
+const SETTINGS_ITEM = { href: "/settings", label: "shell.nav.settings" as MessageKey, icon: Gear };
 
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -86,7 +89,7 @@ function MenuBody({
   callBadge,
 }: {
   pathname: string;
-  items: { href: string; label: string; icon: Icon }[];
+  items: { href: string; label: MessageKey; icon: Icon }[];
   clinicName: string;
   userName: string;
   isDoctor: boolean;
@@ -99,6 +102,7 @@ function MenuBody({
   callBadge?: React.ReactNode;
 }) {
   const keys = useModKeyLabel();
+  const t = useT();
   return (
     <>
         <div className={`flex items-center gap-3 pb-4 pt-5 ${collapsed ? "justify-center" : "justify-between px-5"}`}>
@@ -113,7 +117,7 @@ function MenuBody({
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close menu"
+              aria-label={t("shell.nav.closeMenu")}
               className="flex h-10 w-10 items-center justify-center rounded-xl text-[var(--color-charcoal)] hover:bg-[var(--color-primary-surface)] hover:text-[var(--color-primary)]"
             >
               <X size={20} aria-hidden />
@@ -125,8 +129,8 @@ function MenuBody({
           <button
             type="button"
             onClick={() => openCommandPalette()}
-            aria-label={`Find patient (${keys.search})`}
-            title={`Find patient (${keys.search})`}
+            aria-label={t("shell.nav.findPatientShortcut", { shortcut: keys.search })}
+            title={t("shell.nav.findPatientShortcut", { shortcut: keys.search })}
             className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] text-[var(--color-charcoal)] transition-colors hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
           >
             <MagnifyingGlass size={18} aria-hidden />
@@ -142,13 +146,14 @@ function MenuBody({
           className="mx-4 flex min-h-10 items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 text-left text-[13px] text-[var(--color-charcoal)] transition-colors hover:border-[var(--color-primary)]"
         >
           <MagnifyingGlass size={16} aria-hidden />
-          <span className="flex-1">Find patient…</span>
+          <span className="flex-1">{t("shell.nav.findPatient")}</span>
           <kbd className="rounded-md bg-[var(--color-background)] px-1.5 py-0.5 text-[11px] font-medium">{keys.search}</kbd>
         </button>
         )}
 
-        <nav className={`mt-5 flex flex-1 flex-col gap-1 overflow-y-auto ${collapsed ? "px-2" : "px-3"}`} aria-label="Primary">
-          {items.map(({ href, label, icon: Icon }, i) => {
+        <nav className={`mt-5 flex flex-1 flex-col gap-1 overflow-y-auto ${collapsed ? "px-2" : "px-3"}`} aria-label={t("shell.nav.primary")}>
+          {items.map(({ href, label: labelKey, icon: Icon }, i) => {
+            const label = t(labelKey);
             const active = isActive(pathname, href);
             return (
               <Link
@@ -168,7 +173,7 @@ function MenuBody({
                 }`}
               >
                 <Icon size={20} weight={active ? "fill" : "regular"} aria-hidden />
-                <span className={collapsed ? "sr-only" : "truncate"}>{label}</span>
+                <span className={collapsed ? "sr-only" : "min-w-0 flex-1 leading-snug"}>{label}</span>
                 {href === "/calls" && callBadge}
               </Link>
             );
@@ -180,14 +185,14 @@ function MenuBody({
             type="button"
             onClick={onToggleCollapse}
             aria-expanded={!collapsed}
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            title={`${collapsed ? "Expand" : "Collapse"} sidebar (${keys.toggle})`}
+            aria-label={collapsed ? t("shell.nav.expand") : t("shell.nav.collapse")}
+            title={t(collapsed ? "shell.nav.expandTitle" : "shell.nav.collapseTitle", { shortcut: keys.toggle })}
             className={`mx-3 mt-2 flex min-h-10 items-center rounded-xl text-[13px] text-[var(--color-charcoal)] transition-colors hover:bg-[var(--color-primary-surface)] hover:text-[var(--color-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)] ${
               collapsed ? "justify-center" : "gap-3 px-3"
             }`}
           >
             <SidebarSimple size={20} weight={collapsed ? "fill" : "regular"} aria-hidden />
-            {!collapsed && <span>Collapse</span>}
+            {!collapsed && <span>{t("shell.nav.collapseLabel")}</span>}
           </button>
         )}
 
@@ -205,14 +210,14 @@ function MenuBody({
           </span>
           <div className={`min-w-0 flex-1 ${collapsed ? "hidden" : ""}`}>
             <p className="truncate text-[13px] font-medium text-[var(--color-foreground)]">{userName}</p>
-            <p className="text-[12px] text-[var(--color-charcoal)]">{isDoctor ? "Doctor" : "Staff"}</p>
+            <p className="text-[12px] text-[var(--color-charcoal)]">{isDoctor ? t("shell.nav.role.doctor") : t("shell.nav.role.staff")}</p>
           </div>
           <form action={logoutAndClearQueue}>
             <button
               type="submit"
               className="flex min-h-9 min-w-9 items-center justify-center rounded-lg text-[var(--color-charcoal)] transition-colors hover:bg-[var(--color-primary-surface)] hover:text-[var(--color-primary)]"
-              aria-label="Sign out"
-              title="Sign out"
+              aria-label={t("shell.nav.signOut")}
+              title={t("shell.nav.signOut")}
             >
               <SignOut size={18} aria-hidden />
             </button>
@@ -237,10 +242,11 @@ export function AppTopBar({
   const pathname = usePathname();
   const { collapsed, toggle } = useSidebar();
   const keys = useModKeyLabel();
+  const t = useT();
   const [open, setOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const firstLinkRef = useRef<HTMLAnchorElement>(null);
-  const items = isDoctor ? [...NAV_ITEMS, { href: "/settings", label: "Settings", icon: Gear }] : NAV_ITEMS;
+  const items = isDoctor ? [...NAV_ITEMS, SETTINGS_ITEM] : NAV_ITEMS;
 
   const close = useCallback(() => {
     setOpen(false);
@@ -271,10 +277,10 @@ export function AppTopBar({
             ref={menuButtonRef}
             type="button"
             onClick={() => setOpen(true)}
-            aria-label="Open menu"
+            aria-label={t("shell.nav.openMenu")}
             aria-expanded={open}
             aria-controls="app-menu"
-            title="Menu"
+            title={t("shell.nav.menu")}
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--color-primary-surface)] text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-white"
           >
             <House size={22} weight="fill" aria-hidden />
@@ -293,14 +299,14 @@ export function AppTopBar({
             className="hidden min-h-10 w-72 items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] px-3 text-left text-[13px] text-[var(--color-charcoal)] transition-colors hover:border-[var(--color-primary)] md:flex"
           >
             <MagnifyingGlass size={16} aria-hidden />
-            <span className="flex-1">Find patient…</span>
+            <span className="flex-1">{t("shell.nav.findPatient")}</span>
             <kbd className="rounded-md bg-[var(--color-surface-2)] px-1.5 py-0.5 text-[11px] font-medium">{keys.search}</kbd>
           </button>
           <button
             type="button"
             onClick={openCommandPalette}
             className="flex h-11 w-11 items-center justify-center rounded-xl text-[var(--color-charcoal)] hover:bg-[var(--color-primary-surface)] hover:text-[var(--color-primary)] md:hidden"
-            aria-label="Find patient"
+            aria-label={t("shell.nav.findPatientShort")}
           >
             <MagnifyingGlass size={21} aria-hidden />
           </button>
@@ -326,7 +332,7 @@ export function AppTopBar({
         id="app-menu"
         role="dialog"
         aria-modal="true"
-        aria-label="Main menu"
+        aria-label={t("shell.nav.mainMenu")}
         inert={!open}
         className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col md:hidden bg-[var(--color-background)] shadow-[0_24px_60px_-12px_rgb(62_42_92/0.45)] transition-transform duration-300 ease-out ${
           open ? "translate-x-0" : "-translate-x-full"
@@ -347,7 +353,7 @@ export function AppTopBar({
 
       {/* Permanent sidebar on desktop */}
       <aside
-        aria-label="Main menu"
+        aria-label={t("shell.nav.mainMenu")}
         data-collapsed={collapsed}
         className="app-sidebar group/sb fixed inset-y-0 left-0 z-30 hidden flex-col overflow-x-hidden border-r border-[var(--color-border)] bg-[var(--color-background)] print:hidden md:flex"
       >
@@ -369,9 +375,10 @@ export function AppTopBar({
 
 export function AppBottomNav() {
   const pathname = usePathname();
+  const t = useT();
   return (
     <nav
-      aria-label="Primary"
+      aria-label={t("shell.nav.primary")}
       className="pc-glass fixed inset-x-0 bottom-0 z-20 flex !rounded-none !border-x-0 !border-b-0 px-1 pb-[env(safe-area-inset-bottom)] md:hidden"
     >
       {NAV_ITEMS.map(({ href, label, short, icon: Icon }) => {
@@ -382,7 +389,7 @@ export function AppBottomNav() {
             href={href}
             prefetch={true}
             aria-current={active ? "page" : undefined}
-            className={`flex min-h-16 flex-1 flex-col items-center justify-center gap-1 text-[11px] ${
+            className={`flex min-h-16 min-w-0 flex-1 flex-col items-center justify-center gap-1 px-0.5 text-center text-[11px] leading-tight ${
               active ? "font-semibold text-[var(--color-primary)]" : "text-[var(--color-charcoal)]"
             }`}
           >
@@ -393,7 +400,7 @@ export function AppBottomNav() {
             >
               <Icon size={21} weight={active ? "fill" : "regular"} aria-hidden />
             </span>
-            {short ?? label}
+            {t(short ?? label)}
           </Link>
         );
       })}

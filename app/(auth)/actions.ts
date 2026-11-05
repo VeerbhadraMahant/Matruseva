@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { getT } from "@/lib/i18n/server";
+import type { Translator } from "@/lib/i18n/translate-client";
 import { DEMO_COOKIE, DEMO_EMAIL, DEMO_PASSWORD, isDemoModeEnabled } from "@/lib/demo";
 
 export interface ActionResult {
@@ -10,13 +12,15 @@ export interface ActionResult {
   checkEmail?: boolean;
 }
 
-const credentialsSchema = z.object({
-  email: z.email("Enter a valid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-});
+const credentialsSchema = (t: Translator) =>
+  z.object({
+    email: z.email(t("auth.error.email")),
+    password: z.string().min(8, t("auth.error.passwordLength")),
+  });
 
 export async function login(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
-  const parsed = credentialsSchema.safeParse({
+  const { t } = await getT();
+  const parsed = credentialsSchema(t).safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
   });
@@ -44,14 +48,15 @@ export async function login(_prev: ActionResult, formData: FormData): Promise<Ac
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) {
-    return { error: "Incorrect email or password." };
+    return { error: t("auth.error.credentials") };
   }
 
   redirect("/today");
 }
 
 export async function signup(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
-  const parsed = credentialsSchema.safeParse({
+  const { t } = await getT();
+  const parsed = credentialsSchema(t).safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
   });
@@ -82,13 +87,15 @@ export async function logout(): Promise<void> {
   redirect("/login");
 }
 
-const onboardingSchema = z.object({
-  clinicName: z.string().min(2, "Enter your clinic's name"),
-  doctorFullName: z.string().min(2, "Enter your full name"),
-});
+const onboardingSchema = (t: Translator) =>
+  z.object({
+    clinicName: z.string().min(2, t("auth.error.clinicName")),
+    doctorFullName: z.string().min(2, t("auth.error.fullName")),
+  });
 
 export async function completeOnboarding(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
-  const parsed = onboardingSchema.safeParse({
+  const { t } = await getT();
+  const parsed = onboardingSchema(t).safeParse({
     clinicName: formData.get("clinicName"),
     doctorFullName: formData.get("doctorFullName"),
   });
@@ -101,7 +108,7 @@ export async function completeOnboarding(_prev: ActionResult, formData: FormData
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return { error: "Your session expired. Please log in again." };
+    return { error: t("auth.error.sessionExpired") };
   }
 
   const { error } = await supabase.rpc("create_clinic_and_profile", {

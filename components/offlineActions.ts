@@ -3,6 +3,7 @@
 import { recordVisit, type ActionResult } from "@/app/(app)/patients/[id]/actions";
 import { logContact, quickLogContact } from "@/app/(app)/calls/actions";
 import { showToast } from "@/components/Toaster";
+import { offlineT } from "@/lib/offlineI18n";
 import { formDataFields, submitOrQueue, type SubmitResult } from "@/lib/offlineSubmit";
 import type { ContactOutcome } from "@/lib/supabase/enums";
 
@@ -23,7 +24,7 @@ export function saveVisitAction(patientId: string) {
         return recordVisit(patientId, prev, formData);
       },
     });
-    if (!r.error && !r.queued) showToast("Visit saved");
+    if (!r.error && !r.queued) showToast(offlineT("shell.offline.visitSaved"));
     return { error: r.error };
   };
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { CheckCircle, X } from "@phosphor-icons/react";
+import { useT } from "@/lib/i18n/provider";
 
 const TOAST_EVENT = "matrusetu:toast";
 const DURATION_MS = 3500;
@@ -32,6 +33,7 @@ export function withSuccessToast<S extends { error: string | null }>(
 }
 
 export function Toaster() {
+  const t = useT();
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   useEffect(() => {
@@ -60,18 +62,18 @@ export function Toaster() {
       aria-live="polite"
       className="pointer-events-none fixed inset-x-0 bottom-24 z-[60] flex flex-col items-center gap-2 px-4 md:bottom-6"
     >
-      {toasts.map((t) => (
+      {toasts.map((toast) => (
         <div
-          key={t.id}
+          key={toast.id}
           className="pc-rise pointer-events-auto flex items-center gap-3 rounded-2xl bg-[var(--color-pc-ink)] py-2.5 pl-3.5 pr-2 text-[14px] font-medium text-white shadow-[0_18px_40px_-12px_rgb(34_27_43/0.55)]"
         >
           <CheckCircle size={20} weight="fill" className="shrink-0 text-[#9fd9b4]" aria-hidden />
-          {t.message}
+          {toast.message}
           <button
             type="button"
-            onClick={() => setToasts((list) => list.filter((x) => x.id !== t.id))}
+            onClick={() => setToasts((list) => list.filter((x) => x.id !== toast.id))}
             className="flex h-8 w-8 items-center justify-center rounded-lg text-white/70 hover:bg-white/10 hover:text-white"
-            aria-label="Dismiss"
+            aria-label={t("shell.toast.dismiss")}
           >
             <X size={16} aria-hidden />
           </button>

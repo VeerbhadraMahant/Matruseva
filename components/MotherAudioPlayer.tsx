@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useT } from "@/lib/i18n/provider";
 import Link from "next/link";
 import {
   SpeakerHigh,
@@ -21,6 +22,97 @@ import {
   type CounselingPatientData,
 } from "@/lib/voiceCounselor";
 
+/**
+ * Mother-facing chrome. The page is read by the mother (often on the public
+ * token link, where there is no staff language), so its labels follow the
+ * counselling language she picks, not the staff UI locale. Kept local because
+ * the staff catalogue only carries the active staff locale and has no Gujarati.
+ */
+const CHROME: Record<
+  CounselingLanguage,
+  {
+    week: string;
+    defaultClinic: string;
+    play: string;
+    pause: string;
+    speaking: string;
+    paused: string;
+    idle: string;
+    speed: string;
+    slow: string;
+    normal: string;
+    summary: string;
+    emergencyLead: string;
+    ambulance: string;
+    ttsUnsupported: string;
+  }
+> = {
+  hi: {
+    week: "सप्ताह {n}",
+    defaultClinic: "मातृसेतु क्लिनिक",
+    play: "आवाज़ में परामर्श सुनें",
+    pause: "आवाज़ रोकें",
+    speaking: "आवाज़ में संदेश चल रहा है…",
+    paused: "रोका गया है",
+    idle: "▶️ यहाँ दबाकर आवाज़ में सुनिए",
+    speed: "गति:",
+    slow: "धीमी (0.8x)",
+    normal: "सामान्य (1.0x)",
+    summary: "परामर्श विवरण",
+    emergencyLead: "कोई भी परेशानी होने पर तुरंत अस्पताल या आशा दीदी से संपर्क करें:",
+    ambulance: "आपातकालीन एम्बुलेंस (108) को कॉल करें",
+    ttsUnsupported: "इस फ़ोन के ब्राउज़र में आवाज़ सुनाने की सुविधा उपलब्ध नहीं है।",
+  },
+  mr: {
+    week: "आठवडा {n}",
+    defaultClinic: "मातृसेतू क्लिनिक",
+    play: "आवाजात समुपदेशन ऐका",
+    pause: "आवाज थांबवा",
+    speaking: "संदेश आवाजात ऐकवला जात आहे…",
+    paused: "थांबवले आहे",
+    idle: "▶️ आवाजात ऐकण्यासाठी येथे दाबा",
+    speed: "गती:",
+    slow: "हळू (0.8x)",
+    normal: "सामान्य (1.0x)",
+    summary: "समुपदेशनाचा तपशील",
+    emergencyLead: "कोणताही त्रास झाल्यास त्वरित रुग्णालयात किंवा आशा ताईंशी संपर्क साधा:",
+    ambulance: "आपत्कालीन रुग्णवाहिका (108) ला कॉल करा",
+    ttsUnsupported: "या फोनच्या ब्राउझरमध्ये आवाज ऐकवण्याची सुविधा उपलब्ध नाही.",
+  },
+  gu: {
+    week: "અઠવાડિયું {n}",
+    defaultClinic: "માતૃસેતુ ક્લિનિક",
+    play: "અવાજમાં પરામર્શ સાંભળો",
+    pause: "અવાજ અટકાવો",
+    speaking: "સંદેશ અવાજમાં ચાલી રહ્યો છે…",
+    paused: "અટકાવ્યું છે",
+    idle: "▶️ અવાજમાં સાંભળવા અહીં દબાવો",
+    speed: "ઝડપ:",
+    slow: "ધીમી (0.8x)",
+    normal: "સામાન્ય (1.0x)",
+    summary: "પરામર્શની વિગત",
+    emergencyLead: "કોઈપણ તકલીફ થાય તો તરત હોસ્પિટલ અથવા આશા દીદીનો સંપર્ક કરો:",
+    ambulance: "ઇમરજન્સી એમ્બ્યુલન્સ (108) ને કૉલ કરો",
+    ttsUnsupported: "આ ફોનના બ્રાઉઝરમાં અવાજ સંભળાવવાની સુવિધા ઉપલબ્ધ નથી.",
+  },
+  en: {
+    week: "Week {n}",
+    defaultClinic: "MatruSetu Clinic",
+    play: "Listen to the counselling",
+    pause: "Pause audio",
+    speaking: "Playing the message…",
+    paused: "Paused",
+    idle: "▶️ Tap here to listen",
+    speed: "Speed:",
+    slow: "Slow (0.8x)",
+    normal: "Normal (1.0x)",
+    summary: "Counselling summary",
+    emergencyLead: "If you have any problem, contact the hospital or your ASHA worker right away:",
+    ambulance: "Call emergency ambulance (108)",
+    ttsUnsupported: "Text-to-speech is not supported in this browser.",
+  },
+};
+
 export interface MotherAudioPlayerProps {
   patientData: CounselingPatientData;
   initialLang?: CounselingLanguage;
@@ -33,6 +125,7 @@ export function MotherAudioPlayer({
   initialLang = "hi",
   publicView = false,
 }: MotherAudioPlayerProps) {
+  const t = useT();
   const [lang, setLang] = useState<CounselingLanguage>(initialLang);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -43,6 +136,7 @@ export function MotherAudioPlayer({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const counseling = generateCounseling(patientData, lang);
+  const ui = CHROME[lang];
 
   const estimatedDuration = Math.max(
     20,
@@ -89,7 +183,7 @@ export function MotherAudioPlayer({
 
   const handlePlayPause = () => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-      alert("Text-to-speech is not supported on this device browser.");
+      alert(ui.ttsUnsupported);
       return;
     }
 
@@ -165,7 +259,7 @@ export function MotherAudioPlayer({
   const progressPercent = Math.min(100, (currentTime / estimatedDuration) * 100);
 
   return (
-    <div className="min-h-screen bg-[var(--color-surface-1)] text-[var(--color-foreground)] py-6 px-4 sm:px-6">
+    <div lang={lang} className="min-h-screen bg-[var(--color-surface-1)] text-[var(--color-foreground)] py-6 px-4 sm:px-6">
       <div className="mx-auto max-w-lg space-y-5">
         {/* Navigation Bar */}
         <div className="flex items-center justify-between">
@@ -177,7 +271,7 @@ export function MotherAudioPlayer({
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--color-charcoal)] hover:text-[var(--color-primary)]"
           >
             <ArrowLeft size={16} />
-            <span>वापस / Back</span>
+            <span>{t("common.back")}</span>
           </Link>
           )}
           <div className="flex items-center gap-1 text-[11px] font-bold text-[var(--color-primary)] bg-[var(--color-primary)]/10 px-2.5 py-1 rounded-full">
@@ -196,7 +290,7 @@ export function MotherAudioPlayer({
             {patientData.patientName}
           </h1>
           <p className="mt-1 text-xs text-[var(--color-charcoal)] font-medium">
-            सप्ताह {patientData.gaWeeks ?? 24} · {patientData.clinicName || "मातृसेतु क्लिनिक"}
+            {ui.week.replace("{n}", String(patientData.gaWeeks ?? 24))} · {patientData.clinicName || ui.defaultClinic}
           </p>
 
           {/* Language Selector Buttons */}
@@ -232,7 +326,8 @@ export function MotherAudioPlayer({
                   ? "bg-amber-600 hover:bg-amber-700"
                   : "bg-emerald-600 hover:bg-emerald-700"
               }`}
-              title={isPlaying && !isPaused ? "Pause Audio" : "Play Vernacular Counseling"}
+              title={isPlaying && !isPaused ? ui.pause : ui.play}
+              aria-label={isPlaying && !isPaused ? ui.pause : ui.play}
             >
               {isPlaying && !isPaused ? (
                 <Pause size={36} weight="fill" />
@@ -245,10 +340,10 @@ export function MotherAudioPlayer({
           <div>
             <h2 className="text-base font-bold text-[var(--color-foreground)]">
               {isPlaying && !isPaused
-                ? "आवाज में संदेश चल रहा है..."
+                ? ui.speaking
                 : isPaused
-                ? "रोक दिया गया है (Paused)"
-                : "▶️ यहाँ दबाकर आवाज में सुनिए"}
+                ? ui.paused
+                : ui.idle}
             </h2>
             <p className="text-xs text-[var(--color-charcoal)] font-mono mt-0.5">
               {formatTimer(currentTime)} / {formatTimer(estimatedDuration)}
@@ -281,10 +376,10 @@ export function MotherAudioPlayer({
 
           {/* Speed Tuning */}
           <div className="flex items-center justify-center gap-2 pt-1 text-xs text-[var(--color-charcoal)]">
-            <span>गति (Speed):</span>
+            <span>{ui.speed}</span>
             {[
-              { rate: 0.82, label: "धीमी (0.8x)" },
-              { rate: 0.95, label: "सामान्य (1.0x)" },
+              { rate: 0.82, label: ui.slow },
+              { rate: 0.95, label: ui.normal },
             ].map((s) => (
               <button
                 key={s.rate}
@@ -308,7 +403,7 @@ export function MotherAudioPlayer({
         {/* Written Advice Cards for Reading */}
         <div className="space-y-3">
           <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--color-charcoal)] px-1">
-            परामर्श विवरण (Counseling Summary)
+            {ui.summary}
           </h3>
 
           {counseling.sections.map((sec, idx) => (
@@ -337,14 +432,14 @@ export function MotherAudioPlayer({
         {/* Emergency Help Button */}
         <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-4 text-center space-y-2">
           <p className="text-xs font-semibold text-[var(--color-charcoal)]">
-            कोई भी परेशानी होने पर तुरंत अस्पताल या आशा दीदी से संपर्क करें:
+            {ui.emergencyLead}
           </p>
           <a
             href="tel:108"
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-5 py-2.5 shadow-sm transition"
           >
             <PhoneCall size={16} weight="fill" />
-            <span>आपातकालीन एम्बुलेंस (108) को कॉल करें</span>
+            <span>{ui.ambulance}</span>
           </a>
         </div>
       </div>

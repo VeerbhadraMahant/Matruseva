@@ -1,8 +1,12 @@
+"use client";
+
+import { useT } from "@/lib/i18n/provider";
 import { card, pageBody } from "@/components/ui";
 
 export default function NewPatientLoading() {
+  const t = useT();
   return (
-    <div aria-busy="true" aria-label="Loading form" className={`${pageBody} pt-6 md:pt-9`}>
+    <div aria-busy="true" aria-label={t("shell.loading.form")} className={`${pageBody} pt-6 md:pt-9`}>
       <div className="pc-skeleton h-8 w-48" />
       {Array.from({ length: 2 }, (_, i) => (
         <div key={i} className={`space-y-4 p-5 ${card}`}>

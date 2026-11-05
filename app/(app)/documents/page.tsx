@@ -5,16 +5,24 @@ import { formatShortDate } from "@/lib/format";
 import { DocumentUploader } from "@/components/DocumentUploader";
 import { AssignDocumentForm } from "@/components/AssignDocumentForm";
 import { PageHeader, Panel, Tag, type Tone, pageBody } from "@/components/ui";
+import { getT } from "@/lib/i18n/server";
 
-const OCR_STATUS: Record<string, { label: string; tone: Tone }> = {
-  pending: { label: "Reading…", tone: "neutral" },
-  done: { label: "Text indexed", tone: "ok" },
-  failed: { label: "No text found", tone: "warning" },
-  skipped: { label: "Not processed", tone: "neutral" },
-};
+const OCR_STATUS = {
+  pending: { labelKey: "documents.ocr.pending", tone: "neutral" },
+  done: { labelKey: "documents.ocr.done", tone: "ok" },
+  failed: { labelKey: "documents.ocr.failed", tone: "warning" },
+  skipped: { labelKey: "documents.ocr.skipped", tone: "neutral" },
+} as const satisfies Record<string, { labelKey: string; tone: Tone }>;
+
+const SOURCE_KEY = {
+  camera: "documents.sourceTag.camera",
+  whatsapp: "documents.sourceTag.whatsapp",
+  paper: "documents.sourceTag.paper",
+  pdf: "documents.sourceTag.pdf",
+} as const;
 
 export default async function DocumentsPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
-  const [{ q }, me, supabase] = await Promise.all([searchParams, getCurrentUser(), createClient()]);
+  const [{ q }, me, supabase, { t, locale }] = await Promise.all([searchParams, getCurrentUser(), createClient(), getT()]);
   const searching = Boolean(q && q.trim());
 
   let query = supabase
@@ -33,17 +41,17 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
 
   return (
     <>
-      <PageHeader title="Documents" meta="Photograph or upload case papers, reports and WhatsApp images, then file them to a patient." />
+      <PageHeader title={t("documents.title")} meta={t("documents.meta")} />
 
       <div className={pageBody}>
-        <Panel title="Upload">
+        <Panel title={t("documents.upload.panel")}>
           <div className="p-4 pt-1">
             <DocumentUploader clinicId={me.clinicId} />
           </div>
         </Panel>
 
         <Panel
-          title={searching ? `Results for “${q}”` : "Inbox · unfiled"}
+          title={searching ? t("documents.results", { query: q ?? "" }) : t("documents.inbox")}
           count={docs.length}
           action={
             <form action="/documents" className="flex items-center rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-background)] focus-within:border-[var(--color-primary)]">
@@ -52,8 +60,8 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
                 type="search"
                 name="q"
                 defaultValue={q ?? ""}
-                placeholder="Search text in all documents"
-                aria-label="Search document text"
+                placeholder={t("documents.search.placeholder")}
+                aria-label={t("documents.search.aria")}
                 className="min-h-9 w-56 border-0 bg-transparent px-2 text-[13px] shadow-none outline-none focus:shadow-none"
               />
             </form>
@@ -61,14 +69,15 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
         >
           {docs.length === 0 ? (
             <p className="px-3 py-8 text-center text-[13px] text-[var(--color-charcoal)]">
-              {searching ? "No documents matched." : "Inbox is clear — nothing waiting to be filed."}
+              {searching ? t("documents.empty.search") : t("documents.empty.inbox")}
             </p>
           ) : (
             <ul className="grid gap-3 px-4 pb-4 sm:grid-cols-2 xl:grid-cols-3">
               {docs.map((doc) => {
                 const url = urlByPath.get(doc.storage_path) ?? null;
                 const isImage = /\.(jpe?g|png|webp)$/i.test(doc.storage_path);
-                const status = OCR_STATUS[doc.ocr_status ?? "pending"];
+                const status = OCR_STATUS[(doc.ocr_status ?? "pending") as keyof typeof OCR_STATUS] ?? OCR_STATUS.pending;
+                const sourceKey = SOURCE_KEY[doc.source as keyof typeof SOURCE_KEY];
                 const patientName = (doc.patients as { name: string } | null)?.name;
                 return (
                   <li key={doc.id} className="flex flex-col overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-background)]">
@@ -84,9 +93,9 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
                     </a>
                     <div className="flex flex-1 flex-col gap-2 p-3">
                       <div className="flex flex-wrap items-center gap-1.5 text-[12px]">
-                        <span className="num text-[var(--color-charcoal)]">{formatShortDate(doc.created_at)}</span>
-                        <span className="text-[var(--color-charcoal)]">· {doc.source}</span>
-                        <Tag tone={status.tone}>{status.label}</Tag>
+                        <span className="num text-[var(--color-charcoal)]">{formatShortDate(doc.created_at, locale)}</span>
+                        <span className="text-[var(--color-charcoal)]">· {sourceKey ? t(sourceKey) : doc.source}</span>
+                        <Tag tone={status.tone}>{t(status.labelKey)}</Tag>
                         {patientName && <Tag tone="info">{patientName}</Tag>}
                       </div>
                       {!doc.patient_id && <AssignDocumentForm documentId={doc.id} />}

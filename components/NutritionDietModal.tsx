@@ -4,12 +4,14 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { BowlFood } from "@phosphor-icons/react";
 import { buttonSecondary } from "@/components/ui";
+import { useT } from "@/lib/i18n/provider";
 
 // Modal body is loaded on demand (first open / hover / focus) to keep it out of the page's initial JS.
 const loadModal = () => import("@/components/NutritionDietModalBody");
 const NutritionDietModal = dynamic(() => loadModal().then((m) => m.NutritionDietModal), { ssr: false });
 
 export function NutritionDietButton({ data }: { data: NutritionPatientData }) {
+  const t = useT();
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -20,10 +22,10 @@ export function NutritionDietButton({ data }: { data: NutritionPatientData }) {
         onFocus={() => void loadModal()}
         onClick={() => setIsOpen(true)}
         className={`${buttonSecondary} gap-1.5`}
-        title="View personalized trimester & anemia diet plan"
+        title={t("patientDetail.nutrition.buttonTitle")}
       >
         <BowlFood size={15} weight="bold" className="text-[var(--color-primary)]" aria-hidden />
-        <span>Nutrition & Diet Plan</span>
+        <span>{t("patientDetail.nutrition.button")}</span>
       </button>
 
       {isOpen && <NutritionDietModal data={data} onClose={() => setIsOpen(false)} />}

@@ -5,6 +5,7 @@ import { useState, useRef } from "react";
 import { Microphone, MicrophoneSlash, CheckCircle, Sparkle, X, ArrowRight, WarningCircle } from "@phosphor-icons/react";
 import { parseVoiceToVitals, type ParsedVitals } from "@/lib/voiceScribe";
 import { buttonPrimary, buttonSecondary } from "@/components/ui";
+import { useT } from "@/lib/i18n/provider";
 
 export function VoiceScribeModalContent({
   onClose,
@@ -13,6 +14,7 @@ export function VoiceScribeModalContent({
   onClose: () => void;
   onApplyVitals: (vitals: ParsedVitals) => void;
 }) {
+  const t = useT();
   const [isListening, setIsListening] = useState(false);
   const [lang, setLang] = useState<"hi-IN" | "en-IN" | "mr-IN">("hi-IN");
   const [transcript, setTranscript] = useState("");
@@ -27,7 +29,7 @@ export function VoiceScribeModalContent({
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      setErrorMsg("Voice recognition is not supported in this browser. You can type or paste the dictation below.");
+      setErrorMsg(t("visits.scribe.errUnsupported"));
       return;
     }
 
@@ -53,7 +55,7 @@ export function VoiceScribeModalContent({
 
       recognition.onerror = (e: any) => {
         if (e.error !== "no-speech") {
-          setErrorMsg(`Voice input error: ${e.error}`);
+          setErrorMsg(t("visits.scribe.errVoice", { error: String(e.error) }));
         }
         setIsListening(false);
       };
@@ -65,7 +67,7 @@ export function VoiceScribeModalContent({
       recognitionRef.current = recognition;
       recognition.start();
     } catch (err: any) {
-      setErrorMsg(err.message || "Failed to start microphone.");
+      setErrorMsg(err.message || t("visits.scribe.errMic"));
       setIsListening(false);
     }
   };
@@ -91,15 +93,15 @@ export function VoiceScribeModalContent({
 
   const samplePrompts = [
     {
-      title: "Hindi/Hinglish (Common ASHA Visit)",
+      title: t("visits.scribe.sampleHi"),
       text: "BP 130 80, vajan 54 kilo, hemoglobin 9.5, pairon mein sujan",
     },
     {
-      title: "English (High Risk Alert)",
+      title: t("visits.scribe.sampleEn"),
       text: "BP 145 over 95, weight 62, hemoglobin 8.4, severe headache and blurred vision",
     },
     {
-      title: "Marathi (Rural PHC)",
+      title: t("visits.scribe.sampleMr"),
       text: "BP 120 80, vajan 50 kilo, hemoglobin 11, fhr 140",
     },
   ];
@@ -108,7 +110,7 @@ export function VoiceScribeModalContent({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="ASHA Voice-to-Vitals AI Scribe"
+      aria-label={t("visits.scribe.dialogAria")}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
@@ -123,19 +125,20 @@ export function VoiceScribeModalContent({
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <h2 className="text-[14px] font-bold text-[var(--color-foreground)]">ASHA Voice-to-Vitals AI Scribe</h2>
+                <h2 className="text-[14px] font-bold text-[var(--color-foreground)]">{t("visits.scribe.title")}</h2>
                 <span className="rounded-full bg-[var(--color-primary-surface)] px-2 py-0.5 text-[10px] font-bold text-[var(--color-primary)] border border-[var(--color-primary)]/20">
-                  Multilingual AI
+                  {t("visits.scribe.badge")}
                 </span>
               </div>
               <p className="text-[11px] text-[var(--color-charcoal)]">
-                Speak or dictate clinical vitals in Hindi, Marathi, or English
+                {t("visits.scribe.subtitle")}
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
+            aria-label={t("visits.scribe.close")}
             className="rounded-lg p-1.5 text-[var(--color-charcoal)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-foreground)] transition"
           >
             <X size={18} />
@@ -147,15 +150,15 @@ export function VoiceScribeModalContent({
           {/* Controls: Language and Mic */}
           <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-[var(--radius-cards)] bg-[var(--color-surface-1)] border border-[var(--color-border)]">
             <div className="flex items-center gap-2">
-              <span className="text-[12px] font-medium text-[var(--color-charcoal)]">Dictation Language:</span>
+              <span className="text-[12px] font-medium text-[var(--color-charcoal)]">{t("visits.scribe.dictLang")}</span>
               <select
                 value={lang}
                 onChange={(e) => setLang(e.target.value as "hi-IN" | "en-IN" | "mr-IN")}
                 className="text-[12px] rounded-[var(--radius-buttons)] border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2.5 py-1 text-[var(--color-foreground)] font-medium focus:outline-none"
               >
-                <option value="hi-IN">Hindi (हिंदी / Hinglish)</option>
-                <option value="mr-IN">Marathi (मराठी)</option>
-                <option value="en-IN">Indian English</option>
+                <option value="hi-IN">{t("visits.scribe.optHi")}</option>
+                <option value="mr-IN">{t("visits.scribe.optMr")}</option>
+                <option value="en-IN">{t("visits.scribe.optEn")}</option>
               </select>
             </div>
 
@@ -170,12 +173,12 @@ export function VoiceScribeModalContent({
               {isListening ? (
                 <>
                   <MicrophoneSlash size={15} weight="bold" />
-                  <span>Stop Recording</span>
+                  <span>{t("visits.scribe.stop")}</span>
                 </>
               ) : (
                 <>
                   <Microphone size={15} weight="bold" />
-                  <span>Start Dictating</span>
+                  <span>{t("visits.scribe.start")}</span>
                 </>
               )}
             </button>
@@ -192,12 +195,12 @@ export function VoiceScribeModalContent({
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-[11px] font-semibold text-[var(--color-foreground)]">
-                Spoken Dictation Transcript:
+                {t("visits.scribe.transcript")}
               </label>
               {isListening && (
                 <span className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--color-overdue)]">
                   <span className="h-2 w-2 rounded-full bg-[var(--color-overdue)] animate-ping" />
-                  Listening live...
+                  {t("visits.scribe.listening")}
                 </span>
               )}
             </div>
@@ -205,7 +208,7 @@ export function VoiceScribeModalContent({
               rows={3}
               value={transcript}
               onChange={(e) => handleManualChange(e.target.value)}
-              placeholder='e.g., "BP 130 80, vajan 54 kilo, hemoglobin 9.5, pairon mein sujan"'
+              placeholder={t("visits.scribe.transcriptPlaceholder")}
               className="w-full rounded-[var(--radius-buttons)] border border-[var(--color-border-strong)] bg-[var(--color-background)] p-3 text-[13px] text-[var(--color-foreground)] focus:border-[var(--color-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)] leading-relaxed font-mono"
             />
           </div>
@@ -213,7 +216,7 @@ export function VoiceScribeModalContent({
           {/* Sample Dictation Badges for Quick Demo */}
           <div>
             <span className="text-[11px] font-medium text-[var(--color-charcoal)] block mb-1.5">
-              Click to simulate sample frontline ASHA speech:
+              {t("visits.scribe.samples")}
             </span>
             <div className="flex flex-wrap gap-1.5">
               {samplePrompts.map((s, idx) => (
@@ -235,20 +238,20 @@ export function VoiceScribeModalContent({
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-1.5 text-[12px] font-bold text-[var(--color-foreground)]">
                 <Sparkle size={15} weight="fill" className="text-[var(--color-primary)]" />
-                AI Extracted Clinical Values:
+                {t("visits.scribe.extracted")}
               </span>
               {parsed && (parsed.bpSys || parsed.weight || parsed.hb || parsed.symptoms.length > 0) ? (
                 <span className="text-[11px] font-medium text-[var(--color-on-track)] flex items-center gap-1">
-                  <CheckCircle size={14} weight="fill" /> Ready to Apply
+                  <CheckCircle size={14} weight="fill" /> {t("visits.scribe.ready")}
                 </span>
               ) : (
-                <span className="text-[11px] text-[var(--color-charcoal)]">Awaiting speech</span>
+                <span className="text-[11px] text-[var(--color-charcoal)]">{t("visits.scribe.awaiting")}</span>
               )}
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <div className="rounded-lg bg-[var(--color-background)] p-2 border border-[var(--color-border)]">
-                <div className="text-[10px] text-[var(--color-charcoal)]">Blood Pressure</div>
+                <div className="text-[10px] text-[var(--color-charcoal)]">{t("visits.scribe.bp")}</div>
                 <div className="text-[14px] font-bold text-[var(--color-foreground)]">
                   {parsed?.bpSys && parsed?.bpDia ? `${parsed.bpSys} / ${parsed.bpDia}` : "—"}
                   {parsed?.bpSys && parsed?.bpDia && (
@@ -258,7 +261,7 @@ export function VoiceScribeModalContent({
               </div>
 
               <div className="rounded-lg bg-[var(--color-background)] p-2 border border-[var(--color-border)]">
-                <div className="text-[10px] text-[var(--color-charcoal)]">Weight</div>
+                <div className="text-[10px] text-[var(--color-charcoal)]">{t("visits.scribe.weight")}</div>
                 <div className="text-[14px] font-bold text-[var(--color-foreground)]">
                   {parsed?.weight ? `${parsed.weight}` : "—"}
                   {parsed?.weight && <span className="text-[10px] text-[var(--color-charcoal)] font-normal ml-1">kg</span>}
@@ -266,7 +269,7 @@ export function VoiceScribeModalContent({
               </div>
 
               <div className="rounded-lg bg-[var(--color-background)] p-2 border border-[var(--color-border)]">
-                <div className="text-[10px] text-[var(--color-charcoal)]">Hemoglobin</div>
+                <div className="text-[10px] text-[var(--color-charcoal)]">{t("visits.scribe.hb")}</div>
                 <div className="text-[14px] font-bold text-[var(--color-foreground)]">
                   {parsed?.hb ? `${parsed.hb}` : "—"}
                   {parsed?.hb && <span className="text-[10px] text-[var(--color-charcoal)] font-normal ml-1">g/dL</span>}
@@ -274,7 +277,7 @@ export function VoiceScribeModalContent({
               </div>
 
               <div className="rounded-lg bg-[var(--color-background)] p-2 border border-[var(--color-border)]">
-                <div className="text-[10px] text-[var(--color-charcoal)]">Fetal Heart (FHR)</div>
+                <div className="text-[10px] text-[var(--color-charcoal)]">{t("visits.scribe.fhr")}</div>
                 <div className="text-[14px] font-bold text-[var(--color-foreground)]">
                   {parsed?.fhr ? `${parsed.fhr}` : "—"}
                   {parsed?.fhr && <span className="text-[10px] text-[var(--color-charcoal)] font-normal ml-1">bpm</span>}
@@ -285,7 +288,7 @@ export function VoiceScribeModalContent({
             {parsed && parsed.symptoms.length > 0 && (
               <div className="pt-2 border-t border-[var(--color-border)]">
                 <div className="text-[11px] font-semibold text-[var(--color-overdue)] mb-1">
-                  Detected Symptoms & Danger Signs:
+                  {t("visits.scribe.symptoms")}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {parsed.symptoms.map((sym, i) => (
@@ -309,7 +312,7 @@ export function VoiceScribeModalContent({
             onClick={onClose}
             className={`${buttonSecondary} min-h-9 px-4 text-[13px]`}
           >
-            Cancel
+            {t("visits.scribe.cancel")}
           </button>
           <button
             type="button"
@@ -317,7 +320,7 @@ export function VoiceScribeModalContent({
             disabled={!parsed || (!parsed.bpSys && !parsed.weight && !parsed.hb && parsed.symptoms.length === 0)}
             className={`${buttonPrimary} min-h-9 px-4 text-[13px] gap-1.5`}
           >
-            <span>Apply to Vitals Form</span>
+            <span>{t("visits.scribe.apply")}</span>
             <ArrowRight size={14} weight="bold" />
           </button>
         </div>

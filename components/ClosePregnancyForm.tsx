@@ -4,6 +4,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { Baby } from "@phosphor-icons/react";
 import { buttonSecondary } from "@/components/ui";
+import { useT } from "@/lib/i18n/provider";
 
 export interface ClosePregnancyFormProps {
   patient: {
@@ -21,6 +22,7 @@ const loadModal = () => import("@/components/ClosePregnancyModal");
 const ClosePregnancyModal = dynamic(() => loadModal().then((m) => m.ClosePregnancyModal), { ssr: false });
 
 export function ClosePregnancyForm({ patient, todayIso }: ClosePregnancyFormProps) {
+  const t = useT();
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -31,10 +33,10 @@ export function ClosePregnancyForm({ patient, todayIso }: ClosePregnancyFormProp
         onFocus={() => void loadModal()}
         onClick={() => setIsOpen(true)}
         className={`${buttonSecondary} gap-1.5 border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-surface-1)]`}
-        title="Record delivery and close ANC schedule"
+        title={t("patientDetail.closure.buttonTitle")}
       >
         <Baby size={16} weight="bold" />
-        <span>Record Delivery / Close</span>
+        <span>{t("patientDetail.closure.button")}</span>
       </button>
 
 
