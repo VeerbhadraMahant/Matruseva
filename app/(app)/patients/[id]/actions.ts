@@ -1,14 +1,19 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser, isDemoActive } from "@/lib/auth";
 import { todayInClinicTimezone, toISODate } from "@/lib/today";
-import { parseLocalDate } from "@/lib/format";
+import { formatDate, parseLocalDate } from "@/lib/format";
 import { closeDemoPregnancy, markDemoCareEventDone, recordDemoVisit, updateDemoPatient } from "@/lib/demo-data";
+import { isDuplicateRequest } from "@/lib/idempotency";
 import { eddFromLmp } from "@/lib/pregnancy";
+import { getT } from "@/lib/i18n/server";
+import type { MessageKey } from "@/lib/i18n/messages";
+import { createListenToken, ListenLinkConfigError } from "@/lib/listenLink";
+import { COUNSELING_LANGUAGES, type CounselingLanguage } from "@/lib/voiceCounselor";
 import {
   generateSchedule,
   diffRegeneratedSchedule,
@@ -21,15 +26,21 @@ export interface ActionResult {
   error: string | null;
 }
 
+/** Every page that renders per-patient schedule/visit/risk data. */
+function revalidatePatientViews(patientId: string) {
+  revalidatePath(`/patients/${patientId}`);
+  revalidatePath("/patients");
+  revalidatePath("/today");
+  revalidatePath("/calls");
+}
+
 export async function markCareEventDone(careEventId: string, patientId: string): Promise<ActionResult> {
+  const { t } = await getT();
   const cookieStore = await cookies();
   const isDemo = isDemoActive(cookieStore);
   if (isDemo) {
     markDemoCareEventDone(careEventId, patientId);
-    revalidatePath(`/patients/${patientId}`);
-    revalidatePath("/patients");
-    revalidatePath("/today");
-    revalidatePath("/calls");
+    revalidatePatientViews(patientId);
     return { error: null };
   }
 
@@ -42,13 +53,10 @@ export async function markCareEventDone(careEventId: string, patientId: string):
 
     if (error) return { error: error.message };
 
-    revalidatePath(`/patients/${patientId}`);
-    revalidatePath("/patients");
-    revalidatePath("/today");
-    revalidatePath("/calls");
+    revalidatePatientViews(patientId);
     return { error: null };
   } catch (err: unknown) {
-    return { error: err instanceof Error ? err.message : "Database connection failed" };
+    return { error: err instanceof Error ? err.message : t("patientDetail.error.dbConnection") };
   }
 }
 
@@ -62,20 +70,36 @@ const visitSchema = z.object({
   fundalHeight: z.coerce.number().positive().optional().or(z.literal("")),
   notes: z.string().optional(),
   nextVisitDate: z.iso.date().optional().or(z.literal("")),
+  // Idempotency key from the offline queue / client (optional, backwards compatible).
+  clientRequestId: z.uuid().optional().or(z.literal("")),
 });
+
+const VISIT_FIELD_LABELS: Record<string, MessageKey> = {
+  bpSys: "visits.form.bpSys",
+  bpDia: "visits.form.bpDia",
+  weight: "visits.form.weight",
+  hb: "visits.form.hb",
+  fhr: "visits.form.fhr",
+  fundalHeight: "visits.form.fundalHeight",
+};
 
 export async function recordVisit(
   patientId: string,
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
+  const { t } = await getT();
   const raw = Object.fromEntries(formData.entries());
   const parsed = visitSchema.safeParse(raw);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0].message };
+    const field = String(parsed.error.issues[0]?.path[0] ?? "");
+    const label = VISIT_FIELD_LABELS[field];
+    if (field === "visitDate" || field === "nextVisitDate") return { error: t("visits.error.invalidDate") };
+    return { error: label ? t("visits.error.invalidNumber", { field: t(label) }) : t("visits.error.invalid") };
   }
   const v = parsed.data;
   const num = (x: number | "" | undefined) => (x === "" || x === undefined ? null : x);
+  const clientRequestId = v.clientRequestId || undefined;
 
   const cookieStore = await cookies();
   const isDemo = isDemoActive(cookieStore);
@@ -90,11 +114,8 @@ export async function recordVisit(
       fundalHeight: num(v.fundalHeight),
       notes: v.notes || null,
       nextVisitDate: v.nextVisitDate || null,
-    });
-    revalidatePath(`/patients/${patientId}`);
-    revalidatePath("/patients");
-    revalidatePath("/today");
-    revalidatePath("/calls");
+    }, clientRequestId);
+    revalidatePatientViews(patientId);
     return { error: null };
   }
 
@@ -114,27 +135,25 @@ export async function recordVisit(
       notes: v.notes || null,
       next_visit_date: v.nextVisitDate || null,
       created_by: me.userId,
+      ...(clientRequestId ? { client_request_id: clientRequestId } : {}),
     });
 
-    if (error) return { error: error.message };
+    // A unique violation on our own idempotency key means an earlier attempt
+    // already stored this visit (response was lost): treat as success.
+    if (error && !isDuplicateRequest(error, clientRequestId)) return { error: error.message };
 
-    revalidatePath(`/patients/${patientId}`);
-    revalidatePath("/patients");
-    revalidatePath("/today");
-    revalidatePath("/calls");
+    revalidatePatientViews(patientId);
     return { error: null };
   } catch (err: unknown) {
-    return { error: err instanceof Error ? err.message : "Database connection failed" };
+    return { error: err instanceof Error ? err.message : t("patientDetail.error.dbConnection") };
   }
 }
 
 const closePregnancySchema = z.object({
-  deliveryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Valid delivery date (YYYY-MM-DD) is required"),
-  deliveryMode: z.enum(["NVD", "LSCS"], { message: "Delivery mode must be NVD or LSCS" }),
-  birthWeightKg: z.coerce
-    .number({ message: "Birth weight must be a valid number" })
-    .min(0.5, "Birth weight must be at least 0.5 kg")
-    .max(6.5, "Birth weight cannot exceed 6.5 kg"),
+  // Messages are mapped to the active language from the issue path/code in closePregnancy().
+  deliveryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  deliveryMode: z.enum(["NVD", "LSCS"]),
+  birthWeightKg: z.coerce.number().min(0.5).max(6.5),
   notes: z.string().optional(),
 });
 
@@ -144,9 +163,28 @@ export async function closePregnancy(
   patientId: string,
   input: ClosePregnancyInput
 ): Promise<ActionResult> {
+  const { t, locale } = await getT();
   const parsed = closePregnancySchema.safeParse(input);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message || "Invalid input data" };
+    const issue = parsed.error.issues[0];
+    switch (issue?.path[0]) {
+      case "deliveryDate":
+        return { error: t("patientDetail.error.deliveryDateRequired") };
+      case "deliveryMode":
+        return { error: t("patientDetail.error.deliveryModeInvalid") };
+      case "birthWeightKg":
+        return {
+          error: t(
+            issue.code === "too_small"
+              ? "patientDetail.error.birthWeightMin"
+              : issue.code === "too_big"
+                ? "patientDetail.error.birthWeightMax"
+                : "patientDetail.error.birthWeightNumber",
+          ),
+        };
+      default:
+        return { error: t("patientDetail.error.invalidInput") };
+    }
   }
 
   const data = parsed.data;
@@ -154,7 +192,7 @@ export async function closePregnancy(
   const todayIso = toISODate(today);
 
   if (data.deliveryDate > todayIso) {
-    return { error: "Delivery date cannot be in the future." };
+    return { error: t("patientDetail.error.deliveryFuture") };
   }
 
   const [cookieStore, me] = await Promise.all([cookies(), getCurrentUser()]);
@@ -164,10 +202,7 @@ export async function closePregnancy(
     const demoRes = closeDemoPregnancy(patientId, data, me.fullName);
     if (demoRes.error) return demoRes;
 
-    revalidatePath(`/patients/${patientId}`);
-    revalidatePath("/today");
-    revalidatePath("/calls");
-    revalidatePath("/patients");
+    revalidatePatientViews(patientId);
     return { error: null };
   }
 
@@ -181,7 +216,7 @@ export async function closePregnancy(
     .maybeSingle();
 
   if (fetchError || !patient) {
-    return { error: fetchError?.message || "Patient not found." };
+    return { error: fetchError?.message || t("patientDetail.error.patientNotFound") };
   }
 
   // Idempotent rejection: reject if already closed
@@ -191,12 +226,12 @@ export async function closePregnancy(
     patient.pregnancy_status === "delivered" ||
     patient.pregnancy_status === "closed"
   ) {
-    return { error: "This pregnancy has already been closed." };
+    return { error: t("patientDetail.error.alreadyClosed") };
   }
 
   // Check delivery date does not precede LMP
   if (patient.lmp && data.deliveryDate < patient.lmp) {
-    return { error: `Delivery date cannot be before the Last Menstrual Period date (${patient.lmp}).` };
+    return { error: t("patientDetail.error.beforeLmp", { lmp: formatDate(patient.lmp, locale) }) };
   }
 
   const nowIso = new Date().toISOString();
@@ -225,15 +260,12 @@ export async function closePregnancy(
     .is("completed_at", null)
     .is("skipped_reason", null);
 
-  revalidatePath(`/patients/${patientId}`);
-  revalidatePath("/today");
-  revalidatePath("/calls");
-  revalidatePath("/patients");
+  revalidatePatientViews(patientId);
   return { error: null };
 }
 
 const updatePatientSchema = z.object({
-  name: z.string().min(2, "Enter the patient's name"),
+  name: z.string().min(2),
   clinicPatientNo: z.string().trim().max(40).optional().or(z.literal("")),
   phone: z.string().optional().or(z.literal("")),
   altPhone: z.string().optional().or(z.literal("")),
@@ -246,7 +278,7 @@ const updatePatientSchema = z.object({
     .string()
     .optional()
     .transform((v) => v === "on" || v === "true"),
-  lmp: z.iso.date("Enter a valid LMP date"),
+  lmp: z.iso.date(),
   edd: z.iso.date().optional().or(z.literal("")),
   eddSource: z.enum(["lmp", "scan", "manual"]).default("lmp"),
 });
@@ -256,10 +288,20 @@ export async function updatePatient(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
+  const { t } = await getT();
   const raw = Object.fromEntries(formData.entries());
   const parsed = updatePatientSchema.safeParse(raw);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0].message };
+    const field = parsed.error.issues[0]?.path[0];
+    return {
+      error: t(
+        field === "name"
+          ? "patientDetail.error.nameRequired"
+          : field === "lmp"
+            ? "patientDetail.error.lmpInvalid"
+            : "patientDetail.error.invalidInput",
+      ),
+    };
   }
   const input = parsed.data;
 
@@ -285,10 +327,7 @@ export async function updatePatient(
       lmp: input.lmp || null,
       edd: finalEdd,
     });
-    revalidatePath(`/patients/${patientId}`);
-    revalidatePath("/patients");
-    revalidatePath("/today");
-    revalidatePath("/calls");
+    revalidatePatientViews(patientId);
     return { error: null };
   }
 
@@ -302,7 +341,7 @@ export async function updatePatient(
     .single();
 
   if (fetchErr || !currentPatient) {
-    return { error: fetchErr?.message ?? "Patient not found." };
+    return { error: fetchErr?.message ?? t("patientDetail.error.patientNotFound") };
   }
 
   // Calculate final EDD
@@ -427,9 +466,48 @@ export async function updatePatient(
     }
   }
 
-  revalidatePath(`/patients/${patientId}`);
-  revalidatePath("/patients");
-  revalidatePath("/today");
-  revalidatePath("/calls");
+  revalidatePatientViews(patientId);
   return { error: null };
+}
+
+export interface ListenLinkResult {
+  url: string | null;
+  error: string | null;
+}
+
+/**
+ * Builds the signed, expiring public link a mother opens from WhatsApp.
+ * Staff only: the caller must be signed in and the patient must be visible to
+ * them through RLS (i.e. belong to their clinic). Demo mode skips the DB check.
+ */
+export async function createListenLink(patientId: string, lang: CounselingLanguage): Promise<ListenLinkResult> {
+  const { t } = await getT();
+  if (!COUNSELING_LANGUAGES.some((l) => l.code === lang)) return { url: null, error: t("patientDetail.listen.unsupportedLanguage") };
+  const me = await getCurrentUser(); // redirects to /login when signed out
+
+  if (!me.isDemo) {
+    if (!z.string().uuid().safeParse(patientId).success) return { url: null, error: t("patientDetail.listen.patientNotFound") };
+    const supabase = await createClient();
+    const { data: patient } = await supabase
+      .from("patients")
+      .select("id")
+      .eq("id", patientId)
+      .eq("clinic_id", me.clinicId)
+      .maybeSingle();
+    if (!patient) return { url: null, error: t("patientDetail.listen.patientNotFound") };
+  }
+
+  try {
+    const token = createListenToken(patientId, lang);
+    let base = process.env.NEXT_PUBLIC_SITE_URL;
+    if (!base) {
+      const h = await headers();
+      const host = h.get("x-forwarded-host") ?? h.get("host");
+      base = host ? `${h.get("x-forwarded-proto") ?? "https"}://${host}` : "http://localhost:3000";
+    }
+    return { url: `${base.replace(/\/+$/, "")}/listen/${token}`, error: null };
+  } catch (err) {
+    if (err instanceof ListenLinkConfigError) return { url: null, error: t("patientDetail.listen.notConfigured") };
+    return { url: null, error: t("patientDetail.listen.createFailed") };
+  }
 }

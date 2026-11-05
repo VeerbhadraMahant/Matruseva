@@ -3,6 +3,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { isDemoSession } from "@/lib/demo";
 
 export interface CurrentUser {
   userId: string;
@@ -14,10 +15,7 @@ export interface CurrentUser {
 }
 
 export function isDemoActive(cookieStore?: { get(name: string): { value?: string } | undefined }): boolean {
-  if (cookieStore?.get("matrusetu_demo")?.value === "1") return true;
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!url || url.includes("xxxxxxxx") || url.includes("your-project")) return true;
-  return false;
+  return isDemoSession(cookieStore);
 }
 
 // getClaims() verifies the JWT locally against the project's ES256 JWKS, so

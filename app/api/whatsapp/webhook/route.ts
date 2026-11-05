@@ -1,11 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { handleIncomingWhatsAppMessage } from "@/lib/whatsappBot";
 
 export const dynamic = "force-dynamic";
 
+function safeEqual(a: string, b: string): boolean {
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  return ab.length === bb.length && timingSafeEqual(ab, bb);
+}
+
+/** Verifies Meta's X-Hub-Signature-256 (HMAC-SHA256 of the raw body, keyed with the app secret). */
+function hasValidSignature(rawBody: string, header: string | null, appSecret: string): boolean {
+  if (!header?.startsWith("sha256=")) return false;
+  const expected = createHmac("sha256", appSecret).update(rawBody).digest("hex");
+  return safeEqual(header.slice("sha256=".length), expected);
+}
+
 /**
  * Meta WhatsApp Cloud API Webhook Verification Endpoint (GET).
- * Used when setting up the webhook in Meta Developers Console.
+ * Requires WHATSAPP_VERIFY_TOKEN — there is deliberately no default value.
  */
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
@@ -13,9 +27,9 @@ export async function GET(req: NextRequest) {
   const token = searchParams.get("hub.verify_token");
   const challenge = searchParams.get("hub.challenge");
 
-  const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN || "matrusetu_secret";
+  const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN;
 
-  if (mode === "subscribe" && token === verifyToken) {
+  if (verifyToken && mode === "subscribe" && token && safeEqual(token, verifyToken)) {
     return new Response(challenge || "", { status: 200 });
   }
 
@@ -23,25 +37,26 @@ export async function GET(req: NextRequest) {
 }
 
 /**
- * Meta WhatsApp Cloud API Incoming Message Webhook Endpoint (POST).
- * Also accepts direct JSON requests from the in-app Bot Simulator.
+ * Meta WhatsApp Cloud API incoming message webhook (POST).
+ * Every request must carry a valid X-Hub-Signature-256 (WHATSAPP_APP_SECRET);
+ * this route uses the service-role client, so it must never accept unsigned input.
+ * The in-app bot simulator does not use this route — it calls the authenticated
+ * `processBotReply` server action instead.
  */
 export async function POST(req: NextRequest) {
+  const appSecret = process.env.WHATSAPP_APP_SECRET;
+  if (!appSecret) {
+    return NextResponse.json({ error: "Webhook not configured" }, { status: 503 });
+  }
+
+  const rawBody = await req.text();
+  if (!hasValidSignature(rawBody, req.headers.get("x-hub-signature-256"), appSecret)) {
+    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+  }
+
   try {
-    const body = await req.json();
+    const body = JSON.parse(rawBody);
 
-    // 1. Direct Simulator format: { patientId, phone, messageText, preferredLang }
-    if (body.messageText) {
-      const res = await handleIncomingWhatsAppMessage({
-        patientId: body.patientId,
-        phone: body.phone,
-        messageText: body.messageText,
-        preferredLang: body.preferredLang,
-      });
-      return NextResponse.json(res);
-    }
-
-    // 2. Meta WhatsApp Cloud API format
     if (body.object === "whatsapp_business_account" && Array.isArray(body.entry)) {
       for (const entry of body.entry) {
         const changes = entry.changes || [];
@@ -93,7 +108,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid payload format" }, { status: 400 });
   } catch (err: unknown) {
     console.error("WhatsApp webhook error:", err);
-    const message = err instanceof Error ? err.message : "Internal server error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

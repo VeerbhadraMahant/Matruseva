@@ -20,6 +20,9 @@ import {
 } from "@phosphor-icons/react";
 import type { PastObstetricHistory, FamilyPregnancyHistory, DiagnosticScanReport } from "@/lib/obstetricReportData";
 import { VoiceCounselorButton } from "@/components/VoiceCounselorModal";
+import { useLocale, useT } from "@/lib/i18n/provider";
+import { formatDate } from "@/lib/format";
+import { careEventName, careStatusLabel } from "@/lib/clinicalLabels";
 
 export interface ReportVisit {
   visitDate: string;
@@ -82,6 +85,9 @@ export function OnePagePatientReport({
   careEvents,
   riskFlags,
 }: OnePagePatientReportProps) {
+  const t = useT();
+  const locale = useLocale();
+  const d = (iso: string | null | undefined) => (iso ? formatDate(iso, locale) : "—");
   const [selectedScan, setSelectedScan] = useState<DiagnosticScanReport | null>(null);
   const [copied, setCopied] = useState(false);
   const printAreaRef = useRef<HTMLDivElement>(null);
@@ -115,18 +121,18 @@ export function OnePagePatientReport({
             className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--color-charcoal)] hover:text-[var(--color-primary)] transition-colors"
           >
             <ArrowLeft size={16} weight="bold" />
-            <span>Interactive Chart</span>
+            <span>{t("reports.dossier.back")}</span>
           </Link>
           <span className="text-[var(--color-border-strong)]">|</span>
           <span className="text-[12px] font-semibold tracking-wide uppercase text-[var(--color-primary)]">
-            One-Page Clinical Dossier
+            {t("reports.dossier.label")}
           </span>
         </div>
 
         <div className="flex items-center gap-2">
           <VoiceCounselorButton
             variant="subtle"
-            label="Audio Counseling"
+            label={t("reports.dossier.audioCounselling")}
             data={{
               patientId: patient.id,
               patientName: patient.name,
@@ -149,7 +155,7 @@ export function OnePagePatientReport({
             className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-1.5 text-[12px] font-medium text-[var(--color-charcoal)] hover:border-[var(--color-foreground)] transition-colors cursor-pointer"
           >
             <ShareNetwork size={15} />
-            <span>{copied ? "Link Copied!" : "Share Link"}</span>
+            <span>{copied ? t("reports.dossier.linkCopied") : t("reports.dossier.shareLink")}</span>
           </button>
 
           <button
@@ -158,7 +164,7 @@ export function OnePagePatientReport({
             className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-primary)] text-white px-3.5 py-1.5 text-[12px] font-semibold hover:bg-[var(--color-primary-hover)] transition-colors shadow-xs cursor-pointer"
           >
             <Printer size={15} weight="bold" />
-            <span>Print A4 Dossier</span>
+            <span>{t("reports.dossier.print")}</span>
           </button>
         </div>
       </div>
@@ -181,10 +187,10 @@ export function OnePagePatientReport({
                 </span>
               </div>
               <h1 className="text-[15px] sm:text-[17px] font-semibold text-slate-800 tracking-[-0.01em] mt-0.5">
-                Comprehensive Antenatal & Obstetric Summary Dossier
+                {t("reports.dossier.heading")}
               </h1>
               <p className="text-[11px] text-[var(--color-charcoal)] mt-0.5">
-                Standardized Longitudinal Health Record · {patient.clinicName || "Primary Maternal Health Unit"}
+                {t("reports.dossier.subtitle", { clinic: patient.clinicName || t("reports.dossier.defaultClinic") })}
               </p>
             </div>
 
@@ -193,12 +199,12 @@ export function OnePagePatientReport({
                 {isHighRisk ? (
                   <span className="inline-flex items-center gap-1 text-red-700 bg-red-50 border-red-200 px-2.5 py-0.5 rounded-full">
                     <ShieldWarning size={14} weight="fill" />
-                    <span>High Risk Pregnancy (HRP)</span>
+                    <span>{t("reports.dossier.hrp")}</span>
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 text-emerald-800 bg-emerald-50 border-emerald-200 px-2.5 py-0.5 rounded-full">
                     <CheckCircle size={14} weight="fill" />
-                    <span>Standard Routine ANC</span>
+                    <span>{t("reports.dossier.routine")}</span>
                   </span>
                 )}
               </div>
@@ -211,39 +217,39 @@ export function OnePagePatientReport({
           {/* Primary Patient Identification Strip */}
           <div className="mt-3.5 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2 bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-xl p-3 text-[12px]">
             <div>
-              <span className="text-[10px] uppercase tracking-wider text-[var(--color-charcoal)] block">Mother&apos;s Name</span>
+              <span className="text-[10px] uppercase tracking-wider text-[var(--color-charcoal)] block">{t("reports.dossier.mothersName")}</span>
               <span className="font-semibold text-slate-900 text-[13px]">{patient.name}</span>
             </div>
             <div>
-              <span className="text-[10px] uppercase tracking-wider text-[var(--color-charcoal)] block">Age & GPLA</span>
+              <span className="text-[10px] uppercase tracking-wider text-[var(--color-charcoal)] block">{t("reports.dossier.ageGpla")}</span>
               <span className="font-semibold text-slate-900">
-                {patient.age ? `${patient.age}y` : "—"} · G{patient.gravida ?? 1}P{patient.para ?? 0}
+                {patient.age ? t("patientDetail.header.ageYears", { age: patient.age }) : "—"} · G{patient.gravida ?? 1}P{patient.para ?? 0}
               </span>
             </div>
             <div>
-              <span className="text-[10px] uppercase tracking-wider text-[var(--color-charcoal)] block">Blood Group</span>
+              <span className="text-[10px] uppercase tracking-wider text-[var(--color-charcoal)] block">{t("reports.dossier.bloodGroup")}</span>
               <span className={`font-semibold ${patient.rhNegative ? "text-red-700 font-bold" : "text-slate-900"}`}>
-                {patient.bloodGroup || "Unknown"}
-                {patient.rhNegative && " (Rh -ve)"}
+                {patient.bloodGroup || t("common.unknown")}
+                {patient.rhNegative && ` ${t("reports.dossier.rhNeg")}`}
               </span>
             </div>
             <div>
-              <span className="text-[10px] uppercase tracking-wider text-[var(--color-charcoal)] block">Gestational Age</span>
+              <span className="text-[10px] uppercase tracking-wider text-[var(--color-charcoal)] block">{t("reports.dossier.ga")}</span>
               <span className="font-semibold text-[var(--color-primary)] font-mono">
-                {patient.gaWeeks !== null ? `${patient.gaWeeks}w ${patient.gaDaysRemainder ?? 0}d` : "—"}
-                {patient.trimester && ` (T${patient.trimester})`}
+                {patient.gaWeeks !== null ? t("clinical.ga.full", { weeks: patient.gaWeeks, days: patient.gaDaysRemainder ?? 0 }) : "—"}
+                {patient.trimester && ` (${t("clinical.trimester.short", { n: patient.trimester })})`}
               </span>
             </div>
             <div>
-              <span className="text-[10px] uppercase tracking-wider text-[var(--color-charcoal)] block">EDD (DueDate)</span>
-              <span className="font-semibold text-slate-900 font-mono">{patient.edd || "—"}</span>
+              <span className="text-[10px] uppercase tracking-wider text-[var(--color-charcoal)] block">{t("reports.dossier.edd")}</span>
+              <span className="font-semibold text-slate-900 font-mono">{d(patient.edd)}</span>
             </div>
             <div>
-              <span className="text-[10px] uppercase tracking-wider text-[var(--color-charcoal)] block">LMP</span>
-              <span className="font-semibold text-slate-900 font-mono">{patient.lmp || "—"}</span>
+              <span className="text-[10px] uppercase tracking-wider text-[var(--color-charcoal)] block">{t("reports.dossier.lmp")}</span>
+              <span className="font-semibold text-slate-900 font-mono">{d(patient.lmp)}</span>
             </div>
             <div>
-              <span className="text-[10px] uppercase tracking-wider text-[var(--color-charcoal)] block">Contact Phone</span>
+              <span className="text-[10px] uppercase tracking-wider text-[var(--color-charcoal)] block">{t("reports.dossier.phone")}</span>
               <span className="font-semibold text-slate-900">{patient.phone || "—"}</span>
             </div>
           </div>
@@ -256,18 +262,22 @@ export function OnePagePatientReport({
             <div className="flex items-center gap-2 border-b border-[var(--color-border)]/70 pb-2 mb-2.5">
               <Baby size={16} className="text-[var(--color-primary)] shrink-0" />
               <h2 className="text-[13px] font-bold tracking-tight text-[var(--color-foreground)] uppercase">
-                1. Past Obstetric & Delivery History
+                {t("reports.dossier.s1")}
               </h2>
             </div>
 
             <div className="grid grid-cols-2 gap-2 text-[11px] mb-2.5">
               <div className="bg-[var(--color-surface-1)] p-2 rounded-lg">
-                <span className="text-[10px] text-[var(--color-charcoal)] block">Previous Delivery Mode</span>
+                <span className="text-[10px] text-[var(--color-charcoal)] block">{t("reports.dossier.prevMode")}</span>
                 <span className="font-bold text-slate-900 text-[12px]">
                   {pastHistory.previousDeliveryMode === "LSCS" ? (
-                    <span className="text-amber-800">Previous LSCS (C-Section)</span>
+                    <span className="text-amber-800">{t("reports.dossier.prevLscs")}</span>
                   ) : pastHistory.previousDeliveryMode === "NVD" ? (
-                    "Normal Vaginal (NVD)"
+                    t("clinical.delivery.NVD")
+                  ) : pastHistory.previousDeliveryMode === "None (Primi)" ? (
+                    t("reports.dossier.primi")
+                  ) : pastHistory.previousDeliveryMode.startsWith("Assisted") ? (
+                    t("reports.dossier.assisted")
                   ) : (
                     pastHistory.previousDeliveryMode
                   )}
@@ -275,42 +285,42 @@ export function OnePagePatientReport({
               </div>
 
               <div className="bg-[var(--color-surface-1)] p-2 rounded-lg">
-                <span className="text-[10px] text-[var(--color-charcoal)] block">Past Complications</span>
+                <span className="text-[10px] text-[var(--color-charcoal)] block">{t("reports.dossier.pastComplications")}</span>
                 <span className="font-semibold text-slate-900">
                   {pastHistory.pastPreEclampsia || pastHistory.pastGDM || pastHistory.pastPPH ? (
                     <span className="text-red-700 font-bold">
                       {[
                         pastHistory.pastPreEclampsia && "Pre-eclampsia",
-                        pastHistory.pastGDM && "GDM (Sugar)",
+                        pastHistory.pastGDM && t("reports.dossier.gdm"),
                         pastHistory.pastPPH && "PPH",
                       ]
                         .filter(Boolean)
                         .join(", ")}
                     </span>
                   ) : (
-                    <span className="text-emerald-800">None Reported</span>
+                    <span className="text-emerald-800">{t("reports.dossier.noneReported")}</span>
                   )}
                 </span>
               </div>
 
               <div className="bg-[var(--color-surface-1)] p-2 rounded-lg">
-                <span className="text-[10px] text-[var(--color-charcoal)] block">Past Miscarriages / Losses</span>
+                <span className="text-[10px] text-[var(--color-charcoal)] block">{t("reports.dossier.pastMiscarriages")}</span>
                 <span className={`font-semibold ${pastHistory.pastMiscarriages > 0 ? "text-amber-700 font-bold" : "text-slate-900"}`}>
-                  {pastHistory.pastMiscarriages > 0 ? `${pastHistory.pastMiscarriages} Abortion(s)` : "Nil (0)"}
-                  {pastHistory.pastStillbirths > 0 && ` · ${pastHistory.pastStillbirths} Stillbirth`}
+                  {pastHistory.pastMiscarriages > 0 ? t("reports.dossier.abortions", { count: pastHistory.pastMiscarriages }) : t("reports.dossier.nilZero")}
+                  {pastHistory.pastStillbirths > 0 && ` · ${t("reports.dossier.stillbirths", { count: pastHistory.pastStillbirths })}`}
                 </span>
               </div>
 
               <div className="bg-[var(--color-surface-1)] p-2 rounded-lg">
-                <span className="text-[10px] text-[var(--color-charcoal)] block">Inter-Pregnancy Interval</span>
+                <span className="text-[10px] text-[var(--color-charcoal)] block">{t("reports.dossier.interval")}</span>
                 <span className="font-semibold text-slate-900">
-                  {pastHistory.interPregnancyMonths ? `${pastHistory.interPregnancyMonths} Months` : "— (First/Primi)"}
+                  {pastHistory.interPregnancyMonths ? t("common.unit.month", { count: pastHistory.interPregnancyMonths }) : t("reports.dossier.firstPreg")}
                 </span>
               </div>
             </div>
 
             <p className="text-[11px] text-slate-700 bg-amber-50/50 border border-amber-200/50 rounded-lg p-2 leading-relaxed">
-              <span className="font-semibold text-amber-900">Clinical Note: </span>
+              <span className="font-semibold text-amber-900">{t("reports.dossier.clinicalNote")}</span>
               {pastHistory.notes}
             </p>
           </div>
@@ -320,58 +330,58 @@ export function OnePagePatientReport({
             <div className="flex items-center gap-2 border-b border-[var(--color-border)]/70 pb-2 mb-2.5">
               <UsersThree size={16} className="text-[var(--color-primary)] shrink-0" />
               <h2 className="text-[13px] font-bold tracking-tight text-[var(--color-foreground)] uppercase">
-                2. Family Pregnancy & Genetic History
+                {t("reports.dossier.s2")}
               </h2>
             </div>
 
             <div className="grid grid-cols-2 gap-2 text-[11px] mb-2.5">
               <div className="bg-[var(--color-surface-1)] p-2 rounded-lg">
-                <span className="text-[10px] text-[var(--color-charcoal)] block">Familial Pre-eclampsia / PIH</span>
+                <span className="text-[10px] text-[var(--color-charcoal)] block">{t("reports.dossier.famPih")}</span>
                 <span className="font-semibold">
                   {familyHistory.familyPreEclampsia ? (
-                    <span className="text-red-700 font-bold">Positive (Mother/Sister)</span>
+                    <span className="text-red-700 font-bold">{t("reports.dossier.famPihYes")}</span>
                   ) : (
-                    <span className="text-slate-800">No Family H/o PIH</span>
+                    <span className="text-slate-800">{t("reports.dossier.famPihNo")}</span>
                   )}
                 </span>
               </div>
 
               <div className="bg-[var(--color-surface-1)] p-2 rounded-lg">
-                <span className="text-[10px] text-[var(--color-charcoal)] block">Familial Diabetes (GDM)</span>
+                <span className="text-[10px] text-[var(--color-charcoal)] block">{t("reports.dossier.famDiabetes")}</span>
                 <span className="font-semibold">
                   {familyHistory.familyDiabetes ? (
-                    <span className="text-amber-800 font-bold">Positive (1st Degree)</span>
+                    <span className="text-amber-800 font-bold">{t("reports.dossier.famDiabetesYes")}</span>
                   ) : (
-                    <span className="text-slate-800">Negative</span>
+                    <span className="text-slate-800">{t("reports.dossier.negative")}</span>
                   )}
                 </span>
               </div>
 
               <div className="bg-[var(--color-surface-1)] p-2 rounded-lg">
-                <span className="text-[10px] text-[var(--color-charcoal)] block">Multiple Gestation (Twins)</span>
+                <span className="text-[10px] text-[var(--color-charcoal)] block">{t("reports.dossier.twins")}</span>
                 <span className="font-semibold">
                   {familyHistory.familyTwins ? (
-                    <span className="text-indigo-800 font-bold">Yes (Familial Twins)</span>
+                    <span className="text-indigo-800 font-bold">{t("reports.dossier.twinsYes")}</span>
                   ) : (
-                    <span className="text-slate-800">No</span>
+                    <span className="text-slate-800">{t("reports.dossier.no")}</span>
                   )}
                 </span>
               </div>
 
               <div className="bg-[var(--color-surface-1)] p-2 rounded-lg">
-                <span className="text-[10px] text-[var(--color-charcoal)] block">Genetic / Congenital Defects</span>
+                <span className="text-[10px] text-[var(--color-charcoal)] block">{t("reports.dossier.genetic")}</span>
                 <span className="font-semibold text-slate-800">
                   {familyHistory.familyGeneticAnomalies ? (
-                    <span className="text-red-700 font-bold">Flagged for Screening</span>
+                    <span className="text-red-700 font-bold">{t("reports.dossier.geneticFlag")}</span>
                   ) : (
-                    "Nil Reported"
+                    t("reports.dossier.nilReported")
                   )}
                 </span>
               </div>
             </div>
 
             <p className="text-[11px] text-slate-700 bg-indigo-50/40 border border-indigo-200/50 rounded-lg p-2 leading-relaxed">
-              <span className="font-semibold text-indigo-950">Familial Risk Profile: </span>
+              <span className="font-semibold text-indigo-950">{t("reports.dossier.familialRisk")}</span>
               {familyHistory.notes}
             </p>
           </div>
@@ -383,12 +393,12 @@ export function OnePagePatientReport({
             <div className="flex items-center gap-2">
               <Heartbeat size={16} className="text-[var(--color-primary)] shrink-0" />
               <h2 className="text-[13px] font-bold tracking-tight text-[var(--color-foreground)] uppercase">
-                3. Vitals & Antenatal Clinical Progression
+                {t("reports.dossier.s3")}
               </h2>
             </div>
             {latestVisit && (
               <span className="text-[11px] text-[var(--color-charcoal)]">
-                Latest Visit: <span className="font-mono font-semibold text-slate-800">{latestVisit.visitDate}</span>
+                {t("reports.dossier.latestVisit")} <span className="font-mono font-semibold text-slate-800">{d(latestVisit.visitDate)}</span>
               </span>
             )}
           </div>
@@ -396,7 +406,7 @@ export function OnePagePatientReport({
           {/* Latest Key Vitals Gauge Strip */}
           <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 mb-3 text-center">
             <div className="bg-[var(--color-surface-1)] p-2 rounded-lg border border-[var(--color-border)]/50">
-              <span className="text-[10px] text-[var(--color-charcoal)] block uppercase">Blood Pressure</span>
+              <span className="text-[10px] text-[var(--color-charcoal)] block uppercase">{t("reports.dossier.bp")}</span>
               <span
                 className={`text-[15px] font-bold font-mono ${
                   latestVisit?.bpSys && (latestVisit.bpSys >= 140 || (latestVisit.bpDia && latestVisit.bpDia >= 90))
@@ -412,7 +422,7 @@ export function OnePagePatientReport({
             </div>
 
             <div className="bg-[var(--color-surface-1)] p-2 rounded-lg border border-[var(--color-border)]/50">
-              <span className="text-[10px] text-[var(--color-charcoal)] block uppercase">Hemoglobin</span>
+              <span className="text-[10px] text-[var(--color-charcoal)] block uppercase">{t("reports.dossier.hb")}</span>
               <span
                 className={`text-[15px] font-bold font-mono ${
                   latestVisit?.hb && latestVisit.hb < 7.0
@@ -428,7 +438,7 @@ export function OnePagePatientReport({
             </div>
 
             <div className="bg-[var(--color-surface-1)] p-2 rounded-lg border border-[var(--color-border)]/50">
-              <span className="text-[10px] text-[var(--color-charcoal)] block uppercase">Weight</span>
+              <span className="text-[10px] text-[var(--color-charcoal)] block uppercase">{t("reports.dossier.weight")}</span>
               <span className="text-[15px] font-bold font-mono text-slate-900">
                 {latestVisit?.weight ? `${latestVisit.weight}` : "—"}
               </span>
@@ -436,7 +446,7 @@ export function OnePagePatientReport({
             </div>
 
             <div className="bg-[var(--color-surface-1)] p-2 rounded-lg border border-[var(--color-border)]/50">
-              <span className="text-[10px] text-[var(--color-charcoal)] block uppercase">Fetal Heart Rate</span>
+              <span className="text-[10px] text-[var(--color-charcoal)] block uppercase">{t("reports.dossier.fhr")}</span>
               <span
                 className={`text-[15px] font-bold font-mono ${
                   latestVisit?.fhr && (latestVisit.fhr < 110 || latestVisit.fhr > 160)
@@ -450,7 +460,7 @@ export function OnePagePatientReport({
             </div>
 
             <div className="bg-[var(--color-surface-1)] p-2 rounded-lg border border-[var(--color-border)]/50">
-              <span className="text-[10px] text-[var(--color-charcoal)] block uppercase">Fundal Height</span>
+              <span className="text-[10px] text-[var(--color-charcoal)] block uppercase">{t("reports.dossier.fundal")}</span>
               <span className="text-[15px] font-bold font-mono text-slate-900">
                 {latestVisit?.fundalHeight ? `${latestVisit.fundalHeight}` : "—"}
               </span>
@@ -458,9 +468,9 @@ export function OnePagePatientReport({
             </div>
 
             <div className="bg-[var(--color-surface-1)] p-2 rounded-lg border border-[var(--color-border)]/50">
-              <span className="text-[10px] text-[var(--color-charcoal)] block uppercase">Urine Alb/Sugar</span>
-              <span className="text-[13px] font-bold font-mono text-slate-800 mt-0.5 block">Nil / Nil</span>
-              <span className="text-[9px] text-[var(--color-charcoal)] block">Dipstick</span>
+              <span className="text-[10px] text-[var(--color-charcoal)] block uppercase">{t("reports.dossier.urine")}</span>
+              <span className="text-[13px] font-bold font-mono text-slate-800 mt-0.5 block">{t("reports.dossier.nilNil")}</span>
+              <span className="text-[9px] text-[var(--color-charcoal)] block">{t("reports.dossier.dipstick")}</span>
             </div>
           </div>
 
@@ -470,20 +480,20 @@ export function OnePagePatientReport({
               <table className="w-full text-[11px] text-left">
                 <thead className="bg-[var(--color-surface-1)] text-[10px] uppercase tracking-wider text-[var(--color-charcoal)]">
                   <tr>
-                    <th className="py-1.5 px-3">Date</th>
+                    <th className="py-1.5 px-3">{t("common.date")}</th>
                     <th className="py-1.5 px-2">GA</th>
-                    <th className="py-1.5 px-2">BP (mmHg)</th>
-                    <th className="py-1.5 px-2">Weight (kg)</th>
-                    <th className="py-1.5 px-2">Hb (g/dL)</th>
-                    <th className="py-1.5 px-2">FHR (bpm)</th>
-                    <th className="py-1.5 px-2">FH (cm)</th>
-                    <th className="py-1.5 px-3">Clinical Remarks</th>
+                    <th className="py-1.5 px-2">{t("reports.dossier.thBp")}</th>
+                    <th className="py-1.5 px-2">{t("reports.dossier.thWeight")}</th>
+                    <th className="py-1.5 px-2">{t("reports.dossier.thHb")}</th>
+                    <th className="py-1.5 px-2">{t("reports.dossier.thFhr")}</th>
+                    <th className="py-1.5 px-2">{t("reports.dossier.thFh")}</th>
+                    <th className="py-1.5 px-3">{t("reports.dossier.thRemarks")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--color-border)]/40 font-mono">
                   {visits.slice(0, 4).map((v, idx) => (
                     <tr key={idx} className="hover:bg-[var(--color-surface-1)]/40">
-                      <td className="py-1.5 px-3 font-semibold text-slate-900 whitespace-nowrap">{v.visitDate}</td>
+                      <td className="py-1.5 px-3 font-semibold text-slate-900 whitespace-nowrap">{d(v.visitDate)}</td>
                       <td className="py-1.5 px-2 text-slate-700">{v.gaWeeks || "—"}</td>
                       <td className="py-1.5 px-2">
                         {v.bpSys && v.bpDia ? (
@@ -514,8 +524,8 @@ export function OnePagePatientReport({
                       </td>
                       <td className="py-1.5 px-2 text-slate-800">{v.fhr ?? "—"}</td>
                       <td className="py-1.5 px-2 text-slate-800">{v.fundalHeight ?? "—"}</td>
-                      <td className="py-1.5 px-3 font-sans text-slate-700 text-[10px] truncate max-w-44">
-                        {v.notes || "Routine Antenatal Followup"}
+                      <td className="py-1.5 px-3 font-sans text-slate-700 text-[10px] max-w-44 break-words">
+                        {v.notes || t("reports.dossier.routineFollowup")}
                       </td>
                     </tr>
                   ))}
@@ -531,11 +541,11 @@ export function OnePagePatientReport({
             <div className="flex items-center gap-2">
               <FileText size={16} className="text-[var(--color-primary)] shrink-0" />
               <h2 className="text-[13px] font-bold tracking-tight text-[var(--color-foreground)] uppercase">
-                4. Sonography (USG) & Diagnostic Scans Dossier
+                {t("reports.dossier.s4")}
               </h2>
             </div>
             <span className="text-[10px] text-[var(--color-charcoal)]">
-              Click any scan to open full-resolution radiologist report
+              {t("reports.dossier.scanHint")}
             </span>
           </div>
 
@@ -554,9 +564,9 @@ export function OnePagePatientReport({
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-between p-2">
                     <span className="text-[10px] font-medium text-white flex items-center gap-1">
-                      <MagnifyingGlassPlus size={13} /> Click to Inspect
+                      <MagnifyingGlassPlus size={13} /> {t("reports.dossier.inspect")}
                     </span>
-                    <span className="text-[9px] font-mono text-cyan-300">High-Res Film</span>
+                    <span className="text-[9px] font-mono text-cyan-300">{t("reports.dossier.hiRes")}</span>
                   </div>
                 </div>
 
@@ -567,7 +577,7 @@ export function OnePagePatientReport({
                       {scan.title}
                     </h3>
                     <span className="text-[9px] font-mono text-[var(--color-charcoal)] shrink-0">
-                      {scan.date}
+                      {d(scan.date)}
                     </span>
                   </div>
 
@@ -604,7 +614,7 @@ export function OnePagePatientReport({
             <div className="flex items-center gap-2 border-b border-[var(--color-border)]/70 pb-2 mb-2.5">
               <Calendar size={16} className="text-[var(--color-primary)] shrink-0" />
               <h2 className="text-[13px] font-bold tracking-tight text-[var(--color-foreground)] uppercase">
-                5. Immunization & ANC Care Schedule
+                {t("reports.dossier.s5")}
               </h2>
             </div>
 
@@ -614,7 +624,7 @@ export function OnePagePatientReport({
                   key={cIdx}
                   className="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-[var(--color-surface-1)]/60"
                 >
-                  <span className="font-medium text-slate-800">{ce.name}</span>
+                  <span className="font-medium text-slate-800">{careEventName(ce.name, t)}</span>
                   <span
                     className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                       ce.status === "done"
@@ -625,10 +635,10 @@ export function OnePagePatientReport({
                     }`}
                   >
                     {ce.status === "done"
-                      ? "Completed"
+                      ? t("clinical.status.completed")
                       : ce.status === "overdue"
-                      ? "Overdue"
-                      : "Due Soon"}
+                      ? careStatusLabel("overdue", t)
+                      : t("clinical.status.dueSoon")}
                   </span>
                 </div>
               ))}
@@ -640,7 +650,7 @@ export function OnePagePatientReport({
             <div className="flex items-center gap-2 border-b border-[var(--color-border)]/70 pb-2 mb-2.5">
               <FirstAid size={16} className="text-[var(--color-primary)] shrink-0" />
               <h2 className="text-[13px] font-bold tracking-tight text-[var(--color-foreground)] uppercase">
-                6. Clinical Decision Alerts & Protocol
+                {t("reports.dossier.s6")}
               </h2>
             </div>
 
@@ -649,32 +659,32 @@ export function OnePagePatientReport({
                 <div className="bg-red-50 border border-red-200 rounded-lg p-2.5 text-[11px]">
                   <p className="font-bold text-red-900 mb-1 flex items-center gap-1.5">
                     <ShieldWarning size={14} weight="fill" className="text-red-700" />
-                    <span>Active High-Risk Pregnancy Flags:</span>
+                    <span>{t("reports.dossier.activeFlags")}</span>
                   </p>
                   <ul className="list-disc list-inside space-y-0.5 text-red-800">
                     {riskFlags.map((flag, fIdx) => (
                       <li key={fIdx}>{flag}</li>
                     ))}
                     {pastHistory.previousDeliveryMode === "LSCS" && (
-                      <li>Previous Cesarean: Avoid induction agents (Oxytocin/Misoprostol) without senior OBGYN.</li>
+                      <li>{t("reports.dossier.prevCs")}</li>
                     )}
                     {patient.rhNegative && (
-                      <li>Rh-Negative Mother: Monitor Anti-D titers; administer Inj. Anti-D 300mcg within 72 hrs of delivery.</li>
+                      <li>{t("reports.dossier.rhNegAdvice")}</li>
                     )}
                   </ul>
                 </div>
 
                 <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2 text-[10px] text-emerald-900">
-                  <span className="font-bold">PMSMA Guidance: </span>
-                  Mandatory institutional delivery at First Referral Unit (FRU) or District Hospital with 24×7 blood bank facility.
+                  <span className="font-bold">{t("reports.dossier.pmsma")}</span>
+                  {t("reports.dossier.pmsmaBody")}
                 </div>
               </div>
             ) : (
               <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 text-center">
                 <CheckCircle size={24} weight="fill" className="text-emerald-700 mx-auto mb-1.5" />
-                <p className="text-[12px] font-bold text-emerald-900">Low Risk Antenatal Profile</p>
+                <p className="text-[12px] font-bold text-emerald-900">{t("reports.dossier.lowRisk")}</p>
                 <p className="text-[10px] text-emerald-700 mt-0.5">
-                  Normal blood pressure and hemoglobin. Continue routine Iron-Folic Acid and calcium supplementation.
+                  {t("reports.dossier.lowRiskBody")}
                 </p>
               </div>
             )}
@@ -687,10 +697,10 @@ export function OnePagePatientReport({
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1.5 bg-red-50 border border-red-200 px-2.5 py-1 rounded-lg text-red-800 font-bold">
                 <PhoneCall size={14} weight="bold" />
-                <span>108 Ambulance Hotline</span>
+                <span>{t("reports.dossier.hotline")}</span>
               </div>
               <span className="text-[10px]">
-                ASHA: <span className="font-semibold text-slate-800">{patient.ashaName || "Rekha Patil"}</span> (9820199999)
+                {t("reports.dossier.asha")} <span className="font-semibold text-slate-800">{patient.ashaName || "Rekha Patil"}</span> (9820199999)
               </span>
             </div>
 
@@ -699,7 +709,7 @@ export function OnePagePatientReport({
                 Verified: Dr. Demo, MBBS, DGO · Reg: MCI-41920
               </span>
               <span className="text-[9px] text-slate-400">
-                Official PMSMA & Govt. of India Digital Health Passport · Generated via MatruSetu
+                {t("reports.dossier.footerStamp")}
               </span>
             </div>
           </div>
@@ -711,6 +721,7 @@ export function OnePagePatientReport({
         <div
           role="dialog"
           aria-modal="true"
+          aria-label={selectedScan.title}
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-xs print:hidden"
           onClick={(e) => {
             if (e.target === e.currentTarget) setSelectedScan(null);
@@ -722,12 +733,13 @@ export function OnePagePatientReport({
               <div>
                 <h3 className="text-[14px] font-bold text-slate-900">{selectedScan.title}</h3>
                 <p className="text-[11px] text-[var(--color-charcoal)]">
-                  Dated: {selectedScan.date} · {selectedScan.doctorOrLab}
+                  {t("reports.dossier.dated", { date: d(selectedScan.date), lab: selectedScan.doctorOrLab })}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedScan(null)}
+                aria-label={t("common.close")}
                 className="p-1 rounded-lg hover:bg-black/5 text-slate-600 cursor-pointer"
               >
                 <X size={18} weight="bold" />
@@ -757,7 +769,7 @@ export function OnePagePatientReport({
                 </div>
 
                 <div className="bg-[var(--color-surface-1)]/70 p-3 rounded-xl border border-[var(--color-border)]/60 text-[12px] leading-relaxed">
-                  <span className="font-semibold text-slate-900 block mb-1">Radiologist / Pathologist Report:</span>
+                  <span className="font-semibold text-slate-900 block mb-1">{t("reports.dossier.radReport")}</span>
                   <p className="text-slate-700">{selectedScan.findings}</p>
                 </div>
               </div>
@@ -770,7 +782,7 @@ export function OnePagePatientReport({
                 onClick={() => setSelectedScan(null)}
                 className="px-4 py-1.5 rounded-lg border border-[var(--color-border)] bg-white text-[12px] font-semibold hover:border-slate-400 cursor-pointer"
               >
-                Close Viewer
+                {t("reports.dossier.closeViewer")}
               </button>
             </div>
           </div>

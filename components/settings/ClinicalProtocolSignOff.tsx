@@ -15,8 +15,13 @@ import {
   CLINICAL_RISK_THRESHOLDS,
   CLINICAL_SIGN_OFF_METADATA,
 } from "@/lib/clinicalProtocols";
+import { useT, useLocale } from "@/lib/i18n/provider";
+import { formatDate } from "@/lib/format";
+import { careEventName } from "@/lib/clinicalLabels";
 
 export function ClinicalProtocolSignOff() {
+  const t = useT();
+  const locale = useLocale();
   const [isPending, startTransition] = useTransition();
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [showRationales, setShowRationales] = useState(false);
@@ -25,9 +30,9 @@ export function ClinicalProtocolSignOff() {
     startTransition(async () => {
       const res = await applyStandardFogsiSchedule();
       if (res.error) {
-        setStatusMessage(`Error: ${res.error}`);
+        setStatusMessage(t("settings.signoff.error", { error: res.error }));
       } else {
-        setStatusMessage("✅ Successfully aligned ANC schedule template & risk thresholds with FOGSI / MoHFW guidelines.");
+        setStatusMessage(t("settings.signoff.applied"));
         setTimeout(() => setStatusMessage(null), 5000);
       }
     });
@@ -45,26 +50,26 @@ export function ClinicalProtocolSignOff() {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h4 className="text-[13px] font-semibold text-[var(--color-foreground)]">
-                  Clinical Lead Protocol Sign-Off
+                  {t("settings.signoff.title")}
                 </h4>
                 <span className="rounded-xl flex items-center gap-1 bg-white px-2 py-0.5 text-[11px] font-bold text-[var(--color-primary)] border border-[var(--color-primary)]/30">
                   <CheckCircle size={13} weight="fill" />
-                  {CLINICAL_SIGN_OFF_METADATA.signOffStatus}
+                  {CLINICAL_SIGN_OFF_METADATA.signOffStatus === "Approved & Certified" ? t("settings.signoff.statusApproved") : CLINICAL_SIGN_OFF_METADATA.signOffStatus}
                 </span>
               </div>
               <p className="mt-1 text-[12px] leading-relaxed text-[var(--color-foreground)]">
-                Accredited in alignment with <strong>FOGSI</strong> (Federation of Obstetric and Gynaecological
-                Societies of India) &amp; <strong>MoHFW</strong> Antenatal Guidelines.
+                {t("settings.signoff.accredited")}
               </p>
               <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[var(--color-charcoal)]">
                 <span>
-                  <strong>Standard:</strong> {CLINICAL_SIGN_OFF_METADATA.version}
+                  <strong>{t("settings.signoff.standard")}</strong> {CLINICAL_SIGN_OFF_METADATA.version}
                 </span>
                 <span>
-                  <strong>Last Audit:</strong> {CLINICAL_SIGN_OFF_METADATA.lastReviewed}
+                  <strong>{t("settings.signoff.lastAudit")}</strong> {formatDate(CLINICAL_SIGN_OFF_METADATA.lastReviewed, locale)}
                 </span>
                 <span>
-                  <strong>Signatory:</strong> {CLINICAL_SIGN_OFF_METADATA.certifiedBy}
+                  <strong>{t("settings.signoff.signatory")}</strong>{" "}
+                  {CLINICAL_SIGN_OFF_METADATA.certifiedBy === "Clinical Directorate (FOGSI / MoHFW Certified)" ? t("settings.signoff.signatoryName") : CLINICAL_SIGN_OFF_METADATA.certifiedBy}
                 </span>
               </div>
             </div>
@@ -77,7 +82,7 @@ export function ClinicalProtocolSignOff() {
             className="rounded-xl flex items-center gap-1.5 border border-[var(--color-primary)] bg-[var(--color-primary)] px-3 py-1.5 text-[12px] font-semibold text-white shadow-xs hover:bg-[var(--color-primary-hover)] disabled:opacity-50 transition-colors cursor-pointer"
           >
             <ArrowsClockwise size={14} className={isPending ? "animate-spin" : ""} />
-            <span>Apply Certified FOGSI Windows</span>
+            <span>{t("settings.signoff.apply")}</span>
           </button>
         </div>
 
@@ -93,22 +98,23 @@ export function ClinicalProtocolSignOff() {
         <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] p-2.5">
           <div className="flex items-center gap-1.5 font-semibold text-[var(--color-foreground)] mb-1">
             <CalendarCheck size={15} className="text-[var(--color-primary)]" />
-            <span>ANC Schedule Governance</span>
+            <span>{t("settings.signoff.governanceTitle")}</span>
           </div>
           <p className="text-[11px] text-[var(--color-charcoal)] leading-relaxed">
-            12 certified milestones covering NT scan strictly at 11–13.85w, Anomaly TIFFA at 18–22w, and single-step DIPSI
-            OGTT at 24–28w.
+            {t("settings.signoff.governanceBody")}
           </p>
         </div>
 
         <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] p-2.5">
           <div className="flex items-center gap-1.5 font-semibold text-[var(--color-foreground)] mb-1">
             <Stethoscope size={15} className="text-[var(--color-primary)]" />
-            <span>Risk Threshold Justification</span>
+            <span>{t("settings.signoff.riskTitle")}</span>
           </div>
           <p className="text-[11px] text-[var(--color-charcoal)] leading-relaxed">
-            {CLINICAL_RISK_THRESHOLDS.atRiskDays}d missed window flags overdue surveillance; {CLINICAL_RISK_THRESHOLDS.lostDays}d
-            triggers lost-to-follow-up tracing to prevent undetected IUGR and pre-eclampsia.
+            {t("settings.signoff.riskBody", {
+              atRisk: CLINICAL_RISK_THRESHOLDS.atRiskDays,
+              lost: CLINICAL_RISK_THRESHOLDS.lostDays,
+            })}
           </p>
         </div>
       </div>
@@ -122,10 +128,10 @@ export function ClinicalProtocolSignOff() {
         >
           <span className="flex items-center gap-1.5">
             <FileText size={15} className="text-[var(--color-primary)]" />
-            <span>View 12 Certified Milestones &amp; Evidence Rationales</span>
+            <span>{t("settings.signoff.rationales")}</span>
           </span>
           <span className="text-[11px] text-[var(--color-charcoal)]">
-            {showRationales ? "Hide ▲" : "Show ▼"}
+            {showRationales ? t("settings.signoff.hide") : t("settings.signoff.show")}
           </span>
         </button>
 
@@ -135,10 +141,10 @@ export function ClinicalProtocolSignOff() {
               <div key={item.code} className="border-b border-[var(--color-border)] pb-2 last:border-0">
                 <div className="flex flex-wrap items-baseline justify-between gap-1">
                   <span className="font-semibold text-[var(--color-foreground)]">
-                    {item.name}
+                    {careEventName(item.name, t)}
                   </span>
                   <span className="num font-mono text-[11px] font-medium text-[var(--color-primary)]">
-                    Weeks {item.windowStartWeek} – {item.windowEndWeek}
+                    {t("settings.signoff.weeks", { start: item.windowStartWeek, end: item.windowEndWeek })}
                   </span>
                 </div>
                 <p className="mt-0.5 text-[11px] leading-relaxed text-[var(--color-charcoal)]">

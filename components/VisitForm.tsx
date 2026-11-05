@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useActionState } from "react";
-import { recordVisit, type ActionResult } from "@/app/(app)/patients/[id]/actions";
+import type { ActionResult } from "@/app/(app)/patients/[id]/actions";
+import { saveVisitAction } from "@/components/offlineActions";
 import { SubmitButton } from "@/components/SubmitButton";
-import { withSuccessToast } from "@/components/Toaster";
 import { VoiceScribeModal } from "@/components/VoiceScribeModal";
 import type { ParsedVitals } from "@/lib/voiceScribe";
 import { Microphone, ShieldWarning, Warning, Heartbeat } from "@phosphor-icons/react";
 import { buttonSecondary } from "@/components/ui";
+import { useT } from "@/lib/i18n/provider";
 
 const initialState: ActionResult = { error: null };
 const inputClass =
@@ -15,8 +16,8 @@ const inputClass =
 const labelClass = "mb-1 block text-[11px] font-semibold text-[var(--color-charcoal)]";
 
 export function VisitForm({ patientId }: { patientId: string }) {
-  const action = recordVisit.bind(null, patientId);
-  const [state, formAction] = useActionState(withSuccessToast(action, "Visit saved"), initialState);
+  const t = useT();
+  const [state, formAction] = useActionState(saveVisitAction(patientId), initialState);
   const [isVoiceOpen, setIsVoiceOpen] = useState(false);
 
   // Controlled values for live CDSS protocol evaluation and voice auto-fill
@@ -39,7 +40,7 @@ export function VisitForm({ patientId }: { patientId: string }) {
     if (v.fundalHeight) setFundalHeight(String(v.fundalHeight));
 
     if (v.symptoms.length > 0) {
-      const symptomNote = `[Voice Scribe] Symptoms: ${v.symptoms.join(", ")}`;
+      const symptomNote = t("visits.form.voiceNote", { symptoms: v.symptoms.join(", ") });
       setNotes((prev) => (prev ? `${prev}\n${symptomNote}` : symptomNote));
     }
   };
@@ -64,10 +65,10 @@ export function VisitForm({ patientId }: { patientId: string }) {
           </div>
           <div>
             <div className="text-[12px] font-semibold text-[var(--color-foreground)]">
-              ASHA Vernacular Voice Scribe
+              {t("visits.scribe.barTitle")}
             </div>
             <div className="text-[10px] text-[var(--color-charcoal)]">
-              Speak vitals in Hindi / English / Marathi to auto-fill
+              {t("visits.scribe.barHint")}
             </div>
           </div>
         </div>
@@ -78,7 +79,7 @@ export function VisitForm({ patientId }: { patientId: string }) {
           className={`${buttonSecondary} min-h-8 px-3 text-[12px] gap-1.5`}
         >
           <Microphone size={14} weight="bold" className="text-[var(--color-primary)]" />
-          <span>Dictate Vitals</span>
+          <span>{t("visits.scribe.dictate")}</span>
         </button>
       </div>
 
@@ -96,9 +97,9 @@ export function VisitForm({ patientId }: { patientId: string }) {
               <ShieldWarning size={16} weight="fill" className="shrink-0 text-[var(--color-overdue)] mt-0.5" />
               <div>
                 <strong className="font-bold uppercase tracking-wider block text-[var(--color-overdue)]">
-                  PMSMA CRITICAL: Severe Hypertension ({sysNum}/{diaNum} mmHg)
+                  {t("visits.cdss.severeHtnTitle", { sys: sysNum, dia: diaNum })}
                 </strong>
-                Preeclampsia protocol: Administer loading dose Inj. Magnesium Sulfate (MgSO4) 4g IV/IM + Tab Nifedipine 10mg. Urgent FRU Emergency Referral required.
+                {t("visits.cdss.severeHtnBody")}
               </div>
             </div>
           )}
@@ -107,8 +108,8 @@ export function VisitForm({ patientId }: { patientId: string }) {
             <div className="flex items-start gap-2 rounded-[var(--radius-cards)] border border-[var(--color-due)]/40 bg-[var(--color-due-surface)] p-2.5 text-[11px] text-[var(--color-foreground)]">
               <Warning size={15} weight="fill" className="shrink-0 text-[var(--color-due)] mt-0.5" />
               <div>
-                <strong className="font-bold block text-[var(--color-due)]">CDSS Alert: Gestational Hypertension ({sysNum}/{diaNum} mmHg)</strong>
-                Follow PMSMA protocol: Test urine albumin for proteinuria. Re-check BP in 4 hours. Do not administer Ergometrine during active labor.
+                <strong className="font-bold block text-[var(--color-due)]">{t("visits.cdss.gHtnTitle", { sys: sysNum, dia: diaNum })}</strong>
+                {t("visits.cdss.gHtnBody")}
               </div>
             </div>
           )}
@@ -118,9 +119,9 @@ export function VisitForm({ patientId }: { patientId: string }) {
               <ShieldWarning size={16} weight="fill" className="shrink-0 text-[var(--color-overdue)] mt-0.5" />
               <div>
                 <strong className="font-bold uppercase tracking-wider block text-[var(--color-overdue)]">
-                  CRITICAL: Severe Anemia (Hb {hbNum} g/dL &lt; 7.0)
+                  {t("visits.cdss.severeAnaemiaTitle", { hb: hbNum })}
                 </strong>
-                High risk of Postpartum Hemorrhage (PPH). Oral iron is insufficient; immediate IV Iron Sucrose or PRBC blood transfusion referral indicated.
+                {t("visits.cdss.severeAnaemiaBody")}
               </div>
             </div>
           )}
@@ -129,8 +130,8 @@ export function VisitForm({ patientId }: { patientId: string }) {
             <div className="flex items-start gap-2 rounded-[var(--radius-cards)] border border-[var(--color-due)]/40 bg-[var(--color-due-surface)] p-2.5 text-[11px] text-[var(--color-foreground)]">
               <Heartbeat size={16} weight="fill" className="shrink-0 text-[var(--color-due)] mt-0.5" />
               <div>
-                <strong className="font-bold block text-[var(--color-due)]">Fetal Distress Warning: FHR {fhrNum} bpm (Target: 110–160 bpm)</strong>
-                Reposition mother to left lateral position, administer maternal oxygen, and prepare immediate Doppler/USG evaluation.
+                <strong className="font-bold block text-[var(--color-due)]">{t("visits.cdss.fhrTitle", { fhr: fhrNum })}</strong>
+                {t("visits.cdss.fhrBody")}
               </div>
             </div>
           )}
@@ -141,7 +142,7 @@ export function VisitForm({ patientId }: { patientId: string }) {
       <form action={formAction} className="grid grid-cols-2 gap-x-2 gap-y-3 sm:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-4" noValidate>
         <div>
           <label htmlFor="visitDate" className={labelClass}>
-            Visit date
+            {t("visits.form.visitDate")}
           </label>
           <input
             id="visitDate"
@@ -154,7 +155,7 @@ export function VisitForm({ patientId }: { patientId: string }) {
         </div>
         <div>
           <label htmlFor="bpSys" className={labelClass}>
-            BP sys (mmHg)
+            {t("visits.form.bpSys")}
           </label>
           <input
             id="bpSys"
@@ -168,7 +169,7 @@ export function VisitForm({ patientId }: { patientId: string }) {
         </div>
         <div>
           <label htmlFor="bpDia" className={labelClass}>
-            BP dia (mmHg)
+            {t("visits.form.bpDia")}
           </label>
           <input
             id="bpDia"
@@ -182,7 +183,7 @@ export function VisitForm({ patientId }: { patientId: string }) {
         </div>
         <div>
           <label htmlFor="weight" className={labelClass}>
-            Weight (kg)
+            {t("visits.form.weight")}
           </label>
           <input
             id="weight"
@@ -197,7 +198,7 @@ export function VisitForm({ patientId }: { patientId: string }) {
         </div>
         <div>
           <label htmlFor="hb" className={labelClass}>
-            Hb (g/dL)
+            {t("visits.form.hb")}
           </label>
           <input
             id="hb"
@@ -212,7 +213,7 @@ export function VisitForm({ patientId }: { patientId: string }) {
         </div>
         <div>
           <label htmlFor="fhr" className={labelClass}>
-            FHR (bpm)
+            {t("visits.form.fhr")}
           </label>
           <input
             id="fhr"
@@ -226,7 +227,7 @@ export function VisitForm({ patientId }: { patientId: string }) {
         </div>
         <div>
           <label htmlFor="fundalHeight" className={labelClass}>
-            Fundal ht (cm)
+            {t("visits.form.fundalHeight")}
           </label>
           <input
             id="fundalHeight"
@@ -241,7 +242,7 @@ export function VisitForm({ patientId }: { patientId: string }) {
         </div>
         <div>
           <label htmlFor="nextVisitDate" className={labelClass}>
-            Next visit
+            {t("visits.form.nextVisit")}
           </label>
           <input
             id="nextVisitDate"
@@ -254,7 +255,7 @@ export function VisitForm({ patientId }: { patientId: string }) {
         </div>
         <div className="col-span-2 sm:col-span-4 xl:col-span-2 2xl:col-span-4">
           <label htmlFor="notes" className={labelClass}>
-            Clinical Notes & Observations
+            {t("visits.form.notes")}
           </label>
           <textarea
             id="notes"
@@ -262,7 +263,7 @@ export function VisitForm({ patientId }: { patientId: string }) {
             rows={2}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Enter clinical observations, prescribed IFA/calcium, or dictation notes..."
+            placeholder={t("visits.form.notesPlaceholder")}
             className={inputClass.replace("num ", "")}
           />
         </div>
@@ -274,7 +275,7 @@ export function VisitForm({ patientId }: { patientId: string }) {
         )}
 
         <div className="col-span-2 sm:col-span-4 xl:col-span-2 2xl:col-span-4">
-          <SubmitButton>Save visit</SubmitButton>
+          <SubmitButton>{t("visits.form.save")}</SubmitButton>
         </div>
       </form>
     </div>

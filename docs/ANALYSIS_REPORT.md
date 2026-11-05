@@ -1,5 +1,33 @@
 # MatruSetu — Project Analysis Report
 
+> **Superseded.** See `README.md` and `docs/SECURITY.md` for the current state. Items below describing the demo-cookie authentication bypass (and "Not yet done: WhatsApp bot", the 62-test count, 4 migrations and the 5000-row visits limit) are no longer accurate. The report is kept unchanged below as history.
+
+## Update — 4 Nov 2026
+
+Factual summary of what changed since the 2 Oct 2026 review, verified against the code.
+
+**Security hardening**
+- Demo mode is now an explicit opt-in (`DEMO_MODE=1`). The `matrusetu_demo` cookie is only honoured with it, and missing Supabase config no longer opens the app: it returns 503 except `/`, `/offline`, `/listen/*` and `/api/whatsapp`.
+- WhatsApp webhook: `WHATSAPP_VERIFY_TOKEN` has no default, and POST requires a valid `X-Hub-Signature-256` (`WHATSAPP_APP_SECRET`).
+- New signed, expiring (14-day) public listen links for mothers (`lib/listenLink.ts`, `app/listen/[token]`, `LISTEN_LINK_SECRET`), with no-referrer / noindex / no-store headers.
+- CI now fails on high/critical advisories in production dependencies; `npm audit --omit=dev` currently reports 0 vulnerabilities.
+
+**Features that now exist** (reported as missing or new in the original): patient edit with LMP correction, delivery outcome / pregnancy closure, clinic analytics summary, batch contact logging, WhatsApp bot (webhook plus in-app simulator), voice counselling (hi/mr/gu/en), voice-to-vitals, nutrition guidance, one-page patient report, command palette.
+
+**Performance**
+- Latest visit per patient now comes from a `latest_visits` view (DISTINCT ON, `security_invoker`) instead of fetching up to 5000 visits.
+- Heavy modals and charts are lazy-loaded (`next/dynamic`); long lists render 50 at a time with "Show more" (`lib/paging.ts`); `next.config.ts` sets a 30s client router cache for dynamic pages and immutable caching for static assets; a permanent desktop sidebar (collapsible to icons, with an overdue-patients badge on Call queue) was added to the app shell.
+
+**Dependencies**: upgraded to Next 16.4, React 19.2.8, Vitest 5, Zod 4, pdfjs-dist 6 and others (see `package.json`), with `overrides` pinning patched transitive packages.
+
+**Database**: 6 migrations now (adds `20261002000000_pregnancy_closure.sql` and `20261104000000_latest_visits_view.sql`). Apply the latter before deploying the code that reads `latest_visits`, or the snapshot silently shows no latest visits.
+
+**Tests**: 14 Vitest files / 95 tests passing (was 7 files / 62 tests); still one Playwright golden-path spec, not run in CI.
+
+---
+
+# Original report (2 October 2026)
+
 **Date**: 2 October 2026
 **Analyst**: Senior full-stack review (Antigravity agent)
 **Branch**: `main` at `fb9c363`

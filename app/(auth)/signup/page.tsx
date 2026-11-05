@@ -7,10 +7,12 @@ import { signup, type ActionResult } from "../actions";
 import { SubmitButton } from "@/components/SubmitButton";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { AuthShell } from "@/components/auth/AuthShell";
+import { useT } from "@/lib/i18n/provider";
 
 const initialState: ActionResult = { error: null };
 
 export default function SignupPage() {
+  const t = useT();
   const [state, formAction] = useActionState(signup, initialState);
 
   if (state.checkEmail) {
@@ -19,10 +21,10 @@ export default function SignupPage() {
         <div className="text-center">
           <CheckCircle size={40} weight="fill" className="mx-auto text-[var(--color-on-track)]" aria-hidden />
           <h1 className="mt-4 mb-1 text-[20px] font-semibold tracking-tight text-[var(--color-foreground)]">
-            Check your email
+            {t("auth.signup.checkEmail.title")}
           </h1>
           <p className="text-[var(--color-charcoal)]">
-            We&apos;ve sent a confirmation link. Click it, then come back and sign in to finish setting up your clinic.
+            {t("auth.signup.checkEmail.body")}
           </p>
         </div>
       </AuthShell>
@@ -33,13 +35,13 @@ export default function SignupPage() {
     <AuthShell>
         <div>
           <h1 className="mb-1 text-[24px] font-semibold tracking-tight text-[var(--color-foreground)]">
-            Set up your clinic
+            {t("auth.signup.title")}
           </h1>
-          <p className="mb-6 text-[14px] text-[var(--color-charcoal)]">Create an account for your OB-GYN practice</p>
+          <p className="mb-6 text-[14px] text-[var(--color-charcoal)]">{t("auth.signup.subtitle")}</p>
           <form action={formAction} className="space-y-4" noValidate>
             <div>
               <label htmlFor="email" className="mb-1.5 block text-[13px] font-medium text-[var(--color-charcoal)]">
-                Email
+                {t("auth.field.email")}
               </label>
               <input
                 id="email"
@@ -52,7 +54,7 @@ export default function SignupPage() {
             </div>
             <div>
               <label htmlFor="password" className="mb-1.5 block text-[13px] font-medium text-[var(--color-charcoal)]">
-                Password
+                {t("auth.field.password")}
               </label>
               <input
                 id="password"
@@ -63,7 +65,7 @@ export default function SignupPage() {
                 minLength={8}
                 className="min-h-11 w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 text-[15px]"
               />
-              <p className="mt-1 text-xs text-[var(--color-charcoal)]">At least 8 characters.</p>
+              <p className="mt-1 text-xs text-[var(--color-charcoal)]">{t("auth.signup.passwordHint")}</p>
             </div>
 
             {state.error && (
@@ -72,20 +74,20 @@ export default function SignupPage() {
               </p>
             )}
 
-            <SubmitButton>Create account</SubmitButton>
+            <SubmitButton>{t("auth.signup.submit")}</SubmitButton>
           </form>
 
           <div className="my-4 flex items-center gap-3 text-xs text-[var(--color-charcoal)]">
             <span className="h-px flex-1 bg-[var(--color-border)]" />
-            or
+            {t("auth.signup.or")}
             <span className="h-px flex-1 bg-[var(--color-border)]" />
           </div>
           <GoogleSignInButton />
 
           <p className="mt-6 text-sm">
-            Already have an account?{" "}
+            {t("auth.signup.haveAccount")}{" "}
             <Link href="/login" className="font-medium text-[var(--color-primary)] underline">
-              Sign in
+              {t("auth.signup.signIn")}
             </Link>
           </p>
         </div>

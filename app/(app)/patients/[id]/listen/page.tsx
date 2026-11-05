@@ -50,6 +50,7 @@ export default async function PatientListenPage({
       next_visit_date: v.next_visit_date,
       created_at: v.created_at,
       created_by: null,
+      client_request_id: null,
     }));
   } else {
     const [{ data: p }, { data: vList }] = await Promise.all([

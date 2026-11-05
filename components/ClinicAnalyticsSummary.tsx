@@ -1,5 +1,6 @@
 import { ChartPieSlice, CheckCircle, ClipboardText, PhoneCall, Users } from "@phosphor-icons/react/dist/ssr";
 import { CountUp } from "@/components/today/CountUp";
+import { getT } from "@/lib/i18n/server";
 
 /**
  * =========================================================================
@@ -80,7 +81,7 @@ function Card({
   );
 }
 
-export function ClinicAnalyticsSummary({
+export async function ClinicAnalyticsSummary({
   totalActive,
   compliantCount,
   complianceRate,
@@ -91,6 +92,7 @@ export function ClinicAnalyticsSummary({
   overdueCount,
   deliveriesThisMonth,
 }: ClinicAnalyticsProps) {
+  const { t } = await getT();
   const t1Pct = totalActive > 0 ? Math.round((trimester.t1 / totalActive) * 100) : 0;
   const t2Pct = totalActive > 0 ? Math.round((trimester.t2 / totalActive) * 100) : 0;
   const t3Pct = totalActive > 0 ? Math.max(0, 100 - t1Pct - t2Pct) : 0;
@@ -98,57 +100,57 @@ export function ClinicAnalyticsSummary({
   return (
     <section aria-labelledby="analytics-title" className="space-y-3">
       <h2 id="analytics-title" className="px-1 text-[17px] font-semibold">
-        Clinic overview
+        {t("today.overview.title")}
       </h2>
 
       {totalActive === 0 ? (
         <div className="pc-glass rounded-[22px] p-6 text-center">
           <Users size={28} className="mx-auto mb-2 text-pc-muted" aria-hidden />
-          <p className="text-[15px] font-medium">No active pregnancies</p>
+          <p className="text-[15px] font-medium">{t("today.overview.emptyTitle")}</p>
           <p className="mx-auto mt-1 max-w-sm text-[13px] text-pc-muted">
-            Register patients to see visit compliance, trimester mix and outreach results here.
+            {t("today.overview.emptyBody")}
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">
-          <Card title="ANC compliance" icon={<CheckCircle size={18} />}>
+          <Card title={t("today.overview.compliance")} icon={<CheckCircle size={18} />}>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-              <Ring pct={complianceRate} colorClass="stroke-pc-plum" label={`${complianceRate}% on schedule`} />
+              <Ring pct={complianceRate} colorClass="stroke-pc-plum" label={t("today.overview.complianceRing", { pct: complianceRate })} />
               <div>
                 <p className="text-[28px] font-semibold leading-none tabular-nums">
                   <CountUp value={complianceRate} />%
                 </p>
                 <p className="mt-1 text-[12px] text-pc-muted">
-                  {compliantCount} of {totalActive} up to date
+                  {t("today.overview.complianceCount", { done: compliantCount, total: totalActive })}
                 </p>
               </div>
             </div>
           </Card>
 
-          <Card title="Contact success" icon={<PhoneCall size={18} />}>
+          <Card title={t("today.overview.contact")} icon={<PhoneCall size={18} />}>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-              <Ring pct={contactSuccessRate} colorClass="stroke-pc-active" label={`${contactSuccessRate}% reached`} />
+              <Ring pct={contactSuccessRate} colorClass="stroke-pc-active" label={t("today.overview.contactRing", { pct: contactSuccessRate })} />
               <div>
                 <p className="text-[28px] font-semibold leading-none tabular-nums">
                   <CountUp value={contactSuccessRate} />%
                 </p>
                 <p className="mt-1 text-[12px] text-pc-muted">
-                  {contactsReached} of {contactsAttempted} reached
+                  {t("today.overview.contactCount", { reached: contactsReached, attempted: contactsAttempted })}
                 </p>
               </div>
             </div>
           </Card>
 
-          <Card title="Active cohort" icon={<ChartPieSlice size={18} />}>
+          <Card title={t("today.overview.cohort")} icon={<ChartPieSlice size={18} />}>
             <div>
               <p className="text-[28px] font-semibold leading-none tabular-nums">
                 <CountUp value={totalActive} />
-                <span className="ml-1.5 text-[13px] font-normal text-pc-muted">mothers</span>
+                <span className="ml-1.5 text-[13px] font-normal text-pc-muted">{t("today.overview.mothers", { count: totalActive })}</span>
               </p>
               <div
                 className="mt-3 flex h-2 overflow-hidden rounded-full bg-pc-lilac"
                 role="img"
-                aria-label={`Trimester 1: ${trimester.t1}, trimester 2: ${trimester.t2}, trimester 3: ${trimester.t3}`}
+                aria-label={t("today.overview.trimesterAria", { t1: trimester.t1, t2: trimester.t2, t3: trimester.t3 })}
               >
                 <div style={{ width: `${t1Pct}%` }} className="bg-pc-lilac-strong" />
                 <div style={{ width: `${t2Pct}%` }} className="bg-pc-plum-mid" />
@@ -157,28 +159,28 @@ export function ClinicAnalyticsSummary({
               <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-pc-muted">
                 <li className="flex items-center gap-1.5">
                   <span aria-hidden className="h-2 w-2 rounded-full bg-pc-lilac-strong" />
-                  T1 <span className="font-semibold text-pc-ink tabular-nums">{trimester.t1}</span>
+                  {t("today.overview.t1")} <span className="font-semibold text-pc-ink tabular-nums">{trimester.t1}</span>
                 </li>
                 <li className="flex items-center gap-1.5">
                   <span aria-hidden className="h-2 w-2 rounded-full bg-pc-plum-mid" />
-                  T2 <span className="font-semibold text-pc-ink tabular-nums">{trimester.t2}</span>
+                  {t("today.overview.t2")} <span className="font-semibold text-pc-ink tabular-nums">{trimester.t2}</span>
                 </li>
                 <li className="flex items-center gap-1.5">
                   <span aria-hidden className="h-2 w-2 rounded-full bg-pc-plum" />
-                  T3 <span className="font-semibold text-pc-ink tabular-nums">{trimester.t3}</span>
+                  {t("today.overview.t3")} <span className="font-semibold text-pc-ink tabular-nums">{trimester.t3}</span>
                 </li>
               </ul>
             </div>
           </Card>
 
-          <Card title="Deliveries this month" icon={<ClipboardText size={18} />}>
+          <Card title={t("today.overview.deliveries")} icon={<ClipboardText size={18} />}>
             <div>
               <p className="text-[28px] font-semibold leading-none tabular-nums">
                 <CountUp value={deliveriesThisMonth} />
-                <span className="ml-1.5 text-[13px] font-normal text-pc-muted">delivered</span>
+                <span className="ml-1.5 text-[13px] font-normal text-pc-muted">{t("today.overview.delivered")}</span>
               </p>
               <p className="mt-2 text-[12px] text-pc-muted">
-                {overdueCount > 0 ? `${overdueCount} active with overdue items` : "All active visits on track"}
+                {overdueCount > 0 ? t("today.overview.withOverdue", { count: overdueCount }) : t("today.overview.allOnTrack")}
               </p>
             </div>
           </Card>

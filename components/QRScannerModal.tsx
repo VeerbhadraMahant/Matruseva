@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Camera, X, WarningCircle, Image as ImageIcon, ArrowRight, CheckCircle } from "@phosphor-icons/react";
 import { buttonPrimary, buttonSecondary } from "@/components/ui";
+import { useT } from "@/lib/i18n/provider";
 
 function playBeep() {
   try {
@@ -24,6 +25,7 @@ function playBeep() {
 }
 
 export function ScanQRCardButton({ className = "", primary = false }: { className?: string; primary?: boolean }) {
+  const t = useT();
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -32,10 +34,10 @@ export function ScanQRCardButton({ className = "", primary = false }: { classNam
         type="button"
         onClick={() => setIsOpen(true)}
         className={`${primary ? buttonPrimary : buttonSecondary} gap-1.5 ${className}`}
-        title="Scan Mother's QR Health Card at Reception"
+        title={t("patients.qr.buttonTitle")}
       >
         <Camera size={16} weight="bold" className={primary ? "" : "text-[var(--color-primary)]"} />
-        <span>Scan Card</span>
+        <span>{t("patients.qr.button")}</span>
       </button>
 
       {isOpen && <QRScannerModal onClose={() => setIsOpen(false)} />}
@@ -44,6 +46,7 @@ export function ScanQRCardButton({ className = "", primary = false }: { classNam
 }
 
 export function QRScannerModal({ onClose }: { onClose: () => void }) {
+  const t = useT();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [scannedId, setScannedId] = useState<string | null>(null);
@@ -120,7 +123,7 @@ export function QRScannerModal({ onClose }: { onClose: () => void }) {
       })
       .catch((err) => {
         console.warn("Camera start failed:", err);
-        setError("Camera access unavailable or permission denied. You can upload an image of the QR card below.");
+        setError(t("patients.qr.cameraError"));
       });
 
     return () => {
@@ -137,7 +140,7 @@ export function QRScannerModal({ onClose }: { onClose: () => void }) {
         }
       }
     };
-  }, [handleDetected]);
+  }, [handleDetected, t]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -151,7 +154,7 @@ export function QRScannerModal({ onClose }: { onClose: () => void }) {
       handleDetected(result);
     } catch (err) {
       console.error(err);
-      setError("Could not find a valid QR code in this image. Please ensure the code is clear and well-lit.");
+      setError(t("patients.qr.fileError"));
     }
   };
 
@@ -166,7 +169,7 @@ export function QRScannerModal({ onClose }: { onClose: () => void }) {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Scan Mother's Health Card"
+      aria-label={t("patients.qr.dialogLabel")}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-xs"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
@@ -180,13 +183,14 @@ export function QRScannerModal({ onClose }: { onClose: () => void }) {
               <Camera size={16} weight="bold" />
             </div>
             <div>
-              <h2 className="text-[14px] font-bold text-[var(--color-foreground)]">Scan Mother&apos;s Health Card</h2>
-              <p className="text-[11px] text-[var(--color-charcoal)]">OPD Fast-Track Check-in</p>
+              <h2 className="text-[14px] font-bold text-[var(--color-foreground)]">{t("patients.qr.title")}</h2>
+              <p className="text-[11px] text-[var(--color-charcoal)]">{t("patients.qr.subtitle")}</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
+            aria-label={t("patients.qr.close")}
             className="rounded-lg p-1.5 text-[var(--color-charcoal)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-foreground)] transition"
           >
             <X size={18} />
@@ -201,8 +205,8 @@ export function QRScannerModal({ onClose }: { onClose: () => void }) {
                 <CheckCircle size={36} weight="fill" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-[var(--color-foreground)]">Mother Card Detected!</h3>
-                <p className="text-xs text-[var(--color-charcoal)] font-mono mt-0.5">Opening patient timeline...</p>
+                <h3 className="text-base font-bold text-[var(--color-foreground)]">{t("patients.qr.detected")}</h3>
+                <p className="text-xs text-[var(--color-charcoal)] font-mono mt-0.5">{t("patients.qr.opening")}</p>
               </div>
             </div>
           ) : (
@@ -243,23 +247,24 @@ export function QRScannerModal({ onClose }: { onClose: () => void }) {
                   className="flex items-center gap-1.5 text-xs font-semibold text-[var(--color-primary)] hover:underline"
                 >
                   <ImageIcon size={15} />
-                  <span>Upload QR Card photo (WhatsApp)</span>
+                  <span>{t("patients.qr.upload")}</span>
                 </button>
 
-                <span className="text-[11px] text-[var(--color-charcoal)]">or enter ID</span>
+                <span className="text-[11px] text-[var(--color-charcoal)]">{t("patients.qr.orEnterId")}</span>
               </div>
 
               {/* Manual Input Fallback */}
               <form onSubmit={handleManualSubmit} className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="Enter UHID or Patient ID..."
+                  placeholder={t("patients.qr.idPlaceholder")}
+                  aria-label={t("patients.qr.idPlaceholder")}
                   value={manualInput}
                   onChange={(e) => setManualInput(e.target.value)}
                   className="min-h-9 flex-1 rounded-[var(--radius-buttons)] border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
                 />
                 <button type="submit" className={buttonPrimary}>
-                  <span>Go</span>
+                  <span>{t("patients.qr.go")}</span>
                   <ArrowRight size={13} />
                 </button>
               </form>

@@ -81,8 +81,9 @@ export function generateCounseling(
   const isHighBp = bpSys >= 140 || bpDia >= 90;
   const clinic = data.clinicName || "मातृसेतु क्लिनिक";
   const customNote = data.doctorCustomNote?.trim() ? ` ${data.doctorCustomNote.trim()}` : "";
-  const baseUrl = typeof window !== "undefined" && window.location.origin ? window.location.origin : "http://localhost:3000";
-  const listenUrl = data.audioListenUrl || `${baseUrl}/patients/${data.patientId}/listen?lang=${lang}`;
+  // Only a signed public link (createListenLink) is ever put in the message.
+  // The staff-only /patients/[id]/listen URL needs a login, so it is useless to the mother.
+  const listenUrl = data.audioListenUrl || null;
 
   if (lang === "hi") {
     const dangerSigns = [
@@ -147,7 +148,7 @@ export function generateCounseling(
       `*👶 शिशु की हलचल व आराम:*\n${fetalAdvice}\n\n` +
       `*⚠️ तुरंत अस्पताल आने के खतरे के लक्षण:*\n• ` + dangerSigns.join("\n• ") + `\n\n` +
       `*📅 अगली जांच:* ${data.nextVisitDate || "नियत समय पर"}\n\n` +
-      `*🔊 पूरा परामर्श आवाज में सुनने के लिए टैप करें:*\n${listenUrl}\n` +
+      (listenUrl ? `*🔊 पूरा परामर्श आवाज में सुनने के लिए टैप करें:*\n${listenUrl}\n` : "") +
       `_मातृसेतु द्वारा स्वचालित मातृत्व स्वास्थ्य सेवा_`;
 
     return {
@@ -224,7 +225,7 @@ export function generateCounseling(
       `*👶 बाळाची हालचाल व विश्रांती:*\n${fetalAdvice}\n\n` +
       `*⚠️ तात्काळ दवाखान्यात येण्याची धोक्याची लक्षणे:*\n• ` + dangerSigns.join("\n• ") + `\n\n` +
       `*📅 पुढील तपासणी:* ${data.nextVisitDate || "नियत वेळेवर"}\n\n` +
-      `*🔊 संपूर्ण सल्ला आवाजात ऐकण्यासाठी लिंकवर टॅप करा:*\n${listenUrl}\n` +
+      (listenUrl ? `*🔊 संपूर्ण सल्ला आवाजात ऐकण्यासाठी लिंकवर टॅप करा:*\n${listenUrl}\n` : "") +
       `_मातृसेतु डिजिटल आरोग्य सेवा_`;
 
     return {
@@ -301,7 +302,7 @@ export function generateCounseling(
       `*👶 બાળકની હિલચાલ અને આરામ:*\n${fetalAdvice}\n\n` +
       `*⚠️ તાત્કાલિક હોસ્પિટલ પહોંચવાના જોખમી ચિહ્નો:*\n• ` + dangerSigns.join("\n• ") + `\n\n` +
       `*📅 આગામી તપાસ:* ${data.nextVisitDate || "નિયત સમયે"}\n\n` +
-      `*🔊 સમગ્ર માર્ગદર્શન અવાજમાં સાંભળવા માટે લિંક પર ટેપ કરો:*\n${listenUrl}\n` +
+      (listenUrl ? `*🔊 સમગ્ર માર્ગદર્શન અવાજમાં સાંભળવા માટે લિંક પર ટેપ કરો:*\n${listenUrl}\n` : "") +
       `_માતૃસેતુ ડિજિટલ હેલ્થ_`;
 
     return {
@@ -378,7 +379,7 @@ export function generateCounseling(
     `*👶 Fetal Movements & Rest:*\n${fetalAdvice}\n\n` +
     `*⚠️ Immediate Danger Signs (Red Flags):*\n• ` + dangerSigns.join("\n• ") + `\n\n` +
     `*📅 Next ANC Visit:* ${data.nextVisitDate || "As scheduled"}\n\n` +
-      `*🔊 Tap here to listen to the audio guidance on your phone:*\n${listenUrl}\n` +
+      (listenUrl ? `*🔊 Tap here to listen to the audio guidance on your phone:*\n${listenUrl}\n` : "") +
     `_MatruSetu Digital Maternal Health Platform_`;
 
   return {

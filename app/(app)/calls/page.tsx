@@ -1,7 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getClinicSnapshot, daysOverdue, needsFollowUp, followUpPriority } from "@/lib/snapshot";
-import { formatGA } from "@/lib/pregnancy";
+import { formatGALocalized } from "@/lib/pregnancy";
 import { daysBetween, parseLocalDate } from "@/lib/format";
 import {
   telLink,
@@ -14,10 +14,12 @@ import { getDemoContacts } from "@/lib/demo-data";
 import { PageHeader, pageBody } from "@/components/ui";
 import { CallQueue, type CallFilter, type CallRow } from "@/components/CallQueue";
 import type { ContactOutcome } from "@/lib/supabase/enums";
+import { getT } from "@/lib/i18n/server";
 
 const FILTER_IDS: CallFilter[] = ["all", "overdue", "at_risk", "lost", "pending"];
 
 export default async function CallsPage({ searchParams }: { searchParams: Promise<{ f?: string }> }) {
+  const { t } = await getT();
   const me = await getCurrentUser();
   const supabase = await createClient();
 
@@ -70,7 +72,7 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
         id: r.id,
         name: r.name,
         phone: r.phone,
-        gaLabel: r.ga ? formatGA(r.ga) : null,
+        gaLabel: r.ga ? formatGALocalized(r.ga, t) : null,
         reason,
         overdueItems: r.overdue.map((e) => e.name),
         overdueDays: daysOverdue(r, today),
@@ -93,11 +95,11 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
   return (
     <>
       <PageHeader
-        title="Call queue"
+        title={t("calls.title")}
         meta={
-          <>
-            <span className="num">{queue.length}</span> need follow-up · <span className="num">{pending}</span> not yet contacted today
-          </>
+          <span className="num">
+            {t("calls.meta.needFollowUp", { count: queue.length })} · {t("calls.meta.notContacted", { count: pending })}
+          </span>
         }
       />
       <div className={pageBody}>

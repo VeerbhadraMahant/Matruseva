@@ -11,13 +11,16 @@ import { todayInClinicTimezone, toISODate } from "@/lib/today";
 import { eddFromLmp } from "@/lib/pregnancy";
 import { addDemoPatient } from "@/lib/demo-data";
 import type { CareEventKind } from "@/lib/supabase/enums";
+import { getT } from "@/lib/i18n/server";
+import type { Translator } from "@/lib/i18n/translate-client";
 
 export interface ActionResult {
   error: string | null;
 }
 
-const patientSchema = z.object({
-  name: z.string().trim().min(2, "Enter the patient's name"),
+function makePatientSchema(t: Translator) {
+  return z.object({
+  name: z.string().trim().min(2, t("patients.error.name")),
   clinicPatientNo: z.string().trim().max(40).optional(),
   phone: z.string().optional(),
   altPhone: z.string().optional(),
@@ -41,15 +44,17 @@ const patientSchema = z.object({
     .string()
     .optional()
     .transform((v) => v === "on" || v === "true"),
-  lmp: z.iso.date("Enter a valid LMP date").refine((val) => {
+  lmp: z.iso.date(t("patients.error.lmpInvalid")).refine((val) => {
     const today = toISODate(todayInClinicTimezone());
     return val <= today;
-  }, { message: "LMP date cannot be in the future" }),
-});
+  }, { message: t("patients.error.lmpFuture") }),
+  });
+}
 
 export async function createPatient(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
+  const { t } = await getT();
   const raw = Object.fromEntries(formData.entries());
-  const parsed = patientSchema.safeParse(raw);
+  const parsed = makePatientSchema(t).safeParse(raw);
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message };
   }
@@ -112,7 +117,7 @@ export async function createPatient(_prev: ActionResult, formData: FormData): Pr
       .single();
 
     if (insertError || !patient) {
-      return { error: insertError?.message ?? "Could not create patient." };
+      return { error: insertError?.message ?? t("patients.error.createFailed") };
     }
 
     await generateScheduleForPatient(supabase, {
@@ -129,7 +134,7 @@ export async function createPatient(_prev: ActionResult, formData: FormData): Pr
       error:
         err instanceof Error
           ? err.message
-          : "Database connection failed. Please check your Supabase configuration.",
+          : t("patients.error.dbConnection"),
     };
   }
 
@@ -140,7 +145,7 @@ export async function createPatient(_prev: ActionResult, formData: FormData): Pr
     redirect(`/patients/${createdPatientId}`);
   }
 
-  return { error: "Failed to create patient record." };
+  return { error: t("patients.error.createFailedFinal") };
 }
 
 async function generateScheduleForPatient(

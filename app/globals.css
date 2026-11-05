@@ -57,9 +57,9 @@
 @theme inline {
   --color-background: var(--color-background);
   --color-foreground: var(--color-foreground);
-  --font-sans: var(--font-body);
+  --font-sans: var(--font-body), var(--font-devanagari), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-mono-face);
-  --font-heading: var(--font-body);
+  --font-heading: var(--font-body), var(--font-devanagari), ui-sans-serif, system-ui, sans-serif;
 }
 
 body {
@@ -69,7 +69,7 @@ body {
     linear-gradient(170deg, var(--color-pc-canvas) 0%, var(--color-pc-canvas-to) 100%);
   background-attachment: fixed;
   color: var(--color-foreground);
-  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-body), var(--font-devanagari), ui-sans-serif, system-ui, sans-serif;
   font-size: 14px;
   line-height: 1.5;
 }
@@ -95,10 +95,24 @@ body::before {
 }
 
 h1, h2, h3, h4 {
-  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-body), var(--font-devanagari), ui-sans-serif, system-ui, sans-serif;
   font-weight: 600;
   letter-spacing: -0.015em;
 }
+
+/*
+  Devanagari (Hindi, Marathi): matras and headline strokes sit above/below the
+  Latin line box, so tight leading clips them, and negative tracking collides
+  conjuncts. Unlayered rules beat the Tailwind leading-*/tracking-* utilities.
+*/
+:lang(hi) body, :lang(mr) body { line-height: 1.65; }
+:lang(hi) h1, :lang(hi) h2, :lang(hi) h3, :lang(hi) h4,
+:lang(mr) h1, :lang(mr) h2, :lang(mr) h3, :lang(mr) h4 { line-height: 1.5; }
+:lang(hi) [class*="leading-"], :lang(mr) [class*="leading-"] { line-height: 1.6; }
+:lang(hi) body, :lang(mr) body,
+:lang(hi) h1, :lang(hi) h2, :lang(hi) h3, :lang(hi) h4,
+:lang(mr) h1, :lang(mr) h2, :lang(mr) h3, :lang(mr) h4,
+:lang(hi) [class*="tracking-"], :lang(mr) [class*="tracking-"] { letter-spacing: 0; }
 
 /* Figures: same face as body text, aligned digits. Mono only for codes. */
 .num {
@@ -172,10 +186,11 @@ h1, h2, h3, h4 {
 }
 
 @utility pc-glass {
-  background-color: color-mix(in srgb, var(--color-pc-card) 74%, transparent);
+  /* Near-opaque instead of backdrop-filter blur: re-blurring the content under the
+     sticky top/bottom bars on every scroll frame was a major source of jank on
+     mid-range phones, and over the flat cream canvas the look is almost identical. */
+  background-color: color-mix(in srgb, var(--color-pc-card) 94%, transparent);
   border: 1px solid color-mix(in srgb, var(--color-pc-line) 65%, white);
-  -webkit-backdrop-filter: blur(16px) saturate(140%);
-  backdrop-filter: blur(16px) saturate(140%);
   box-shadow:
     0 1px 2px rgb(34 27 43 / 0.04),
     0 14px 36px -18px rgb(62 42 92 / 0.22);
@@ -194,12 +209,11 @@ h1, h2, h3, h4 {
 }
 
 @keyframes pc-shimmer {
-  from { background-position: 150% 0; }
-  to { background-position: -50% 0; }
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
 }
 .pc-skeleton {
-  background: linear-gradient(90deg, #efe7ef 0%, #f8f3f6 50%, #efe7ef 100%);
-  background-size: 200% 100%;
+  background: #f3ecf1;
   animation: pc-shimmer 1.4s ease-in-out infinite;
   border-radius: 10px;
 }
@@ -229,4 +243,24 @@ h1, h2, h3, h4 {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
+}
+
+/* Skip layout/paint of off-screen list rows (perf). Not for table rows or overflowing popovers. */
+.row-cv {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 96px;
+}
+
+/* Desktop sidebar width follows the AppShell data attribute (no layout shift on first paint). */
+.app-shell { --sb-w: 16rem; }
+.app-shell[data-sidebar="collapsed"] { --sb-w: 4rem; }
+.app-sidebar { width: var(--sb-w); transition: width 200ms ease; }
+@media (min-width: 768px) {
+  .app-shell { padding-left: var(--sb-w); transition: padding-left 200ms ease; }
+}
+@media print {
+  .app-shell { padding-left: 0 !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-shell, .app-sidebar { transition: none; }
 }

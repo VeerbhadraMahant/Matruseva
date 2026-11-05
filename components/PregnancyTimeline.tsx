@@ -1,5 +1,8 @@
 import { daysBetween, parseLocalDate } from "@/lib/format";
 import type { CareEventStatus } from "@/lib/supabase/enums";
+import { getT } from "@/lib/i18n/server";
+import { careEventName, careStatusLabel } from "@/lib/clinicalLabels";
+import { formatGALocalized } from "@/lib/pregnancy";
 
 const TOTAL_DAYS = 42 * 7;
 
@@ -34,7 +37,8 @@ function assignLanes(items: { start: number; end: number }[]): number[] {
   });
 }
 
-export function PregnancyTimeline({ lmp, gaDays, events }: { lmp: string; gaDays: number; events: TimelineEvent[] }) {
+export async function PregnancyTimeline({ lmp, gaDays, events }: { lmp: string; gaDays: number; events: TimelineEvent[] }) {
+  const { t } = await getT();
   const lmpDate = parseLocalDate(lmp);
   const spans = events.map((e) => ({
     ...e,
@@ -51,15 +55,15 @@ export function PregnancyTimeline({ lmp, gaDays, events }: { lmp: string; gaDays
       <div className="relative min-w-[640px]">
         <div className="relative flex h-6 text-[12px] font-medium text-[var(--color-charcoal)]">
           <div className="border-l border-[var(--color-border-strong)] pl-1" style={{ width: pct(13 * 7) }}>
-            T1
+            {t("clinical.trimester.short", { n: 1 })}
           </div>
           <div className="border-l border-[var(--color-border-strong)] pl-1" style={{ width: `calc(${pct(27 * 7)} - ${pct(13 * 7)})` }}>
-            T2
+            {t("clinical.trimester.short", { n: 2 })}
           </div>
           <div className="border-l border-[var(--color-border-strong)] pl-1" style={{ width: `calc(${pct(40 * 7)} - ${pct(27 * 7)})` }}>
-            T3
+            {t("clinical.trimester.short", { n: 3 })}
           </div>
-          <div className="flex-1 border-l border-[var(--color-border-strong)] pl-1">Term+</div>
+          <div className="flex-1 border-l border-[var(--color-border-strong)] pl-1 whitespace-nowrap">{t("clinical.trimester.term")}</div>
         </div>
 
         <div className="relative rounded-xl bg-[var(--color-surface-1)]" style={{ height: laneCount * LANE_H + 8 }}>
@@ -69,7 +73,12 @@ export function PregnancyTimeline({ lmp, gaDays, events }: { lmp: string; gaDays
           {spans.map((s, i) => (
             <div
               key={s.id}
-              title={`${s.name} · wk ${Math.floor(s.start / 7)}–${Math.floor(s.end / 7)} · ${s.status}`}
+              title={t("patientDetail.timeline.barTitle", {
+                name: careEventName(s.name, t),
+                from: Math.floor(s.start / 7),
+                to: Math.floor(s.end / 7),
+                status: careStatusLabel(s.status, t),
+              })}
               className={`absolute h-[10px] rounded-full ${BAR[s.status]}`}
               style={{
                 left: pct(s.start),
@@ -84,21 +93,21 @@ export function PregnancyTimeline({ lmp, gaDays, events }: { lmp: string; gaDays
         <div className="num relative h-5 text-[11px] text-[var(--color-charcoal)]">
           {[0, 8, 13, 20, 27, 32, 36, 40].map((w) => (
             <span key={w} className="absolute -translate-x-1/2" style={{ left: pct(w * 7) }}>
-              {w}w
+              {t("clinical.ga.weeksShort", { weeks: w })}
             </span>
           ))}
           <span
-            className="absolute -translate-x-1/2 rounded-full bg-[var(--color-primary)] px-2 font-medium text-white"
+            className="absolute -translate-x-1/2 whitespace-nowrap rounded-full bg-[var(--color-primary)] px-2 font-medium text-white"
             style={{ left: pct(gaDays), top: 2 }}
           >
-            Today {Math.floor(gaDays / 7)}w{gaDays % 7}d
+            {t("patientDetail.timeline.today", { ga: formatGALocalized({ days: gaDays, weeks: Math.floor(gaDays / 7), daysRemainder: gaDays % 7 }, t) })}
           </span>
         </div>
 
         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-[var(--color-charcoal)]">
           {(["done", "due", "overdue", "upcoming"] as const).map((s) => (
             <span key={s} className="inline-flex items-center gap-1.5 capitalize">
-              <span className={`h-2.5 w-2.5 rounded-full ${BAR[s]}`} aria-hidden /> {s === "due" ? "Due now" : s}
+              <span className={`h-2.5 w-2.5 rounded-full ${BAR[s]}`} aria-hidden /> {careStatusLabel(s, t)}
             </span>
           ))}
         </div>
