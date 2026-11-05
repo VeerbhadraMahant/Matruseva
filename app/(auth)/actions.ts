@@ -31,6 +31,7 @@ async function startDemoSession(): Promise<never> {
 }
 
 export async function loginDemo(): Promise<void> {
+  if (!isDemoModeEnabled()) redirect("/login");
   await startDemoSession();
 }
 
