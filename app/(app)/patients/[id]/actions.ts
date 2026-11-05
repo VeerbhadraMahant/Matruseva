@@ -433,7 +433,11 @@ export async function updatePatient(
           .map((ce) => ({
             templateItemId: ce.template_item_id!,
             completedAt: ce.completed_at ? new Date(ce.completed_at) : null,
-            manuallySkipped: ce.skipped_reason !== null && ce.skipped_reason !== "late_booking",
+            // System-set skips can be reactivated by a later correction; only staff skips stick.
+            manuallySkipped:
+              ce.skipped_reason !== null &&
+              ce.skipped_reason !== "late_booking" &&
+              ce.skipped_reason !== "no_longer_applicable",
           }));
 
         const diff = diffRegeneratedSchedule(regenerated, existingForDiff);
@@ -450,7 +454,7 @@ export async function updatePatient(
             .eq("patient_id", patientId)
             .eq("template_item_id", upd.templateItemId)
             .is("completed_at", null)
-            .or("skipped_reason.is.null,skipped_reason.eq.late_booking");
+            .or("skipped_reason.is.null,skipped_reason.eq.late_booking,skipped_reason.eq.no_longer_applicable");
         }
 
         // Items the corrected schedule no longer includes (e.g. Rh- -> Rh+ drops anti_d)
