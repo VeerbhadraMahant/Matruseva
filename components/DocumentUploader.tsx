@@ -6,6 +6,7 @@ import { Camera } from "@phosphor-icons/react";
 import { createClient } from "@/lib/supabase/client";
 import { preprocessImage, recognizeImage, extractPdfText } from "@/lib/ocr";
 import type { DocSource, DocType } from "@/lib/supabase/enums";
+import { useT } from "@/lib/i18n/provider";
 
 interface UploadItem {
   fileName: string;
@@ -34,6 +35,7 @@ export function DocumentUploader({
   fixedDocType,
   showDateInput = false,
 }: DocumentUploaderProps) {
+  const t = useT();
   const router = useRouter();
   const fileInputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -106,7 +108,7 @@ export function DocumentUploader({
         {!fixedDocType && (
           <div className="flex items-center gap-2">
             <label className="text-sm font-medium" htmlFor="doc-source">
-              Source
+              {t("documents.uploader.source")}
             </label>
             <select
               id="doc-source"
@@ -114,16 +116,16 @@ export function DocumentUploader({
               onChange={(e) => setSource(e.target.value as DocSource)}
               className="min-h-10 rounded-[var(--radius-buttons)] border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2 py-1.5 text-sm"
             >
-              <option value="camera">Photographed (case paper / register)</option>
-              <option value="whatsapp">WhatsApp image</option>
-              <option value="paper">Other paper</option>
+              <option value="camera">{t("documents.uploader.sourceCamera")}</option>
+              <option value="whatsapp">{t("documents.uploader.sourceWhatsapp")}</option>
+              <option value="paper">{t("documents.uploader.sourcePaper")}</option>
             </select>
           </div>
         )}
         {showDateInput && (
           <div className="flex items-center gap-2">
             <label className="text-sm font-medium" htmlFor="doc-date">
-              Date
+              {t("documents.uploader.date")}
             </label>
             <input
               id="doc-date"
@@ -148,24 +150,24 @@ export function DocumentUploader({
       />
       <label
         htmlFor={fileInputId}
-        className="flex min-h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-[var(--radius-buttons)] bg-[var(--color-primary)] px-[var(--space-21)] py-[var(--space-14)] font-medium text-[var(--color-primary-foreground)] hover:bg-[var(--color-primary-hover)]"
+        className="flex min-h-10 w-full cursor-pointer flex-wrap items-center justify-center gap-2 rounded-[var(--radius-buttons)] bg-[var(--color-primary)] px-[var(--space-21)] py-[var(--space-14)] font-medium text-[var(--color-primary-foreground)] hover:bg-[var(--color-primary-hover)]"
       >
-        <Camera size={20} weight="regular" aria-hidden /> Photograph or upload
+        <Camera size={20} weight="regular" aria-hidden /> {t("documents.uploader.button")}
       </label>
       <p className="mt-2 text-xs text-[var(--color-charcoal)]">
-        Handwriting recognition is limited — tag documents by hand (patient, date, type) so they stay searchable.
+        {t("documents.uploader.hint")}
       </p>
 
       {items.length > 0 && (
         <ul className="mt-3 space-y-1 text-sm">
           {items.map((it) => (
-            <li key={it.fileName} className="flex justify-between">
+            <li key={it.fileName} className="flex justify-between gap-3">
               <span>{it.fileName}</span>
               <span className="text-[var(--color-charcoal)]">
-                {it.status === "uploading" && "Uploading…"}
-                {it.status === "ocr" && "Reading text…"}
-                {it.status === "done" && "Done"}
-                {it.status === "failed" && "Failed"}
+                {it.status === "uploading" && t("documents.uploader.uploading")}
+                {it.status === "ocr" && t("documents.uploader.reading")}
+                {it.status === "done" && t("documents.uploader.done")}
+                {it.status === "failed" && t("documents.uploader.failed")}
               </span>
             </li>
           ))}

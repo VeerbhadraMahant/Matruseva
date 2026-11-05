@@ -156,6 +156,7 @@ export type Database = {
       contact_log: {
         Row: {
           channel: string
+          client_request_id: string | null
           clinic_id: string
           created_at: string
           created_by: string | null
@@ -168,6 +169,7 @@ export type Database = {
         }
         Insert: {
           channel: string
+          client_request_id?: string | null
           clinic_id: string
           created_at?: string
           created_by?: string | null
@@ -180,6 +182,7 @@ export type Database = {
         }
         Update: {
           channel?: string
+          client_request_id?: string | null
           clinic_id?: string
           created_at?: string
           created_by?: string | null
@@ -529,6 +532,7 @@ export type Database = {
         Row: {
           bp_dia: number | null
           bp_sys: number | null
+          client_request_id: string | null
           clinic_id: string
           created_at: string
           created_by: string | null
@@ -546,6 +550,7 @@ export type Database = {
         Insert: {
           bp_dia?: number | null
           bp_sys?: number | null
+          client_request_id?: string | null
           clinic_id: string
           created_at?: string
           created_by?: string | null
@@ -563,6 +568,7 @@ export type Database = {
         Update: {
           bp_dia?: number | null
           bp_sys?: number | null
+          client_request_id?: string | null
           clinic_id?: string
           created_at?: string
           created_by?: string | null
@@ -690,6 +696,55 @@ export type Database = {
             columns: ["template_item_id"]
             isOneToOne: false
             referencedRelation: "schedule_template_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      latest_visits: {
+        Row: {
+          bp_dia: number | null
+          bp_sys: number | null
+          clinic_id: string | null
+          created_at: string | null
+          created_by: string | null
+          fhr: number | null
+          fundal_height: number | null
+          ga_weeks: number | null
+          hb: number | null
+          id: string | null
+          next_visit_date: string | null
+          notes: string | null
+          patient_id: string | null
+          visit_date: string | null
+          weight: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visits_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visits_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visits_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patient_followup_risk"
+            referencedColumns: ["patient_id"]
+          },
+          {
+            foreignKeyName: "visits_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
             referencedColumns: ["id"]
           },
         ]

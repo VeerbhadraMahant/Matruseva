@@ -1,35 +1,39 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 
 const DURATION_MS = 700;
 
 /** Animates 0 → value once on mount. Screen readers get the final value only. */
 export function CountUp({ value, className = "" }: { value: number; className?: string }) {
-  const [display, setDisplay] = useState(0);
+  const ref = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const el = ref.current;
+    if (!el) return;
+    if (value === 0 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      el.textContent = String(value);
+      return;
+    }
     let frame = 0;
     let start: number | null = null;
     const step = (now: number) => {
-      if (reduce || value === 0) {
-        setDisplay(value);
-        return;
-      }
       start ??= now;
       const t = Math.min(1, (now - start) / DURATION_MS);
       const eased = 1 - (1 - t) ** 3;
-      setDisplay(Math.round(eased * value));
+      el.textContent = String(Math.round(eased * value));
       if (t < 1) frame = requestAnimationFrame(step);
     };
+    el.textContent = "0";
     frame = requestAnimationFrame(step);
     return () => cancelAnimationFrame(frame);
   }, [value]);
 
   return (
     <span className={className}>
-      <span aria-hidden>{display}</span>
+      <span ref={ref} aria-hidden>
+        0
+      </span>
       <span className="sr-only">{value}</span>
     </span>
   );

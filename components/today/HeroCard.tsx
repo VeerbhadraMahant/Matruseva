@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
+import { getT } from "@/lib/i18n/server";
 import { CountUp } from "./CountUp";
 
 function SubStat({ href, value, label, dot }: { href: string; value: number; label: string; dot: string }) {
@@ -22,7 +23,7 @@ function SubStat({ href, value, label, dot }: { href: string; value: number; lab
   );
 }
 
-export function HeroCard({
+export async function HeroCard({
   dueToday,
   overdue,
   atRisk,
@@ -33,6 +34,9 @@ export function HeroCard({
   atRisk: number;
   totalActive: number;
 }) {
+  const { t } = await getT();
+  // The number is bolded in place; word order differs per language, so split around a sentinel.
+  const [ofBefore, ofAfter] = t("today.hero.ofActive", { total: "\u0001" }).split("\u0001");
   return (
     <section
       aria-labelledby="hero-title"
@@ -56,20 +60,20 @@ export function HeroCard({
       </svg>
 
       <p id="hero-title" className="text-[12px] font-semibold uppercase tracking-[0.12em] text-pc-muted">
-        Patients due today
+        {t("today.hero.title")}
       </p>
       <div className="mt-2 flex items-end gap-3">
         <CountUp value={dueToday} className="text-[76px] font-medium leading-[0.9] tracking-[-0.04em] tabular-nums" />
-        <p className="pb-2 text-[13px] text-pc-muted">
-          of <span className="font-semibold text-pc-ink tabular-nums">{totalActive}</span> active
-          <br />
-          pregnancies
+        <p className="min-w-0 pb-2 text-[13px] text-pc-muted">
+          {ofBefore}
+          <span className="font-semibold text-pc-ink tabular-nums">{totalActive}</span>
+          {ofAfter}
         </p>
       </div>
 
       <div className="-mx-3 mt-5 flex flex-wrap gap-1 border-t border-pc-line/70 pt-3">
-        <SubStat href="/calls?f=overdue" value={overdue} label="Overdue" dot="bg-pc-overdue" />
-        <SubStat href="/calls?f=at_risk" value={atRisk} label="At risk" dot="bg-pc-risk" />
+        <SubStat href="/calls?f=overdue" value={overdue} label={t("today.hero.overdue")} dot="bg-pc-overdue" />
+        <SubStat href="/calls?f=at_risk" value={atRisk} label={t("today.hero.atRisk")} dot="bg-pc-risk" />
       </div>
     </section>
   );

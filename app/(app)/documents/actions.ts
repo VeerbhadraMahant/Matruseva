@@ -3,23 +3,26 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { getT } from "@/lib/i18n/server";
 
 export interface ActionResult {
   error: string | null;
 }
 
-const assignSchema = z.object({
-  patientId: z.uuid("Choose a patient"),
+const assignSchema = (choosePatient: string) => z.object({
+  patientId: z.uuid(choosePatient),
   docType: z.enum(["report", "scan", "prescription", "case_paper", "register_page", "other"]),
   docDate: z.iso.date().optional().or(z.literal("")),
   careEventId: z.uuid().optional().or(z.literal("")),
 });
 
 export async function assignDocument(documentId: string, _prev: ActionResult, formData: FormData): Promise<ActionResult> {
+  const { t } = await getT();
   const raw = Object.fromEntries(formData.entries());
-  const parsed = assignSchema.safeParse(raw);
+  const parsed = assignSchema(t("documents.error.choosePatient")).safeParse(raw);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0].message };
+    const issue = parsed.error.issues[0];
+    return { error: issue.path[0] === "patientId" ? t("documents.error.choosePatient") : t("documents.error.invalid") };
   }
   const { patientId, docType, docDate, careEventId } = parsed.data;
 

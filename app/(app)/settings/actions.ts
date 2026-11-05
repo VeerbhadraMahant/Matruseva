@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser, type CurrentUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getT } from "@/lib/i18n/server";
 
 export interface ActionResult {
   error: string | null;
@@ -12,32 +13,33 @@ export interface ActionResult {
 }
 
 /** Doctor-only guard: every action here mutates clinic-wide settings. */
-async function requireDoctor(): Promise<
+async function requireDoctor(t: Awaited<ReturnType<typeof getT>>["t"]): Promise<
   | { supabase: Awaited<ReturnType<typeof createClient>>; profile: { clinic_id: string; role: CurrentUser["role"] }; error: null }
   | { supabase: null; profile: null; error: string }
 > {
   const me = await getCurrentUser();
   if (me.isDemo) {
-    return { supabase: null, profile: null, error: "Clinic settings are read-only in Demo mode." };
+    return { supabase: null, profile: null, error: t("settings.error.demo") };
   }
   if (me.role !== "doctor") {
-    return { supabase: null, profile: null, error: "Only the clinic's doctor can change this." };
+    return { supabase: null, profile: null, error: t("settings.error.doctorOnly") };
   }
   const supabase = await createClient();
   return { supabase, profile: { clinic_id: me.clinicId, role: me.role }, error: null };
 }
 
-const clinicDetailsSchema = z.object({
-  name: z.string().min(2, "Enter the clinic's name"),
+const clinicDetailsSchema = (msg: string) => z.object({
+  name: z.string().min(2, msg),
   city: z.string().optional(),
   phone: z.string().optional(),
 });
 
 export async function updateClinicDetails(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
-  const { supabase, profile, error } = await requireDoctor();
+  const { t } = await getT();
+  const { supabase, profile, error } = await requireDoctor(t);
   if (error || !profile) return { error };
 
-  const parsed = clinicDetailsSchema.safeParse(Object.fromEntries(formData.entries()));
+  const parsed = clinicDetailsSchema(t("settings.error.clinicName")).safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   const { error: updateError } = await supabase
@@ -59,13 +61,14 @@ const riskThresholdsSchema = z.object({
 });
 
 export async function updateRiskThresholds(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
-  const { supabase, profile, error } = await requireDoctor();
+  const { t } = await getT();
+  const { supabase, profile, error } = await requireDoctor(t);
   if (error || !profile) return { error };
 
   const parsed = riskThresholdsSchema.safeParse(Object.fromEntries(formData.entries()));
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (!parsed.success) return { error: t("settings.error.thresholdNumber") };
   if (parsed.data.riskAtRiskDays >= parsed.data.riskLostDays) {
-    return { error: "The at-risk threshold must be smaller than the lost threshold." };
+    return { error: t("settings.error.thresholdOrder") };
   }
 
   const { error: updateError } = await supabase
@@ -91,11 +94,12 @@ const messageTemplatesSchema = z.object({
 });
 
 export async function updateMessageTemplates(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
-  const { supabase, profile, error } = await requireDoctor();
+  const { t } = await getT();
+  const { supabase, profile, error } = await requireDoctor(t);
   if (error || !profile) return { error };
 
   const parsed = messageTemplatesSchema.safeParse(Object.fromEntries(formData.entries()));
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (!parsed.success) return { error: t("settings.error.templateInvalid") };
 
   // Fetch current clinic message_templates to merge
   const { data: clinic } = await supabase
@@ -139,13 +143,14 @@ const scheduleItemSchema = z.object({
 });
 
 export async function updateScheduleItem(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
-  const { supabase, profile, error } = await requireDoctor();
+  const { t } = await getT();
+  const { supabase, profile, error } = await requireDoctor(t);
   if (error || !profile) return { error };
 
   const parsed = scheduleItemSchema.safeParse(Object.fromEntries(formData.entries()));
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (!parsed.success) return { error: t("settings.error.weeks") };
   if (parsed.data.windowStartWeek > parsed.data.windowEndWeek) {
-    return { error: "The start week must be before the end week." };
+    return { error: t("settings.error.weekOrder") };
   }
 
   const { error: updateError } = await supabase
@@ -165,9 +170,9 @@ export async function updateScheduleItem(_prev: ActionResult, formData: FormData
   return { error: null };
 }
 
-const inviteSchema = z.object({
-  email: z.email("Enter a valid email address"),
-  fullName: z.string().min(2, "Enter the staff member's name"),
+const inviteSchema = (msg: { email: string; name: string }) => z.object({
+  email: z.email(msg.email),
+  fullName: z.string().min(2, msg.name),
 });
 
 /**
@@ -178,10 +183,11 @@ const inviteSchema = z.object({
  * See memory: matrusetu-supabase-auth-autoconfirm.
  */
 export async function inviteStaff(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
-  const { profile, error } = await requireDoctor();
+  const { t } = await getT();
+  const { profile, error } = await requireDoctor(t);
   if (error || !profile) return { error };
 
-  const parsed = inviteSchema.safeParse(Object.fromEntries(formData.entries()));
+  const parsed = inviteSchema({ email: t("settings.error.email"), name: t("settings.error.staffName") }).safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   const admin = createAdminClient();
@@ -191,7 +197,7 @@ export async function inviteStaff(_prev: ActionResult, formData: FormData): Prom
     password: crypto.randomUUID(),
     email_confirm: true,
   });
-  if (createError || !created.user) return { error: createError?.message ?? "Could not create the account." };
+  if (createError || !created.user) return { error: createError?.message ?? t("settings.error.createAccount") };
 
   const { error: profileError } = await admin.from("profiles").insert({
     id: created.user.id,
@@ -212,7 +218,8 @@ export async function inviteStaff(_prev: ActionResult, formData: FormData): Prom
 }
 
 export async function removeStaff(staffProfileId: string): Promise<ActionResult> {
-  const { supabase, profile, error } = await requireDoctor();
+  const { t } = await getT();
+  const { supabase, profile, error } = await requireDoctor(t);
   if (error || !profile) return { error };
 
   // createAdminClient() bypasses RLS entirely, so this check is the only
@@ -222,10 +229,10 @@ export async function removeStaff(staffProfileId: string): Promise<ActionResult>
   // not the admin client.
   const { data: target } = await supabase.from("profiles").select("clinic_id, role").eq("id", staffProfileId).maybeSingle();
   if (!target || target.clinic_id !== profile.clinic_id) {
-    return { error: "That staff member was not found in your clinic." };
+    return { error: t("settings.error.staffNotFound") };
   }
   if (target.role === "doctor") {
-    return { error: "The clinic's doctor account can't be removed here." };
+    return { error: t("settings.error.doctorRemove") };
   }
 
   const admin = createAdminClient();
@@ -237,7 +244,8 @@ export async function removeStaff(staffProfileId: string): Promise<ActionResult>
 }
 
 export async function applyStandardFogsiSchedule(): Promise<ActionResult> {
-  const { supabase, profile, error } = await requireDoctor();
+  const { t } = await getT();
+  const { supabase, profile, error } = await requireDoctor(t);
   if (error || !profile) return { error };
 
   const { FOGSI_MOHFW_SCHEDULE_ITEMS, CLINICAL_RISK_THRESHOLDS } = await import("@/lib/clinicalProtocols");
@@ -262,7 +270,7 @@ export async function applyStandardFogsiSchedule(): Promise<ActionResult> {
     .maybeSingle();
 
   if (tmplErr || !template) {
-    return { error: tmplErr?.message || "Default schedule template not found" };
+    return { error: tmplErr?.message || t("settings.error.noTemplate") };
   }
 
   // 3. Update existing items to match FOGSI windows
@@ -288,7 +296,8 @@ export async function applyStandardFogsiSchedule(): Promise<ActionResult> {
 }
 
 export async function resetMessageTemplatesToCertified(): Promise<ActionResult> {
-  const { supabase, profile, error } = await requireDoctor();
+  const { t } = await getT();
+  const { supabase, profile, error } = await requireDoctor(t);
   if (error || !profile) return { error };
 
   const { DEFAULT_TEMPLATES } = await import("@/lib/whatsapp");

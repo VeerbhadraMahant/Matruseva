@@ -55,10 +55,26 @@ describe("patientFlags", () => {
 describe("sortFlags", () => {
   it("orders critical before warning before info", () => {
     const sorted = sortFlags([
-      { code: "a", label: "a", severity: "info" },
-      { code: "b", label: "b", severity: "critical" },
-      { code: "c", label: "c", severity: "warning" },
+      { code: "a", label: "a", labelKey: "clinical.flag.rh_neg", severity: "info" },
+      { code: "b", label: "b", labelKey: "clinical.flag.rh_neg", severity: "critical" },
+      { code: "c", label: "c", labelKey: "clinical.flag.rh_neg", severity: "warning" },
     ]);
     expect(sorted.map((f) => f.severity)).toEqual(["critical", "warning", "info"]);
+  });
+});
+
+describe("localized flags", () => {
+  it("every flag carries a catalogue key that translates in hi and mr", async () => {
+    const { translate } = await import("./i18n/translate");
+    const flags = [
+      ...patientFlags({ age: 36, gravida: 5, rhNegative: true, gaWeeks: 42 }),
+      ...patientFlags({ age: 16, gravida: 1, rhNegative: false, gaWeeks: 41 }),
+      bpFlag(165, 100)!, bpFlag(145, 85)!, hbFlag(6)!, hbFlag(9)!, hbFlag(10.5)!, fhrFlag(100)!,
+    ];
+    for (const f of flags) {
+      expect(translate("en", f.labelKey)).toBe(f.label);
+      expect(translate("hi", f.labelKey)).not.toBe(f.label);
+      expect(translate("mr", f.labelKey)).not.toBe(f.label);
+    }
   });
 });

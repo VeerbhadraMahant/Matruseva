@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useId, useMemo, useState } from "react";
 import { ArrowRight, CaretDown, CheckCircle, Phone, Warning } from "@phosphor-icons/react";
+import { useT } from "@/lib/i18n/provider";
 import { Badge, STATUS_BADGE } from "./StatusBadge";
 import type { DayEntry, WorklistDay, WorklistRow } from "./types";
 
@@ -32,8 +33,9 @@ function WeekStrip({
   selected: string;
   onSelect: (iso: string) => void;
 }) {
+  const t = useT();
   return (
-    <div role="group" aria-label="Choose a day" className="pc-glass grid grid-cols-7 gap-1 rounded-[24px] p-1.5 sm:gap-2 sm:p-2">
+    <div role="group" aria-label={t("today.week.choose")} className="pc-glass grid grid-cols-7 gap-1 rounded-[24px] p-1.5 sm:gap-2 sm:p-2">
       {days.map((d) => {
         const active = d.iso === selected;
         const count = d.entries.length;
@@ -42,7 +44,12 @@ function WeekStrip({
             key={d.iso}
             type="button"
             aria-pressed={active}
-            aria-label={`${d.isToday ? "Today, " : ""}${d.weekday} ${d.dayOfMonth} ${d.monthLabel}: ${count} ${count === 1 ? "patient" : "patients"}`}
+            aria-label={t(d.isToday ? "today.week.ariaToday" : "today.week.aria", {
+              weekday: d.weekday,
+              day: d.dayOfMonth,
+              month: d.monthLabel,
+              count,
+            })}
             onClick={() => onSelect(d.iso)}
             className={`relative mx-auto flex min-h-[84px] w-full max-w-16 flex-col items-center justify-center gap-1 rounded-full px-1 py-2 transition-[background-color,color,box-shadow,transform] duration-200 ${
               active
@@ -50,7 +57,7 @@ function WeekStrip({
                 : "text-pc-muted hover:bg-pc-card/80 motion-safe:hover:-translate-y-0.5"
             }`}
           >
-            <span className="text-[12px] font-medium">{d.isToday ? "Today" : d.weekday}</span>
+            <span className="text-[12px] font-medium">{d.isToday ? t("today.week.today") : d.weekday}</span>
             <span className={`text-[19px] font-semibold leading-none tabular-nums ${active ? "" : "text-pc-ink"}`}>
               {d.dayOfMonth}
             </span>
@@ -96,6 +103,7 @@ function Row({
   onToggle: () => void;
   index: number;
 }) {
+  const t = useT();
   const panelId = useId();
   const badge = STATUS_BADGE[row.status];
   const hasCritical = row.alerts.some((a) => a.critical);
@@ -122,16 +130,16 @@ function Row({
           <span className="flex items-center gap-1.5">
             <span className="truncate text-[15px] font-semibold">{row.name}</span>
             {hasCritical && (
-              <Warning size={15} weight="fill" className="shrink-0 text-pc-overdue" aria-label="Clinical alert" />
+              <Warning size={15} weight="fill" className="shrink-0 text-pc-overdue" aria-label={t("today.worklist.clinicalAlert")} />
             )}
           </span>
-          <span className="block truncate text-[13px] text-pc-muted">
+          <span className="line-clamp-2 block text-[13px] text-pc-muted">
             <span className="tabular-nums">{row.meta}</span>
             <span aria-hidden> · </span>
             {reason}
           </span>
         </span>
-        <Badge tone={badge.tone}>{badge.label}</Badge>
+        <Badge tone={badge.tone}>{t(badge.label)}</Badge>
         <CaretDown
           size={16}
           aria-hidden
@@ -149,9 +157,9 @@ function Row({
         <div className="overflow-hidden">
           <div className="space-y-4 px-4 pb-5 pt-1 sm:px-5 sm:pl-[72px]">
             <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
-              <Detail label="Last visit" value={row.lastVisit} sub={row.lastVisitRelative} />
-              <Detail label="Next ANC due" value={row.nextAnc} sub={row.nextAncDetail} />
-              {row.edd && <Detail label="EDD" value={row.edd} sub={row.eddRelative} />}
+              <Detail label={t("today.worklist.lastVisit")} value={row.lastVisit} sub={row.lastVisitRelative} />
+              <Detail label={t("today.worklist.nextAnc")} value={row.nextAnc} sub={row.nextAncDetail} />
+              {row.edd && <Detail label={t("today.worklist.edd")} value={row.edd} sub={row.eddRelative} />}
             </dl>
 
             {(row.alerts.length > 0 || row.openItems.length > 0) && (
@@ -163,7 +171,10 @@ function Row({
                 ))}
                 {row.openItems.map((item) => (
                   <Badge key={`${item.name}-${item.closes}`} tone={item.status === "overdue" ? "overdue" : "plum"}>
-                    {item.name} · {item.status === "overdue" ? "was due" : "by"} {item.closes}
+                    {t(item.status === "overdue" ? "today.worklist.itemWasDue" : "today.worklist.itemBy", {
+                      name: item.name,
+                      date: item.closes,
+                    })}
                   </Badge>
                 ))}
               </div>
@@ -175,14 +186,14 @@ function Row({
                   href={row.telHref}
                   className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-pc-plum px-4 text-[14px] font-semibold text-white transition-colors hover:bg-pc-plum-hover"
                 >
-                  <Phone size={16} aria-hidden /> Call {row.phone}
+                  <Phone size={16} aria-hidden /> {t("today.worklist.call", { phone: row.phone ?? "" })}
                 </a>
               )}
               <Link
                 href={`/patients/${row.id}`}
                 className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-pc-line bg-pc-card px-4 text-[14px] font-medium transition-colors hover:border-pc-plum"
               >
-                Open record <ArrowRight size={14} aria-hidden />
+                {t("today.worklist.openRecord")} <ArrowRight size={14} aria-hidden />
               </Link>
             </div>
           </div>
@@ -193,6 +204,7 @@ function Row({
 }
 
 export function TodayWorklist({ days, rows }: { days: WorklistDay[]; rows: WorklistRow[] }) {
+  const t = useT();
   const [selected, setSelected] = useState(days[0]?.iso ?? "");
   const [filter, setFilter] = useState<Filter>("all");
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -211,10 +223,15 @@ export function TodayWorklist({ days, rows }: { days: WorklistDay[]; rows: Workl
   );
 
   const chips: { id: Filter; label: string }[] = [
-    { id: "all", label: "All" },
-    { id: "atRisk", label: "At risk" },
-    { id: "overdue", label: "Overdue" },
-    { id: "scheduled", label: day?.isToday ? "Due today" : `Due ${day?.weekday ?? ""}` },
+    { id: "all", label: t("today.worklist.filter.all") },
+    { id: "atRisk", label: t("today.worklist.filter.atRisk") },
+    { id: "overdue", label: t("today.worklist.filter.overdue") },
+    {
+      id: "scheduled",
+      label: day?.isToday
+        ? t("today.worklist.filter.dueToday")
+        : t("today.worklist.filter.dueDay", { weekday: day?.weekday ?? "" }),
+    },
   ];
 
   const visible = pairs.filter(({ entry, row }) => matches(filter, entry, row));
@@ -233,8 +250,8 @@ export function TodayWorklist({ days, rows }: { days: WorklistDay[]; rows: Workl
 
   const dayTitle = day
     ? day.isToday
-      ? "Today"
-      : `${day.weekday} ${day.dayOfMonth} ${day.monthLabel}`
+      ? t("today.week.today")
+      : t("today.worklist.dayTitle", { weekday: day.weekday, day: day.dayOfMonth, month: day.monthLabel })
     : "";
 
   return (
@@ -244,17 +261,17 @@ export function TodayWorklist({ days, rows }: { days: WorklistDay[]; rows: Workl
       <div className="pc-glass overflow-hidden rounded-[24px]">
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 pb-3 pt-4 sm:px-5">
           <h2 id="worklist-title" className="text-[17px] font-semibold">
-            Worklist <span className="font-normal text-pc-muted">· {dayTitle}</span>
+            {t("today.worklist.title")} <span className="font-normal text-pc-muted">· {dayTitle}</span>
           </h2>
           <Link
             href="/calls"
             className="inline-flex min-h-9 items-center gap-1 text-[13px] font-semibold text-pc-plum hover:underline"
           >
-            Open call queue <ArrowRight size={13} aria-hidden />
+            {t("today.worklist.openCallQueue")} <ArrowRight size={13} aria-hidden />
           </Link>
         </div>
 
-        <div role="group" aria-label="Filter worklist" className="flex gap-2 overflow-x-auto px-4 pb-4 sm:px-5">
+        <div role="group" aria-label={t("today.worklist.filterLabel")} className="flex gap-2 overflow-x-auto px-4 pb-4 sm:px-5">
           {chips.map((c) => {
             const count = pairs.filter(({ entry, row }) => matches(c.id, entry, row)).length;
             const active = filter === c.id;
@@ -284,17 +301,19 @@ export function TodayWorklist({ days, rows }: { days: WorklistDay[]; rows: Workl
         </div>
 
         <div aria-live="polite" className="sr-only">
-          {visible.length} {visible.length === 1 ? "patient" : "patients"} shown
+          {t("today.worklist.shown", { count: visible.length })}
         </div>
 
         {visible.length === 0 ? (
           <div key={`${selected}-${filter}-empty`} className="pc-rise flex flex-col items-center gap-2 border-t border-pc-line/70 px-6 py-12 text-center">
             <CheckCircle size={32} weight="duotone" className="text-pc-active" aria-hidden />
-            <p className="text-[15px] font-medium">Nothing here</p>
+            <p className="text-[15px] font-medium">{t("today.worklist.emptyTitle")}</p>
             <p className="max-w-xs text-[13px] text-pc-muted">
               {filter === "all"
-                ? `No patients need action ${day?.isToday ? "today" : `on ${dayTitle}`}.`
-                : "No patients match this filter for the selected day."}
+                ? day?.isToday
+                  ? t("today.worklist.emptyToday")
+                  : t("today.worklist.emptyDay", { day: dayTitle })
+                : t("today.worklist.emptyFilter")}
             </p>
           </div>
         ) : (
@@ -318,7 +337,7 @@ export function TodayWorklist({ days, rows }: { days: WorklistDay[]; rows: Workl
             onClick={() => setShowAll((v) => !v)}
             className="flex min-h-12 w-full items-center justify-center border-t border-pc-line/70 text-[14px] font-semibold text-pc-plum transition-colors hover:bg-pc-lilac/40"
           >
-            {showAll ? "Show fewer" : `Show ${visible.length - PAGE_SIZE} more`}
+            {showAll ? t("today.worklist.showFewer") : t("today.worklist.showMore", { count: visible.length - PAGE_SIZE })}
           </button>
         )}
       </div>

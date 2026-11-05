@@ -1,3 +1,6 @@
+import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/config";
+import { intlLocale } from "@/lib/i18n/intl";
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** "YYYY-MM-DD" → local-calendar Date (see lib/today.ts for the convention). */
@@ -13,19 +16,38 @@ export function daysBetween(from: Date, to: Date): number {
   return Math.round((b - a) / DAY_MS);
 }
 
-export function formatDate(isoDate: string | null | undefined): string {
+/** Format a calendar date with Intl in the given UI locale (Latin digits always). */
+export function formatDateWith(
+  isoDate: string | null | undefined,
+  options: Intl.DateTimeFormatOptions,
+  locale: Locale = DEFAULT_LOCALE,
+): string {
   if (!isoDate) return "—";
-  return parseLocalDate(isoDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  return parseLocalDate(isoDate).toLocaleDateString(intlLocale(locale), options);
 }
 
-export function formatShortDate(isoDate: string | null | undefined): string {
-  if (!isoDate) return "—";
-  return parseLocalDate(isoDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+export function formatDate(isoDate: string | null | undefined, locale: Locale = DEFAULT_LOCALE): string {
+  return formatDateWith(isoDate, { day: "2-digit", month: "short", year: "numeric" }, locale);
 }
 
-/** "today", "in 3d", "5d ago" relative to `today`. */
-export function relativeDays(isoDate: string, today: Date): string {
+export function formatShortDate(isoDate: string | null | undefined, locale: Locale = DEFAULT_LOCALE): string {
+  return formatDateWith(isoDate, { day: "2-digit", month: "short" }, locale);
+}
+
+/** Locale-aware number (Latin digits, Indian grouping). */
+export function formatNumber(value: number, locale: Locale = DEFAULT_LOCALE, options?: Intl.NumberFormatOptions): string {
+  return new Intl.NumberFormat(intlLocale(locale), options).format(value);
+}
+
+/**
+ * "today", "in 3d", "5d ago" relative to `today`. English output is the
+ * legacy compact form; hi/mr use Intl.RelativeTimeFormat (numeric: "auto").
+ */
+export function relativeDays(isoDate: string, today: Date, locale: Locale = DEFAULT_LOCALE): string {
   const d = daysBetween(today, parseLocalDate(isoDate));
+  if (locale !== "en") {
+    return new Intl.RelativeTimeFormat(intlLocale(locale), { numeric: "auto" }).format(d, "day");
+  }
   if (d === 0) return "today";
   if (d === 1) return "tomorrow";
   if (d === -1) return "yesterday";

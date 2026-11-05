@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { updateScheduleItem, type ActionResult } from "@/app/(app)/settings/actions";
 import { withSuccessToast } from "@/components/Toaster";
+import { useT } from "@/lib/i18n/provider";
 
 const initialState: ActionResult = { error: null };
 const inputClass =
@@ -22,23 +23,24 @@ export function ScheduleItemRow({
   windowEndWeek: number;
   isCritical: boolean;
 }) {
-  const [state, formAction] = useActionState(withSuccessToast(updateScheduleItem, "Schedule item saved"), initialState);
+  const t = useT();
+  const [state, formAction] = useActionState(withSuccessToast(updateScheduleItem, t("settings.schedule.toast")), initialState);
 
   return (
     <form action={formAction} className="flex flex-wrap items-center gap-3 border-b border-[var(--color-border)] py-3 last:border-0">
       <input type="hidden" name="itemId" value={id} />
       <span className="min-w-48 flex-1 text-sm">{name}</span>
       <label className="flex items-center gap-1 text-xs text-[var(--color-charcoal)]">
-        from wk
+        {t("settings.schedule.fromWeek")}
         <input type="number" name="windowStartWeek" step="0.1" defaultValue={windowStartWeek} className={inputClass} />
       </label>
       <label className="flex items-center gap-1 text-xs text-[var(--color-charcoal)]">
-        to wk
+        {t("settings.schedule.toWeek")}
         <input type="number" name="windowEndWeek" step="0.1" defaultValue={windowEndWeek} className={inputClass} />
       </label>
       <label className="flex items-center gap-1 text-xs text-[var(--color-charcoal)]">
         <input type="checkbox" name="isCritical" defaultChecked={isCritical} className="h-4 w-4" />
-        Critical
+        {t("settings.schedule.critical")}
       </label>
       <SaveButton />
       {state.error && <span className="w-full text-sm text-[var(--color-overdue)]">{state.error}</span>}
@@ -48,13 +50,14 @@ export function ScheduleItemRow({
 
 function SaveButton() {
   const { pending } = useFormStatus();
+  const t = useT();
   return (
     <button
       type="submit"
       disabled={pending}
       className="min-h-10 rounded-[var(--radius-buttons)] border border-[var(--color-primary)] px-3 py-1.5 text-sm font-medium text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-[var(--color-primary-foreground)] disabled:cursor-not-allowed disabled:opacity-50"
     >
-      {pending ? "…" : "Save"}
+      {pending ? "…" : t("settings.schedule.save")}
     </button>
   );
 }

@@ -11,10 +11,14 @@ const nextConfig: NextConfig = {
   // likely mistake. This acknowledges it's intentional.
   turbopack: {},
   experimental: {
-    // Dynamic pages have 0s client-router cache to guarantee fresh data on
-    // navigation after mutations, while prefetched static routes retain 180s.
+    // Reuse dynamic pages from the client router cache for 30s so back/forth
+    // taps are instant. Freshness after writes still holds: per the Next docs
+    // (glossary "Client Cache", revalidatePath), revalidatePath/revalidateTag
+    // in a Server Action, router.refresh(), and cookies.set/delete all purge
+    // the client cache. All mutations here use those. Auth cookie changes
+    // (login/logout) also purge it.
     staleTimes: {
-      dynamic: 0,
+      dynamic: 30,
       static: 180,
     },
   },
@@ -27,6 +31,15 @@ const nextConfig: NextConfig = {
             key: "Cache-Control",
             value: "public, max-age=31536000, immutable",
           },
+        ],
+      },
+      {
+        // Public signed listen links: the token is in the URL, so keep it out of Referer, caches and indexes.
+        source: "/listen/:path*",
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+          { key: "Cache-Control", value: "private, no-store" },
         ],
       },
       {
@@ -46,6 +59,9 @@ const withSerwist = withSerwistInit({
   swSrc: "app/sw.ts",
   swDest: "public/sw.js",
   disable: process.env.NODE_ENV !== "production",
+  // The SW's offline fallback (app/sw.ts) serves /offline from the precache,
+  // but it is a page route, not a public/ file, so it must be listed explicitly.
+  additionalPrecacheEntries: [{ url: "/offline", revision: process.env.VERCEL_GIT_COMMIT_SHA ?? String(Date.now()) }],
 });
 
 export default withSerwist(nextConfig);

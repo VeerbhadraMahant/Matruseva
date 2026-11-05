@@ -1,6 +1,11 @@
+"use client";
+
+import { useT } from "@/lib/i18n/provider";
+
 export default function TodayLoading() {
+  const t = useT();
   return (
-    <div aria-busy="true" aria-label="Loading today" className="pc-scope min-h-dvh px-4 pb-12 pt-6 md:px-8 md:pt-9">
+    <div aria-busy="true" aria-label={t("today.loading")} className="pc-scope min-h-dvh px-4 pb-12 pt-6 md:px-8 md:pt-9">
       <div className="mx-auto max-w-6xl space-y-6">
         <div>
           <div className="pc-skeleton h-3 w-48" />

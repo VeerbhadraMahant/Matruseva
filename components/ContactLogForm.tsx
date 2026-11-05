@@ -1,48 +1,63 @@
 "use client";
 
-import { useActionState } from "react";
-import { logContact, type ActionResult } from "@/app/(app)/calls/actions";
+import { useOptimistic, useState } from "react";
+import { submitContactLog } from "@/components/offlineActions";
 import { useFormStatus } from "react-dom";
-import { withSuccessToast } from "@/components/Toaster";
+import { showToast } from "@/components/Toaster";
+import { useT } from "@/lib/i18n/provider";
 
-const initialState: ActionResult = { error: null };
 const selectClass =
   "min-h-10 border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2.5 text-[13px]";
 
-function LogButton() {
+function LogButton({ logged }: { logged: boolean }) {
   const { pending } = useFormStatus();
+  const t = useT();
   return (
     <button
       type="submit"
-      disabled={pending}
+      disabled={pending || logged}
       className="ml-2 min-h-10 rounded-xl bg-[var(--color-primary)] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[var(--color-primary-hover)] disabled:cursor-wait disabled:opacity-60"
     >
-      {pending ? "Saving…" : "Log"}
+      {logged ? t("calls.log.done") : t("calls.log.submit")}
     </button>
   );
 }
 
 export function ContactLogForm({ patientId }: { patientId: string }) {
-  const action = logContact.bind(null, patientId);
-  const [state, formAction] = useActionState(withSuccessToast(action, "Contact logged"), initialState);
+  const t = useT();
+  const [error, setError] = useState<string | null>(null);
+  // Optimistic: shows the contact as logged immediately; reverts if the action fails.
+  const [logged, setLogged] = useOptimistic(false);
+
+  async function formAction(formData: FormData) {
+    setError(null);
+    setLogged(true);
+    try {
+      const result = await submitContactLog(patientId, formData);
+      if (result.error) setError(result.error);
+      else if (!result.queued) showToast(t("calls.log.toast"));
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : t("calls.log.failed"));
+    }
+  }
 
   return (
-    <form action={formAction} className="flex items-center gap-2">
-      <select name="channel" defaultValue="call" className={selectClass} aria-label="Contact channel">
-        <option value="call">Call</option>
-        <option value="whatsapp">WhatsApp</option>
+    <form action={formAction} className="flex flex-wrap items-center gap-2">
+      <select name="channel" defaultValue="call" className={selectClass} aria-label={t("calls.log.channelAria")}>
+        <option value="call">{t("calls.channel.call")}</option>
+        <option value="whatsapp">{t("calls.channel.whatsapp")}</option>
       </select>
-      <select name="outcome" defaultValue="reached" className={selectClass} aria-label="Outcome">
-        <option value="reached">Reached</option>
-        <option value="will_visit">Will visit</option>
-        <option value="no_answer">No answer</option>
-        <option value="wrong_number">Wrong number</option>
-        <option value="refused">Refused</option>
+      <select name="outcome" defaultValue="reached" className={selectClass} aria-label={t("calls.log.outcomeAria")}>
+        <option value="reached">{t("calls.outcome.reached")}</option>
+        <option value="will_visit">{t("calls.outcome.willVisit")}</option>
+        <option value="no_answer">{t("calls.outcome.noAnswer")}</option>
+        <option value="wrong_number">{t("calls.outcome.wrongNumber")}</option>
+        <option value="refused">{t("calls.outcome.refused")}</option>
       </select>
-      <LogButton />
-      {state.error && (
+      <LogButton logged={logged} />
+      {error && (
         <span role="alert" className="ml-2 text-[13px] text-[var(--color-overdue)]">
-          {state.error}
+          {error}
         </span>
       )}
     </form>

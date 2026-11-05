@@ -4,6 +4,8 @@
  * callers control the clock (tests, Asia/Kolkata "today" from the app).
  */
 
+import type { Translator } from "@/lib/i18n/translate-client";
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 const FULL_TERM_DAYS = 280; // 40 weeks, Naegele's rule
 
@@ -46,6 +48,11 @@ export function gestationalAgeWeeksDecimal(lmp: Date, today: Date): number {
 
 export function formatGA(ga: GestationalAge): string {
   return `${ga.weeks}w${ga.daysRemainder}d`;
+}
+
+/** Localized GA, e.g. "28w1d" (en), "28 सप्ताह 1 दिन" (hi), "28 आठवडे 1 दिवस" (mr). Pass the t() from getT()/useT(). */
+export function formatGALocalized(ga: GestationalAge, t: Translator): string {
+  return t("clinical.ga.full", { weeks: ga.weeks, days: ga.daysRemainder });
 }
 
 export type Trimester = 1 | 2 | 3;

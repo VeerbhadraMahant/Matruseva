@@ -4,6 +4,8 @@ import { useActionState, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
 import { assignDocument, searchPatientsForAssign, getOpenCareEvents, type ActionResult } from "@/app/(app)/documents/actions";
 import { withSuccessToast } from "@/components/Toaster";
+import { useT } from "@/lib/i18n/provider";
+import { careEventName } from "@/lib/clinicalLabels";
 
 const initialState: ActionResult = { error: null };
 const inputClass =
@@ -11,20 +13,22 @@ const inputClass =
 
 function SaveButton() {
   const { pending } = useFormStatus();
+  const t = useT();
   return (
     <button
       type="submit"
       disabled={pending}
       className="min-h-10 rounded-[var(--radius-buttons)] bg-[var(--color-primary)] px-3 py-1.5 text-sm font-medium text-[var(--color-primary-foreground)] hover:bg-[var(--color-primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
     >
-      {pending ? "…" : "Assign"}
+      {pending ? "…" : t("documents.assign.submit")}
     </button>
   );
 }
 
 export function AssignDocumentForm({ documentId }: { documentId: string }) {
+  const t = useT();
   const action = assignDocument.bind(null, documentId);
-  const [state, formAction] = useActionState(withSuccessToast(action, "Document filed"), initialState);
+  const [state, formAction] = useActionState(withSuccessToast(action, t("documents.assign.toast")), initialState);
   const [, startTransition] = useTransition();
 
   const [query, setQuery] = useState("");
@@ -60,7 +64,8 @@ export function AssignDocumentForm({ documentId }: { documentId: string }) {
       <div className="relative">
         <input
           type="text"
-          placeholder="Search patient by name…"
+          placeholder={t("documents.assign.search")}
+          aria-label={t("documents.assign.search")}
           value={query}
           onChange={(e) => onSearchChange(e.target.value)}
           className={`${inputClass} w-full`}
@@ -84,21 +89,21 @@ export function AssignDocumentForm({ documentId }: { documentId: string }) {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <select name="docType" defaultValue="other" className={inputClass}>
-          <option value="report">Report</option>
-          <option value="scan">Scan</option>
-          <option value="prescription">Prescription</option>
-          <option value="case_paper">Case paper</option>
-          <option value="register_page">Register page</option>
-          <option value="other">Other</option>
+        <select name="docType" defaultValue="other" className={inputClass} aria-label={t("documents.assign.typeAria")}>
+          <option value="report">{t("documents.type.report")}</option>
+          <option value="scan">{t("documents.type.scan")}</option>
+          <option value="prescription">{t("documents.type.prescription")}</option>
+          <option value="case_paper">{t("documents.type.case_paper")}</option>
+          <option value="register_page">{t("documents.type.register_page")}</option>
+          <option value="other">{t("documents.type.other")}</option>
         </select>
-        <input type="date" name="docDate" className={inputClass} />
+        <input type="date" name="docDate" className={inputClass} aria-label={t("documents.assign.dateAria")} />
         {selected && careEvents.length > 0 && (
-          <select name="careEventId" defaultValue="" className={inputClass}>
-            <option value="">Not linked to a schedule item</option>
+          <select name="careEventId" defaultValue="" className={inputClass} aria-label={t("documents.assign.careEventAria")}>
+            <option value="">{t("documents.assign.notLinked")}</option>
             {careEvents.map((ce) => (
               <option key={ce.id} value={ce.id ?? ""}>
-                Complete: {ce.name}
+                {t("documents.assign.complete", { name: ce.name ? careEventName(ce.name, t) : "" })}
               </option>
             ))}
           </select>

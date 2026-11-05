@@ -12,9 +12,11 @@ import Link from "next/link";
 import { GearSix } from "@phosphor-icons/react/dist/ssr";
 import { PageHeader, Panel, Tag, buttonSecondary, card, pageBody } from "@/components/ui";
 import type { MessageTemplates } from "@/lib/whatsapp";
+import { getT } from "@/lib/i18n/server";
+import { careEventName } from "@/lib/clinicalLabels";
 
 export default async function SettingsPage() {
-  const [me, supabase] = await Promise.all([getCurrentUser(), createClient()]);
+  const [me, supabase, { t }] = await Promise.all([getCurrentUser(), createClient(), getT()]);
   if (me.role !== "doctor") redirect("/today");
 
   const [{ data: clinic }, { data: staff }, { data: template }] = await Promise.all([
@@ -30,19 +32,18 @@ export default async function SettingsPage() {
   if (!clinic) {
     return (
       <>
-        <PageHeader title="Settings" />
+        <PageHeader title={t("settings.title")} />
         <div className={pageBody}>
           <div className={`mx-auto max-w-lg space-y-3 p-8 text-center ${card}`}>
             <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--color-primary-surface)] text-[var(--color-primary)]">
               <GearSix size={28} aria-hidden />
             </span>
-            <h2 className="text-[18px] font-semibold">Settings need a live clinic account</h2>
+            <h2 className="text-[18px] font-semibold">{t("settings.demo.title")}</h2>
             <p className="text-[14px] text-[var(--color-charcoal)]">
-              Clinic details, risk thresholds, the ANC schedule, staff and message templates are stored in your clinic&apos;s
-              database. Sign in with your clinic account to view and change them. In demo mode they aren&apos;t available.
+              {t("settings.demo.body")}
             </p>
             <Link href="/today" className={`${buttonSecondary} mt-2`}>
-              Back to Today
+              {t("settings.demo.back")}
             </Link>
           </div>
         </div>
@@ -54,29 +55,29 @@ export default async function SettingsPage() {
 
   return (
     <>
-      <PageHeader title="Settings" meta={clinic.name} />
+      <PageHeader title={t("settings.title")} meta={clinic.name} />
       <div className={`${pageBody} grid grid-cols-[minmax(0,1fr)] gap-5 space-y-0 xl:grid-cols-2`}>
         <div className="space-y-5">
-          <Panel title="Clinic details">
+          <Panel title={t("settings.panel.clinic")}>
             <div className="p-4 pt-1">
               <ClinicDetailsForm name={clinic.name} city={clinic.city} phone={clinic.phone} />
             </div>
           </Panel>
 
-          <Panel title="Follow-up thresholds">
+          <Panel title={t("settings.panel.thresholds")}>
             <div className="p-4 pt-1">
               <RiskThresholdsForm atRiskDays={clinic.risk_at_risk_days} lostDays={clinic.risk_lost_days} />
             </div>
           </Panel>
 
-          <Panel title="Staff" count={(staff ?? []).length}>
+          <Panel title={t("settings.panel.staff")} count={(staff ?? []).length}>
             <ul>
               {(staff ?? []).map((s) => (
                 <li key={s.id} className="flex min-h-12 items-center justify-between border-t border-[var(--color-border)]/70 px-4 text-[14px]">
                   <span className="flex items-center gap-2">
                     {s.full_name}
-                    <Tag tone={s.role === "doctor" ? "info" : "neutral"}>{s.role}</Tag>
-                    {s.id === me.userId && <span className="text-[12px] text-[var(--color-charcoal)]">(you)</span>}
+                    <Tag tone={s.role === "doctor" ? "info" : "neutral"}>{s.role === "doctor" ? t("settings.role.doctor") : t("settings.role.staff")}</Tag>
+                    {s.id === me.userId && <span className="text-[12px] text-[var(--color-charcoal)]">{t("settings.staff.you")}</span>}
                   </span>
                   {s.role !== "doctor" && <RemoveStaffButton profileId={s.id} />}
                 </li>
@@ -89,23 +90,22 @@ export default async function SettingsPage() {
         </div>
 
         <div className="space-y-5">
-          <Panel title="Clinical Lead Protocol Sign-Off (FOGSI / MoHFW)">
+          <Panel title={t("settings.panel.signoff")}>
             <div className="p-4 pt-1">
               <ClinicalProtocolSignOff />
             </div>
           </Panel>
 
-          <Panel title="ANC schedule template" count={items.length}>
+          <Panel title={t("settings.panel.schedule")} count={items.length}>
             <p className="px-4 pb-2 text-[13px] text-[var(--color-charcoal)]">
-              Due-date windows in weeks of pregnancy. Applies to newly registered patients and to schedules regenerated after an LMP
-              correction.
+              {t("settings.schedule.help")}
             </p>
             <div className="px-4 pb-2">
               {items.map((item) => (
                 <ScheduleItemRow
                   key={item.id}
                   id={item.id}
-                  name={item.name}
+                  name={careEventName(item.name, t)}
                   windowStartWeek={item.window_start_week}
                   windowEndWeek={item.window_end_week}
                   isCritical={item.is_critical}
@@ -114,7 +114,7 @@ export default async function SettingsPage() {
             </div>
           </Panel>
 
-          <Panel title="Reminder message templates">
+          <Panel title={t("settings.panel.templates")}>
             <div className="p-4 pt-1">
               <MessageTemplatesForm templates={(clinic.message_templates ?? {}) as MessageTemplates} />
             </div>

@@ -82,18 +82,14 @@ export const getClinicSnapshot = cache(async () => {
       .in("status", ["due", "overdue"])
       .order("due_to"),
     supabase.from("patient_followup_risk").select("patient_id, risk, next_visit_date, no_answer_streak"),
-    supabase
-      .from("visits")
-      .select("patient_id, visit_date, bp_sys, bp_dia, hb, fhr, next_visit_date")
-      .order("visit_date", { ascending: false })
-      .order("created_at", { ascending: false })
-      .limit(5000),
+    // One row per patient (latest visit), resolved in the DB; RLS-scoped.
+    supabase.from("latest_visits").select("patient_id, visit_date, bp_sys, bp_dia, hb, fhr, next_visit_date"),
   ]);
 
   const riskBy = new Map((risks ?? []).map((r) => [r.patient_id, r]));
   const latestVisitBy = new Map<string, LatestVisit>();
   for (const v of visits ?? []) {
-    if (latestVisitBy.has(v.patient_id)) continue;
+    if (!v.patient_id || !v.visit_date) continue;
     latestVisitBy.set(v.patient_id, {
       visitDate: v.visit_date,
       bpSys: v.bp_sys,

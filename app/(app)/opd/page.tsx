@@ -4,16 +4,17 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/format";
 import { DocumentUploader } from "@/components/DocumentUploader";
 import { PageHeader, Panel, Tag, type Tone, pageBody } from "@/components/ui";
+import { getT } from "@/lib/i18n/server";
 
-const OCR_STATUS: Record<string, { label: string; tone: Tone }> = {
-  pending: { label: "Reading…", tone: "neutral" },
-  done: { label: "Text indexed", tone: "ok" },
-  failed: { label: "No text found", tone: "warning" },
-  skipped: { label: "Not processed", tone: "neutral" },
-};
+const OCR_STATUS = {
+  pending: { labelKey: "documents.ocr.pending", tone: "neutral" },
+  done: { labelKey: "documents.ocr.done", tone: "ok" },
+  failed: { labelKey: "documents.ocr.failed", tone: "warning" },
+  skipped: { labelKey: "documents.ocr.skipped", tone: "neutral" },
+} as const satisfies Record<string, { labelKey: string; tone: Tone }>;
 
 export default async function OpdRegisterPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
-  const [{ q }, me, supabase] = await Promise.all([searchParams, getCurrentUser(), createClient()]);
+  const [{ q }, me, supabase, { t, locale }] = await Promise.all([searchParams, getCurrentUser(), createClient(), getT()]);
   const searching = Boolean(q && q.trim());
 
   let query = supabase
@@ -42,18 +43,18 @@ export default async function OpdRegisterPage({ searchParams }: { searchParams: 
   return (
     <>
       <PageHeader
-        title="OPD register"
-        meta="Daily register and case-paper pages. Not tied to one patient — browse by date or search the text."
+        title={t("opd.title")}
+        meta={t("opd.meta")}
       />
       <div className={pageBody}>
-        <Panel title="Capture pages">
+        <Panel title={t("opd.capture.panel")}>
           <div className="p-4 pt-1">
             <DocumentUploader clinicId={me.clinicId} folder="opd-register" fixedDocType="register_page" showDateInput />
           </div>
         </Panel>
 
         <Panel
-          title={searching ? `Results for “${q}”` : "Register"}
+          title={searching ? t("opd.results", { query: q ?? "" }) : t("opd.panel")}
           count={list.length}
           action={
             <form action="/opd" className="flex items-center rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-background)] focus-within:border-[var(--color-primary)]">
@@ -62,8 +63,8 @@ export default async function OpdRegisterPage({ searchParams }: { searchParams: 
                 type="search"
                 name="q"
                 defaultValue={q ?? ""}
-                placeholder="Search register text"
-                aria-label="Search register text"
+                placeholder={t("opd.search.placeholder")}
+                aria-label={t("opd.search.aria")}
                 className="min-h-9 w-52 border-0 bg-transparent px-2 text-[13px] shadow-none outline-none focus:shadow-none"
               />
             </form>
@@ -71,22 +72,22 @@ export default async function OpdRegisterPage({ searchParams }: { searchParams: 
         >
           {list.length === 0 ? (
             <p className="px-3 py-8 text-center text-[13px] text-[var(--color-charcoal)]">
-              {searching ? "No pages matched." : "No register pages captured yet."}
+              {searching ? t("opd.empty.search") : t("opd.empty.none")}
             </p>
           ) : (
             [...byDate.entries()].map(([date, datePages]) => (
               <div key={date}>
                 <p className="num px-4 pb-2 pt-3 text-[13px] font-semibold">
-                  {date === "undated" ? "No date tagged" : formatDate(date)}
+                  {date === "undated" ? t("opd.undated") : formatDate(date, locale)}
                   <span className="ml-2 font-normal text-[var(--color-charcoal)]">
-                    {datePages.length} {datePages.length === 1 ? "page" : "pages"}
+                    {t("opd.pages", { count: datePages.length })}
                   </span>
                 </p>
                 <ul className="grid grid-cols-2 gap-3 px-4 pb-4 sm:grid-cols-3 xl:grid-cols-5">
                   {datePages.map((p) => {
                     const url = urlByPath.get(p.storage_path) ?? null;
                     const isImage = /\.(jpe?g|png|webp)$/i.test(p.storage_path);
-                    const status = OCR_STATUS[p.ocr_status ?? "pending"];
+                    const status = OCR_STATUS[(p.ocr_status ?? "pending") as keyof typeof OCR_STATUS] ?? OCR_STATUS.pending;
                     return (
                       <li key={p.id} className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-background)]">
                         <a href={url ?? undefined} target="_blank" rel="noreferrer" className="block hover:opacity-90">
@@ -100,7 +101,7 @@ export default async function OpdRegisterPage({ searchParams }: { searchParams: 
                           )}
                         </a>
                         <div className="p-2">
-                          <Tag tone={status.tone}>{status.label}</Tag>
+                          <Tag tone={status.tone}>{t(status.labelKey)}</Tag>
                         </div>
                       </li>
                     );
