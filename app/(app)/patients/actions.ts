@@ -63,6 +63,25 @@ export async function createPatient(_prev: ActionResult, formData: FormData): Pr
   const cookieStore = await cookies();
   const isDemo = isDemoActive(cookieStore);
 
+  // Parse questionnaire if present
+  let questionnaireData: import("@/lib/obstetricQuestionnaire").ObstetricQuestionnaireData | undefined;
+  if (raw.q_previousDeliveryMode) {
+    try {
+      questionnaireData = {
+        previousDeliveryMode: (String(raw.q_previousDeliveryMode || "Primi") as import("@/lib/obstetricQuestionnaire").ObstetricQuestionnaireData["previousDeliveryMode"]),
+        priorComplications: raw.q_priorComplications ? JSON.parse(String(raw.q_priorComplications)) : ["none"],
+        pastPregnancyLoss: (String(raw.q_pastPregnancyLoss || "0") as import("@/lib/obstetricQuestionnaire").ObstetricQuestionnaireData["pastPregnancyLoss"]),
+        pastBirthWeight: (String(raw.q_pastBirthWeight || "na") as import("@/lib/obstetricQuestionnaire").ObstetricQuestionnaireData["pastBirthWeight"]),
+        interpregnancyInterval: (String(raw.q_interpregnancyInterval || "na") as import("@/lib/obstetricQuestionnaire").ObstetricQuestionnaireData["interpregnancyInterval"]),
+        familyComplications: raw.q_familyComplications ? JSON.parse(String(raw.q_familyComplications)) : ["none"],
+        chronicConditions: raw.q_chronicConditions ? JSON.parse(String(raw.q_chronicConditions)) : ["none"],
+        doctorNotes: raw.q_doctorNotes ? String(raw.q_doctorNotes) : "",
+      };
+    } catch {
+      // fallback to undefined
+    }
+  }
+
   if (isDemo) {
     const newId = addDemoPatient({
       name: input.name,
@@ -76,6 +95,7 @@ export async function createPatient(_prev: ActionResult, formData: FormData): Pr
       bloodGroup: input.bloodGroup || null,
       rhNegative: input.rhNegative,
       lmp: input.lmp,
+      obstetricQuestionnaire: questionnaireData,
     });
 
     revalidatePath("/patients");

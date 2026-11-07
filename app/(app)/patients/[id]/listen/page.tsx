@@ -33,7 +33,7 @@ export default async function PatientListenPage({
   if (isDemo) {
     const demo = getDemoPatientDetail(id);
     if (!demo) notFound();
-    patient = demo.patient as PatientRecord;
+    patient = demo.patient as unknown as PatientRecord;
     visits = demo.visits.map((v) => ({
       id: v.id,
       patient_id: v.patient_id,

@@ -41,6 +41,7 @@ export interface DemoPatientRaw {
   overdueEvents?: { name: string; kind: string; daysOverdue: number }[];
   dueEvents?: { name: string; kind: string; dueInDays: number }[];
   createdAt?: string;
+  obstetricQuestionnaire?: import("@/lib/obstetricQuestionnaire").ObstetricQuestionnaireData;
 }
 
 export interface DemoVisitRecord {
@@ -558,6 +559,7 @@ function computeDemoPatientDetail(id: string, today: Date, todayIso: string) {
       closed_at: patientRaw.closedAt || null,
       closed_by: patientRaw.closedBy || null,
       created_at: patientRaw.createdAt ?? "2026-05-01T10:00:00Z",
+      obstetricQuestionnaire: patientRaw.obstetricQuestionnaire || null,
       updated_at: new Date().toISOString(),
     },
     careEvents: isDeliveredOrClosed
@@ -701,6 +703,7 @@ export function addDemoPatient(data: {
   rhNegative: boolean;
   lmp: string;
   edd?: string | null;
+  obstetricQuestionnaire?: import("@/lib/obstetricQuestionnaire").ObstetricQuestionnaireData;
 }): string {
   const store = getDemoStore();
   const today = todayInClinicTimezone();
@@ -735,6 +738,7 @@ export function addDemoPatient(data: {
     status: "active",
     pregnancyStatus: "active",
     createdAt: new Date().toISOString(),
+    obstetricQuestionnaire: data.obstetricQuestionnaire,
     latestVisit: {
       daysAgo: 0,
       bpSys: 120,

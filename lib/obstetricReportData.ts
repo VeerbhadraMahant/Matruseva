@@ -1,3 +1,4 @@
+import { questionnaireToObstetricReport } from "@/lib/obstetricQuestionnaire";
 /**
  * Obstetric Clinical History & Diagnostic Sonography Reports
  * Standardized for Indian Antenatal Care (PMSMA, FOGSI, WHO guidelines).
@@ -432,10 +433,41 @@ export const DEMO_OBSTETRIC_RECORDS: Record<
  * Returns comprehensive obstetric history and diagnostic scan data for any patient.
  * Generates tailored clinical records for custom patients based on Gravida/Para.
  */
-export function getPatientObstetricData(patientId: string, patientName: string, gravida = 1, para = 0, rhNegative = false) {
-  if (DEMO_OBSTETRIC_RECORDS[patientId]) {
-    return DEMO_OBSTETRIC_RECORDS[patientId];
+export interface PatientObstetricDataResult {
+  pastHistory: PastObstetricHistory;
+  familyHistory: FamilyPregnancyHistory;
+  scans: DiagnosticScanReport[];
+}
+
+export function getPatientObstetricData(
+  patientId: string,
+  patientName: string,
+  gravida = 1,
+  para = 0,
+  rhNegative = false,
+  questionnaire?: import("@/lib/obstetricQuestionnaire").ObstetricQuestionnaireData | null
+): PatientObstetricDataResult {
+  const baseData = DEMO_OBSTETRIC_RECORDS[patientId] || generateDefaultObstetricData(patientId, patientName, gravida, para, rhNegative);
+
+  if (questionnaire) {
+    const { pastHistory, familyHistory } = questionnaireToObstetricReport(questionnaire, gravida, para);
+    return {
+      pastHistory,
+      familyHistory,
+      scans: baseData.scans,
+    };
   }
+
+  return baseData;
+}
+
+function generateDefaultObstetricData(
+  patientId: string,
+  patientName: string,
+  gravida = 1,
+  para = 0,
+  rhNegative = false
+): PatientObstetricDataResult {
 
   // Derive customized medical history for any dynamically registered patient
   const isPrimi = gravida <= 1 && para === 0;

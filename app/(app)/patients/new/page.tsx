@@ -5,6 +5,7 @@ import { createPatient, type ActionResult } from "../actions";
 import { SubmitButton } from "@/components/SubmitButton";
 import { PageHeader, card, pageBody } from "@/components/ui";
 import { eddFromLmp, formatGALocalized, gestationalAge, trimester } from "@/lib/pregnancy";
+import { ObstetricQuestionnaireFields } from "@/components/ObstetricQuestionnaireFields";
 import { useLocale, useT } from "@/lib/i18n/provider";
 import { intlLocale } from "@/lib/i18n/intl";
 
@@ -108,6 +109,9 @@ export default function NewPatientPage() {
             {t("patients.new.rhNegative")}
           </label>
         </Section>
+
+        {/* 7 Essential Past Pregnancy Clinical History Questions */}
+        <ObstetricQuestionnaireFields />
 
         <Section title={t("patients.new.sectionDating")}>
           <Field id="lmp" label={t("patients.new.lmp")} className="col-span-2 sm:col-span-2">

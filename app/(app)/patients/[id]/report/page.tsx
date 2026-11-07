@@ -41,7 +41,7 @@ export default async function PatientReportPage({ params }: { params: Promise<{ 
   if (isDemo) {
     const demo = getDemoPatientDetail(id);
     if (!demo) notFound();
-    patient = demo.patient as PatientRecord;
+    patient = demo.patient as unknown as PatientRecord;
     careEvents = demo.careEvents as CareEventRecord[];
     visits = demo.visits.map((v) => ({
       id: v.id,
@@ -112,12 +112,16 @@ export default async function PatientReportPage({ params }: { params: Promise<{ 
     }),
   ]);
 
+  const demoPatientObj = isDemo ? (patient as unknown as { obstetricQuestionnaire?: import("@/lib/obstetricQuestionnaire").ObstetricQuestionnaireData }) : null;
+  const patientQuestionnaire = demoPatientObj?.obstetricQuestionnaire || null;
+
   const { pastHistory, familyHistory, scans } = getPatientObstetricData(
     patient.id,
     patient.name,
     patient.gravida ?? 1,
     patient.para ?? 0,
-    patient.rh_negative
+    patient.rh_negative,
+    patientQuestionnaire
   );
 
   const formattedVisits = visits.map((v, idx) => {
