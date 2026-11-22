@@ -132,6 +132,7 @@ export async function createPatient(_prev: ActionResult, formData: FormData): Pr
         edd: calculatedEdd,
         edd_source: "lmp",
         created_by: me.userId,
+        obstetric_questionnaire: questionnaireData as unknown as import("@/lib/supabase/types").Json,
       })
       .select("id")
       .single();

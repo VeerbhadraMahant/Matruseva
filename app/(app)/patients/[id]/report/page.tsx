@@ -112,8 +112,11 @@ export default async function PatientReportPage({ params }: { params: Promise<{ 
     }),
   ]);
 
-  const demoPatientObj = isDemo ? (patient as unknown as { obstetricQuestionnaire?: import("@/lib/obstetricQuestionnaire").ObstetricQuestionnaireData }) : null;
-  const patientQuestionnaire = demoPatientObj?.obstetricQuestionnaire || null;
+  const patientQuestionnaire = (
+    isDemo
+      ? (patient as unknown as { obstetricQuestionnaire?: import("@/lib/obstetricQuestionnaire").ObstetricQuestionnaireData })?.obstetricQuestionnaire
+      : (patient as unknown as { obstetric_questionnaire?: import("@/lib/obstetricQuestionnaire").ObstetricQuestionnaireData })?.obstetric_questionnaire
+  ) || null;
 
   const { pastHistory, familyHistory, scans } = getPatientObstetricData(
     patient.id,

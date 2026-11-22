@@ -57,10 +57,14 @@ export function questionnaireToObstetricReport(
     Instrumental: "Assisted (Forceps/Vacuum)",
   };
 
-  const hasPreeclampsia = q.priorComplications.includes("preeclampsia");
-  const hasGDM = q.priorComplications.includes("gdm");
-  const hasPPH = q.priorComplications.includes("pph");
-  const hasPreterm = q.priorComplications.includes("preterm");
+  const prior = q.priorComplications ?? [];
+  const family = q.familyComplications ?? [];
+  const chronic = q.chronicConditions ?? [];
+
+  const hasPreeclampsia = prior.includes("preeclampsia");
+  const hasGDM = prior.includes("gdm");
+  const hasPPH = prior.includes("pph");
+  const hasPreterm = prior.includes("preterm");
 
   const miscarriages = q.pastPregnancyLoss === "1" ? 1 : q.pastPregnancyLoss === "2+" ? 2 : 0;
   const stillbirths = q.pastPregnancyLoss === "stillbirth" ? 1 : 0;
@@ -77,16 +81,16 @@ export function questionnaireToObstetricReport(
   if (q.interpregnancyInterval === "<18m" && q.previousDeliveryMode === "LSCS") {
     derivedRiskFlags.push("Short Interpregnancy Interval (<18m) post-LSCS");
   }
-  if (q.chronicConditions.includes("hypertension")) derivedRiskFlags.push("Chronic Pre-existing Hypertension");
-  if (q.chronicConditions.includes("thyroid")) derivedRiskFlags.push("Maternal Thyroid Disorder");
-  if (q.chronicConditions.includes("cardiac")) derivedRiskFlags.push("Heart Disease in Pregnancy (High Risk)");
+  if (chronic.includes("hypertension")) derivedRiskFlags.push("Chronic Pre-existing Hypertension");
+  if (chronic.includes("thyroid")) derivedRiskFlags.push("Maternal Thyroid Disorder");
+  if (chronic.includes("cardiac")) derivedRiskFlags.push("Heart Disease in Pregnancy (High Risk)");
 
   let pastNotes = isPrimi
     ? "Primigravida. No past obstetric interventions or surgical scars on the uterus."
     : `Multigravida (G${gravida}P${para}). Previous delivery: ${q.previousDeliveryMode}.`;
 
-  if (q.priorComplications.length > 0 && !q.priorComplications.includes("none")) {
-    pastNotes += ` Prior complications noted: ${q.priorComplications.join(", ").toUpperCase()}.`;
+  if (prior.length > 0 && !prior.includes("none")) {
+    pastNotes += ` Prior complications noted: ${prior.join(", ").toUpperCase()}.`;
   }
   if (q.doctorNotes?.trim()) {
     pastNotes += ` Clinician Note: ${q.doctorNotes.trim()}`;
@@ -105,15 +109,15 @@ export function questionnaireToObstetricReport(
   };
 
   const familyHistory: FamilyPregnancyHistory = {
-    familyPreEclampsia: q.familyComplications.includes("preeclampsia"),
-    familyDiabetes: q.familyComplications.includes("diabetes"),
-    familyTwins: q.familyComplications.includes("twins"),
-    familyGeneticAnomalies: q.familyComplications.includes("anemia"),
-    familyHypertension: q.familyComplications.includes("preeclampsia"),
+    familyPreEclampsia: family.includes("preeclampsia"),
+    familyDiabetes: family.includes("diabetes"),
+    familyTwins: family.includes("twins"),
+    familyGeneticAnomalies: family.includes("anemia") || family.includes("genetic"),
+    familyHypertension: family.includes("hypertension") || family.includes("preeclampsia"),
     notes:
-      q.familyComplications.length === 0 || q.familyComplications.includes("none")
+      family.length === 0 || family.includes("none")
         ? "No reported first-degree family history of severe preeclampsia, eclampsia, early onset diabetes, or recurrent pregnancy loss."
-        : `Reported familial risk factors: ${q.familyComplications.map((c) => c.toUpperCase()).join(", ")}. Closer surveillance advised.`,
+        : `Reported familial risk factors: ${family.map((c) => c.toUpperCase()).join(", ")}. Closer surveillance advised.`,
   };
 
   return { pastHistory, familyHistory, derivedRiskFlags };

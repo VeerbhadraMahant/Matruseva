@@ -70,11 +70,26 @@ export interface DemoContactRecord {
   client_request_id?: string;
 }
 
+export interface DemoDocumentRecord {
+  id: string;
+  clinic_id: string;
+  doc_type: string;
+  doc_date: string | null;
+  source: string;
+  storage_path: string;
+  ocr_status: "pending" | "done" | "failed" | "skipped";
+  ocr_text: string | null;
+  created_at: string;
+  patient_id: string | null;
+  data_url?: string | null;
+}
+
 export interface DemoStoreState {
   patients: DemoPatientRaw[];
   completedEvents: Record<string, string[]>;
   visits: Record<string, DemoVisitRecord[]>;
   contacts: Record<string, DemoContactRecord[]>;
+  documents: DemoDocumentRecord[];
 }
 
 const STORE_FILE_PATH = path.join(process.cwd(), ".matrusetu-demo-store.json");
@@ -270,12 +285,52 @@ const INITIAL_RAW_DEMO_PATIENTS: DemoPatientRaw[] = [
   },
 ];
 
+export const INITIAL_DEMO_DOCUMENTS: DemoDocumentRecord[] = [
+  {
+    id: "doc-demo-1",
+    clinic_id: "demo-clinic-id",
+    doc_type: "scan",
+    doc_date: "2026-09-15",
+    source: "camera",
+    storage_path: "demo/inbox/doc-demo-1.jpg",
+    ocr_status: "done",
+    ocr_text: "OBSTETRIC ULTRASOUND REPORT\nPatient: Pooja Deshmukh | GA: 20w 4d\nSingle intrauterine gestation. FHR: 146 bpm. Placenta: Posterior. No gross anomalies detected.",
+    created_at: new Date(Date.now() - 3600000 * 24 * 2).toISOString(),
+    patient_id: null,
+  },
+  {
+    id: "doc-demo-2",
+    clinic_id: "demo-clinic-id",
+    doc_type: "report",
+    doc_date: "2026-09-18",
+    source: "whatsapp",
+    storage_path: "demo/inbox/doc-demo-2.jpg",
+    ocr_status: "done",
+    ocr_text: "PATHOLOGY LAB REPORT\nHemoglobin: 9.8 g/dL (Mild Anemia)\nBlood Group: B Rh Positive\nBlood Sugar (Random): 112 mg/dL\nUrine Routine: Albumin Nil",
+    created_at: new Date(Date.now() - 3600000 * 12).toISOString(),
+    patient_id: null,
+  },
+  {
+    id: "doc-demo-3",
+    clinic_id: "demo-clinic-id",
+    doc_type: "register_page",
+    doc_date: "2026-09-20",
+    source: "camera",
+    storage_path: "demo/opd-register/doc-demo-3.jpg",
+    ocr_status: "done",
+    ocr_text: "OPD REGISTER - MATRUSETU CLINIC\nDate: 2026-09-20\n1. Sunita Verma - ANC Checkup - BP 110/70 - Hb 11.2\n2. Kavita Shinde - ANC 34w - Normal\n3. Rekha Patil - First Trimester Intake",
+    created_at: new Date(Date.now() - 3600000 * 6).toISOString(),
+    patient_id: null,
+  },
+];
+
 function initFreshStore(): DemoStoreState {
   return {
     patients: JSON.parse(JSON.stringify(INITIAL_RAW_DEMO_PATIENTS)),
     completedEvents: {},
     visits: {},
     contacts: {},
+    documents: JSON.parse(JSON.stringify(INITIAL_DEMO_DOCUMENTS)),
   };
 }
 
@@ -289,6 +344,9 @@ export function getDemoStore(): DemoStoreState {
       const data = fs.readFileSync(STORE_FILE_PATH, "utf8");
       const parsed = JSON.parse(data) as DemoStoreState;
       if (parsed && Array.isArray(parsed.patients)) {
+        if (!Array.isArray(parsed.documents)) {
+          parsed.documents = JSON.parse(JSON.stringify(INITIAL_DEMO_DOCUMENTS));
+        }
         globalThis.__matrusetu_demo_store__ = parsed;
         return parsed;
       }
@@ -876,4 +934,84 @@ export function getDemoContacts(): { patientId: string; channel: string; outcome
     }
   }
   return all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+
+export function getDemoDocuments(docType?: string, search?: string) {
+  const store = getDemoStore();
+  const q = search?.trim().toLowerCase();
+  return (store.documents ?? [])
+    .filter((d) => {
+      if (docType && d.doc_type !== docType) return false;
+      if (q) {
+        const text = (d.ocr_text ?? "").toLowerCase();
+        const type = (d.doc_type ?? "").toLowerCase();
+        const src = (d.source ?? "").toLowerCase();
+        if (!text.includes(q) && !type.includes(q) && !src.includes(q)) return false;
+      }
+      return true;
+    })
+    .map((d) => {
+      const patient = d.patient_id ? store.patients.find((p) => p.id === d.patient_id) : null;
+      return {
+        ...d,
+        patients: patient ? { name: patient.name } : null,
+      };
+    });
+}
+
+export function addDemoDocument(data: {
+  clinicId?: string;
+  folder?: string;
+  docType?: string;
+  docDate?: string | null;
+  source?: string;
+  storagePath?: string;
+  dataUrl?: string | null;
+  ocrText?: string | null;
+  ocrStatus?: "pending" | "done" | "failed" | "skipped";
+}): DemoDocumentRecord {
+  const store = getDemoStore();
+  if (!store.documents) store.documents = [];
+  const id = `doc-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  const doc: DemoDocumentRecord = {
+    id,
+    clinic_id: data.clinicId ?? "demo-clinic-id",
+    doc_type: data.docType ?? "other",
+    doc_date: data.docDate || null,
+    source: data.source ?? "camera",
+    storage_path: data.storagePath ?? `demo/${data.folder ?? "inbox"}/${id}.jpg`,
+    ocr_status: data.ocrStatus ?? (data.ocrText ? "done" : "skipped"),
+    ocr_text: data.ocrText || null,
+    created_at: new Date().toISOString(),
+    patient_id: null,
+    data_url: data.dataUrl || null,
+  };
+  store.documents.unshift(doc);
+  saveDemoStore(store);
+  return doc;
+}
+
+export function assignDemoDocument(
+  documentId: string,
+  patientId: string,
+  docType?: string,
+  docDate?: string | null,
+  careEventId?: string | null
+): boolean {
+  const store = getDemoStore();
+  if (!store.documents) return false;
+  const doc = store.documents.find((d) => d.id === documentId);
+  if (!doc) return false;
+
+  doc.patient_id = patientId;
+  if (docType) doc.doc_type = docType;
+  if (docDate) doc.doc_date = docDate;
+
+  if (careEventId) {
+    markDemoCareEventDone(careEventId, patientId);
+  }
+
+  saveDemoStore(store);
+  invalidateDemoCache();
+  return true;
 }

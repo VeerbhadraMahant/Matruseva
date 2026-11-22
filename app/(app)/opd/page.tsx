@@ -5,6 +5,7 @@ import { formatDate } from "@/lib/format";
 import { DocumentUploader } from "@/components/DocumentUploader";
 import { PageHeader, Panel, Tag, type Tone, pageBody } from "@/components/ui";
 import { getT } from "@/lib/i18n/server";
+import { getDemoDocuments } from "@/lib/demo-data";
 
 const OCR_STATUS = {
   pending: { labelKey: "documents.ocr.pending", tone: "neutral" },
@@ -29,7 +30,7 @@ export default async function OpdRegisterPage({ searchParams }: { searchParams: 
   if (query && searching) query = query.textSearch("search", q!, { type: "websearch", config: "simple" });
 
   const { data: pages } = query ? await query : { data: null };
-  const list = pages ?? [];
+  const list = me.isDemo ? getDemoDocuments("register_page", q) : (pages ?? []);
   const { data: signed } = supabase && list.length
     ? await supabase.storage.from("documents").createSignedUrls(list.map((p) => p.storage_path), 300)
     : { data: [] };
@@ -51,7 +52,7 @@ export default async function OpdRegisterPage({ searchParams }: { searchParams: 
       <div className={pageBody}>
         <Panel title={t("opd.capture.panel")}>
           <div className="p-4 pt-1">
-            <DocumentUploader clinicId={me.clinicId} folder="opd-register" fixedDocType="register_page" showDateInput />
+            <DocumentUploader clinicId={me.clinicId} folder="opd-register" fixedDocType="register_page" showDateInput isDemo={me.isDemo} />
           </div>
         </Panel>
 
@@ -87,7 +88,7 @@ export default async function OpdRegisterPage({ searchParams }: { searchParams: 
                 </p>
                 <ul className="grid grid-cols-2 gap-3 px-4 pb-4 sm:grid-cols-3 xl:grid-cols-5">
                   {datePages.map((p) => {
-                    const url = urlByPath.get(p.storage_path) ?? null;
+                    const url = me.isDemo ? ((p as { data_url?: string | null }).data_url ?? null) : (urlByPath.get(p.storage_path) ?? null);
                     const isImage = /\.(jpe?g|png|webp)$/i.test(p.storage_path);
                     const status = OCR_STATUS[(p.ocr_status ?? "pending") as keyof typeof OCR_STATUS] ?? OCR_STATUS.pending;
                     return (

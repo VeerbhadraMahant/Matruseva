@@ -5,6 +5,9 @@ import {
   markDemoCareEventDone,
   recordDemoVisit,
   logDemoContact,
+  getDemoDocuments,
+  addDemoDocument,
+  assignDemoDocument,
 } from "./demo-data";
 
 describe("Demo Data Operations (Zero-Fetch Local Evaluation)", () => {
@@ -81,5 +84,27 @@ describe("Demo Data Operations (Zero-Fetch Local Evaluation)", () => {
     const detail = getDemoPatientDetail(newId);
     expect(detail?.contacts.length).toBeGreaterThanOrEqual(1);
     expect(detail?.contacts[0].outcome).toBe("reached");
+  });
+
+  it("adds, searches, and assigns demo documents to patients", () => {
+    const doc = addDemoDocument({
+      docType: "scan",
+      source: "camera",
+      ocrText: "Test Ultrasound Scan Report Normal Placenta",
+      ocrStatus: "done",
+    });
+
+    expect(doc.id).toBeDefined();
+    expect(doc.doc_type).toBe("scan");
+
+    const found = getDemoDocuments(undefined, "ultrasound");
+    expect(found.some((d) => d.id === doc.id)).toBe(true);
+
+    const assigned = assignDemoDocument(doc.id, "p1-pooja-deshmukh", "scan", "2026-09-22", "ce-p1-overdue-1");
+    expect(assigned).toBe(true);
+
+    const updated = getDemoDocuments().find((d) => d.id === doc.id);
+    expect(updated?.patient_id).toBe("p1-pooja-deshmukh");
+    expect(updated?.patients?.name).toBe("Pooja Deshmukh");
   });
 });

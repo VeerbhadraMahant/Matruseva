@@ -336,6 +336,7 @@ export type Database = {
           id: string
           lmp: string | null
           name: string
+          obstetric_questionnaire: Json | null
           para: number | null
           phone: string | null
           pregnancy_status: string
@@ -364,6 +365,7 @@ export type Database = {
           id?: string
           lmp?: string | null
           name: string
+          obstetric_questionnaire?: Json | null
           para?: number | null
           phone?: string | null
           pregnancy_status?: string
@@ -392,6 +394,7 @@ export type Database = {
           id?: string
           lmp?: string | null
           name?: string
+          obstetric_questionnaire?: Json | null
           para?: number | null
           phone?: string | null
           pregnancy_status?: string

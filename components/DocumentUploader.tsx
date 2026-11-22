@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { preprocessImage, recognizeImage, extractPdfText } from "@/lib/ocr";
 import type { DocSource, DocType } from "@/lib/supabase/enums";
 import { useT } from "@/lib/i18n/provider";
+import { uploadDemoDocumentAction } from "@/app/(app)/documents/actions";
 
 interface UploadItem {
   fileName: string;
@@ -19,6 +20,15 @@ function extOf(file: File): string {
   return file.type === "application/pdf" ? "pdf" : "jpg";
 }
 
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve((reader.result as string) || "");
+    reader.onerror = () => resolve("");
+    reader.readAsDataURL(blob);
+  });
+}
+
 interface DocumentUploaderProps {
   clinicId: string;
   /** e.g. "inbox" or "opd-register" — the second segment of the storage path. */
@@ -27,6 +37,8 @@ interface DocumentUploaderProps {
   fixedDocType?: DocType;
   /** When true, shows a date field applied to every file in the batch (OPD register pages). */
   showDateInput?: boolean;
+  /** When true, stores files locally in the demo store without hitting Supabase. */
+  isDemo?: boolean;
 }
 
 export function DocumentUploader({
@@ -34,6 +46,7 @@ export function DocumentUploader({
   folder = "inbox",
   fixedDocType,
   showDateInput = false,
+  isDemo = false,
 }: DocumentUploaderProps) {
   const t = useT();
   const router = useRouter();
@@ -57,6 +70,33 @@ export function DocumentUploader({
       try {
         const isPdf = file.type === "application/pdf";
         const uploadBlob = isPdf ? file : await preprocessImage(file);
+
+        if (isDemo) {
+          setStatus("ocr");
+          let text = "";
+          try {
+            text = isPdf ? await extractPdfText(file) : await recognizeImage(uploadBlob);
+          } catch {
+            // OCR failure shouldn't block the upload
+          }
+
+          const dataUrl = isPdf ? "" : await blobToDataUrl(uploadBlob);
+          const res = await uploadDemoDocumentAction({
+            clinicId,
+            folder,
+            fixedDocType,
+            docDate,
+            source: isPdf ? "pdf" : source,
+            fileName: file.name,
+            dataUrl,
+            ocrText: text,
+          });
+
+          if (res.error) throw new Error(res.error);
+          setStatus("done");
+          continue;
+        }
+
         const path = `${clinicId}/${folder}/${crypto.randomUUID()}.${extOf(file)}`;
 
         const { error: uploadError } = await supabase.storage.from("documents").upload(path, uploadBlob, {

@@ -45,11 +45,13 @@ export async function markCareEventDone(careEventId: string, patientId: string):
   }
 
   try {
-    const supabase = await createClient();
+    const [supabase, me] = await Promise.all([createClient(), getCurrentUser()]);
     const { error } = await supabase
       .from("care_events")
       .update({ completed_at: new Date().toISOString() })
-      .eq("id", careEventId);
+      .eq("id", careEventId)
+      .eq("patient_id", patientId)
+      .eq("clinic_id", me.clinicId);
 
     if (error) return { error: error.message };
 
