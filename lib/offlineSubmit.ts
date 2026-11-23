@@ -7,6 +7,7 @@ import {
   pickPayload,
 } from "@/lib/offlineQueue";
 import { offlineT } from "@/lib/offlineI18n";
+import { createUuid } from "@/lib/uuid";
 
 export interface SubmitResult {
   error: string | null;
@@ -36,7 +37,7 @@ interface Options {
  * user sees it, exactly as before.
  */
 export async function submitOrQueue(o: Options): Promise<SubmitResult> {
-  const id = (o.uuid ?? (() => crypto.randomUUID()))();
+  const id = (o.uuid ?? createUuid)();
   const online = (o.isOnline ?? (() => typeof navigator === "undefined" || navigator.onLine !== false))();
 
   const queueIt = async (): Promise<SubmitResult> => {

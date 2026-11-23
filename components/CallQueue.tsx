@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useDeferredValue, useMemo, useState, useRef, useTransition } from "react";
+import { memo, useCallback, useMemo, useState, useRef, useTransition } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import {
@@ -22,7 +22,7 @@ import { logBatchContacts } from "@/app/(app)/calls/actions";
 import { submitQuickContact } from "@/components/offlineActions";
 import { PAGE_SIZE, nextLimit, remainingCount } from "@/lib/paging";
 import type { ClinicalFlag } from "@/lib/clinical";
-import type { ContactOutcome } from "@/lib/supabase/enums";
+import type { ContactOutcome, FollowUpRisk } from "@/lib/supabase/enums";
 import { useT } from "@/lib/i18n/provider";
 import type { Translator } from "@/lib/i18n/translate-client";
 import { careEventName } from "@/lib/clinicalLabels";
@@ -45,6 +45,7 @@ export interface CallRow {
   phone: string | null;
   gaLabel: string | null;
   reason: ReminderReason;
+  risk: FollowUpRisk;
   overdueItems: string[];
   overdueDays: number;
   flags: ClinicalFlag[];
@@ -65,7 +66,7 @@ const FILTERS: { id: CallFilter; labelKey: MsgKey; test: (r: CallRow) => boolean
   { id: "all", labelKey: "calls.filter.all", test: () => true },
   { id: "pending", labelKey: "calls.filter.pending", test: (r) => r.lastContact?.daysAgo !== 0 },
   { id: "overdue", labelKey: "calls.filter.overdue", test: (r) => r.overdueItems.length > 0 },
-  { id: "at_risk", labelKey: "calls.filter.atRisk", test: (r) => r.reason === "at_risk" },
+  { id: "at_risk", labelKey: "calls.filter.atRisk", test: (r) => r.risk === "at_risk" },
   { id: "lost", labelKey: "calls.filter.lost", test: (r) => r.reason === "lost" },
 ];
 
@@ -108,19 +109,14 @@ export function CallQueue({
   const [logStatusMessage, setLogStatusMessage] = useState<string | null>(null);
 
   const counts = useMemo(() => Object.fromEntries(FILTERS.map((f) => [f.id, rows.filter(f.test).length])), [rows]);
-  // Chips stay instant; the (full) filtered list follows the deferred filter.
-  const deferredFilter = useDeferredValue(filter);
-  const isStale = deferredFilter !== filter;
   const visible = useMemo(() => {
-    const activeFilter = FILTERS.find((f) => f.id === deferredFilter);
+    const activeFilter = FILTERS.find((f) => f.id === filter);
     return rows.filter(activeFilter ? activeFilter.test : () => true);
-  }, [rows, deferredFilter]);
+  }, [rows, filter]);
 
   // Incremental rendering: only the first `limit` rows are mounted. Selection,
   // select-all and counts keep operating on the FULL `visible` set.
-  const [limitState, setLimitState] = useState({ key: "", limit: PAGE_SIZE });
-  if (limitState.key !== deferredFilter) setLimitState({ key: deferredFilter, limit: PAGE_SIZE });
-  const limit = limitState.key === deferredFilter ? limitState.limit : PAGE_SIZE;
+  const [limit, setLimit] = useState(PAGE_SIZE);
   const shown = useMemo(() => visible.slice(0, limit), [visible, limit]);
   const remaining = remainingCount(visible.length, limit);
 
@@ -142,7 +138,10 @@ export function CallQueue({
   };
 
   // Batch contact logging state
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selection, setSelection] = useState<Set<string>>(new Set());
+  const selectedIds = useMemo(() => visible.filter((r) => selection.has(r.id)).map((r) => r.id), [visible, selection]);
+  const allSelected = visible.length > 0 && selectedIds.length === visible.length;
+  const partiallySelected = selectedIds.length > 0 && !allSelected;
   const [batchOutcome, setBatchOutcome] = useState<ContactOutcome | "automated_reminder">("no_answer");
   const [batchNotes, setBatchNotes] = useState("");
   const [showBatchConfirm, setShowBatchConfirm] = useState(false);
@@ -150,13 +149,13 @@ export function CallQueue({
   const [isBatchPending, startBatchTransition] = useTransition();
 
   const toggleSelect = useCallback((id: string) => {
-    setSelectedIds((prev) => {
+    setSelection((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
-  }, [setSelectedIds]);
+  }, [setSelection]);
 
   const triggerCall = useCallback((r: CallRow) => {
     if (r.tel) window.location.href = r.tel;
@@ -177,14 +176,11 @@ export function CallQueue({
 
   const triggerBot = useCallback((id: string) => setSimulatorPatientId(id), []);
 
-  const toggleSelectAll = () => {
-    if (visible.length === 0) return;
-    const allSelected = visible.every((r) => selectedIds.has(r.id));
-    if (allSelected) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(visible.map((r) => r.id)));
-    }
+  const changeFilter = (next: CallFilter) => {
+    if (next === filter) return;
+    setFilter(next);
+    setLimit(PAGE_SIZE);
+    setSelection(new Set());
   };
 
   const getBatchOutcomeLabel = (out: ContactOutcome | "automated_reminder") => {
@@ -194,8 +190,8 @@ export function CallQueue({
   };
 
   const handleBatchSubmit = () => {
-    if (selectedIds.size === 0) return;
-    const ids = Array.from(selectedIds);
+    if (selectedIds.length === 0) return;
+    const ids = selectedIds;
     const outcomeToLog: ContactOutcome = batchOutcome === "automated_reminder" ? "reached" : batchOutcome;
     const finalNotes =
       batchOutcome === "automated_reminder"
@@ -203,7 +199,7 @@ export function CallQueue({
         : (batchNotes.trim() || undefined);
 
     startBatchTransition(async () => {
-      const res = await logBatchContacts(ids, outcomeToLog, finalNotes);
+      const res = await logBatchContacts(ids, outcomeToLog, finalNotes, batchOutcome === "automated_reminder" ? "whatsapp" : "call");
       setShowBatchConfirm(false);
       if (res.error) {
         setBatchToast({ message: res.error, type: "error" });
@@ -213,7 +209,7 @@ export function CallQueue({
           message: `${t("calls.batch.logged", { count: res.loggedCount })}${skippedMsg}`,
           type: "success",
         });
-        setSelectedIds(new Set());
+        setSelection(new Set());
         setBatchNotes("");
         setTimeout(() => setBatchToast(null), 4000);
       }
@@ -226,14 +222,13 @@ export function CallQueue({
         {/* Filter and Language Toolbar */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-border)] p-4">
           {/* Worklist Filter Tabs */}
-          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-0.5 lg:mx-0 lg:px-0" role="tablist" aria-label={t("calls.filter.aria")}>
+          <div className="flex flex-wrap gap-2" role="group" aria-label={t("calls.filter.aria")}>
             {FILTERS.map((f) => (
               <button
                 key={f.id}
                 type="button"
-                role="tab"
-                aria-selected={filter === f.id}
-                onClick={() => setFilter(f.id)}
+                aria-pressed={filter === f.id}
+                onClick={() => changeFilter(f.id)}
                 className={chipClass(filter === f.id)}
               >
                 {t(f.labelKey)} <span className={chipCountClass(filter === f.id)}>{counts[f.id]}</span>
@@ -245,8 +240,9 @@ export function CallQueue({
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
-              onClick={() => setSimulatorPatientId(visible[0]?.id || rows[0]?.id || null)}
-              className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-background)] px-3.5 text-[13px] font-medium text-[var(--color-foreground)] transition-colors hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
+              disabled={visible.length === 0}
+              onClick={() => setSimulatorPatientId(visible[0].id)}
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-background)] px-3.5 text-[13px] font-medium text-[var(--color-foreground)] transition-colors enabled:hover:border-[var(--color-primary)] enabled:hover:text-[var(--color-primary)] disabled:opacity-50"
               title={t("calls.toolbar.botTitle")}
             >
               <Robot size={15} weight="bold" />
@@ -254,7 +250,7 @@ export function CallQueue({
             </button>
 
             {/* WhatsApp Language Switcher */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t("calls.toolbar.language")}>
               <span className="flex items-center gap-1 text-[12px] font-medium text-[var(--color-charcoal)]">
                 <Translate size={14} className="text-[var(--color-primary)]" />
                 <span>{t("calls.toolbar.language")}</span>
@@ -322,17 +318,13 @@ export function CallQueue({
         {/* Batch Selection Header Toolbar */}
         {visible.length > 0 && (
           <div className="flex items-center justify-between px-4 py-2.5 bg-[var(--color-surface-1)] border-b border-[var(--color-border)] text-[13px] text-[var(--color-charcoal)]">
-            <label className="flex items-center gap-2 cursor-pointer font-medium text-[var(--color-foreground)] select-none">
+            <label className="flex min-h-10 items-center gap-2 cursor-pointer font-medium text-[var(--color-foreground)] select-none">
               <input
                 type="checkbox"
-                checked={visible.length > 0 && visible.every((r) => selectedIds.has(r.id))}
-                onChange={toggleSelectAll}
+                checked={allSelected}
+                onChange={(event) => setSelection(new Set(event.currentTarget.checked ? visible.map((r) => r.id) : []))}
                 ref={(el) => {
-                  if (el) {
-                    const someSelected = visible.some((r) => selectedIds.has(r.id));
-                    const allSelected = visible.every((r) => selectedIds.has(r.id));
-                    el.indeterminate = someSelected && !allSelected;
-                  }
+                  if (el) el.indeterminate = partiallySelected;
                 }}
                 className="h-4 w-4 accent-[var(--color-primary)] rounded cursor-pointer"
                 aria-label={t("calls.select.allAria")}
@@ -340,15 +332,15 @@ export function CallQueue({
               <span>{t("calls.select.all", { count: visible.length })}</span>
             </label>
 
-            {selectedIds.size > 0 && (
+            {selectedIds.length > 0 && (
               <span className="font-semibold text-[var(--color-primary)]">
-                {t("calls.select.count", { count: selectedIds.size })}
+                {t("calls.select.count", { count: selectedIds.length })}
               </span>
             )}
           </div>
         )}
 
-        <ol className={`transition-opacity ${isStale ? "opacity-60" : ""}`} aria-busy={isStale}>
+        <ol>
           {shown.map((r, i) => (
             <SwipeableCallCard
               key={r.id}
@@ -356,7 +348,7 @@ export function CallQueue({
               index={i}
               selectedLang={selectedLang}
               waLink={r.whatsappByLang?.[selectedLang] ?? r.whatsapp}
-              isSelected={selectedIds.has(r.id)}
+              isSelected={selection.has(r.id)}
               onToggleSelect={toggleSelect}
               onTriggerCall={triggerCall}
               onTriggerWhatsApp={triggerWhatsApp}
@@ -369,7 +361,7 @@ export function CallQueue({
           <div className="border-t border-[var(--color-border)] px-4 py-3 text-center">
             <button
               type="button"
-              onClick={() => setLimitState((s) => ({ ...s, limit: nextLimit(s.limit, visible.length) }))}
+              onClick={() => setLimit((current) => nextLimit(current, visible.length))}
               className="min-h-10 rounded-full border border-[var(--color-border)] bg-[var(--color-background)] px-4 text-[13px] font-medium hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
             >
               {t("calls.list.showMore", { count: remaining })}
@@ -535,21 +527,21 @@ export function CallQueue({
         />
       )}
       {/* Sticky Batch Contact Action Bar */}
-      {selectedIds.size > 0 && (
+      {selectedIds.length > 0 && (
         <div
           role="region"
           aria-label={t("calls.batch.regionAria")}
-          className="sticky bottom-0 z-40 border-t-2 border-[var(--color-primary)] bg-[var(--color-background)] p-3 shadow-2xl animate-in slide-in-from-bottom duration-200"
+          className="sticky bottom-[var(--mobile-nav-height)] md:bottom-0 z-20 border-t-2 border-[var(--color-primary)] bg-[var(--color-background)] p-3 shadow-2xl animate-in slide-in-from-bottom duration-200"
         >
           <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1.5 bg-[var(--color-primary)] text-white text-xs font-bold px-2.5 py-1">
                 <UsersThree size={16} weight="bold" />
-                <span>{t("calls.select.count", { count: selectedIds.size })}</span>
+                <span>{t("calls.select.count", { count: selectedIds.length })}</span>
               </div>
               <button
                 type="button"
-                onClick={() => setSelectedIds(new Set())}
+                onClick={() => setSelection(new Set())}
                 className="text-xs text-[var(--color-charcoal)] hover:text-[var(--color-foreground)] underline cursor-pointer"
               >
                 {t("calls.batch.clear")}
@@ -591,7 +583,7 @@ export function CallQueue({
                 disabled={isBatchPending}
                 className={buttonPrimary}
               >
-                <span>{t("calls.batch.logFor", { count: selectedIds.size })}</span>
+                <span>{t("calls.batch.logFor", { count: selectedIds.length })}</span>
               </button>
             </div>
           </div>
@@ -611,7 +603,7 @@ export function CallQueue({
               {t("calls.batch.confirmTitle")}
             </h3>
             <p className="text-xs text-[var(--color-charcoal)] leading-relaxed">
-              {t("calls.batch.confirmBody", { outcome: getBatchOutcomeLabel(batchOutcome), count: selectedIds.size })}
+              {t("calls.batch.confirmBody", { outcome: getBatchOutcomeLabel(batchOutcome), count: selectedIds.length })}
             </p>
             <p className="text-[11px] text-[var(--color-charcoal)]">
               {t("calls.batch.confirmNote")}
@@ -671,19 +663,23 @@ const SwipeableCallCard = memo(function SwipeableCallCard({
   const [offsetX, setOffsetX] = useState(0);
   const [swiping, setSwiping] = useState(false);
   const [showLog, setShowLog] = useState(false);
-  const startXRef = useRef(0);
+  const startXRef = useRef<number | null>(null);
   const currentXRef = useRef(0);
 
   const calledToday = r.lastContact?.daysAgo === 0;
 
   const onTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length !== 1 || (e.target instanceof Element && e.target.closest("a,button,input,select,label"))) {
+      startXRef.current = null;
+      return;
+    }
     startXRef.current = e.touches[0].clientX;
     currentXRef.current = e.touches[0].clientX;
     setSwiping(true);
   };
 
   const onTouchMove = (e: React.TouchEvent) => {
-    if (!swiping) return;
+    if (startXRef.current === null) return;
     currentXRef.current = e.touches[0].clientX;
     const diff = currentXRef.current - startXRef.current;
     if (Math.abs(diff) < 140) {
@@ -692,7 +688,9 @@ const SwipeableCallCard = memo(function SwipeableCallCard({
   };
 
   const onTouchEnd = () => {
+    if (startXRef.current === null) return;
     const diff = currentXRef.current - startXRef.current;
+    startXRef.current = null;
     setSwiping(false);
     setOffsetX(0);
 
@@ -742,6 +740,11 @@ const SwipeableCallCard = memo(function SwipeableCallCard({
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
+        onTouchCancel={() => {
+          startXRef.current = null;
+          setSwiping(false);
+          setOffsetX(0);
+        }}
         style={{
           transform: `translateX(${offsetX}px)`,
           transition: swiping ? "none" : "transform 0.2s ease-out",
@@ -750,7 +753,7 @@ const SwipeableCallCard = memo(function SwipeableCallCard({
           calledToday ? "bg-[var(--color-surface-1)]" : ""
         } ${isSelected ? "ring-1 ring-[var(--color-primary)] bg-[var(--color-surface-1)]" : ""}`}
       >
-        <div className="flex items-center">
+        <label className="-mx-2 inline-flex min-h-11 min-w-10 cursor-pointer items-center justify-center justify-self-start">
           <input
             type="checkbox"
             id={`chk-${r.id}`}
@@ -759,7 +762,7 @@ const SwipeableCallCard = memo(function SwipeableCallCard({
             className="h-4 w-4 rounded border-[var(--color-border-strong)] accent-[var(--color-primary)] cursor-pointer"
             aria-label={t("calls.select.rowAria", { name: r.name })}
           />
-        </div>
+        </label>
 
         <span className="num hidden text-[12px] text-[var(--color-charcoal)] lg:block">
           {String(i + 1).padStart(2, "0")}
@@ -848,7 +851,7 @@ const SwipeableCallCard = memo(function SwipeableCallCard({
             type="button"
             onClick={() => setShowLog((v) => !v)}
             aria-expanded={showLog}
-            className="hidden min-h-10 items-center gap-1 rounded-xl px-2.5 text-[13px] font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary-surface)] sm:inline-flex"
+            className="inline-flex min-h-10 items-center gap-1 rounded-xl px-2.5 text-[13px] font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary-surface)]"
           >
             {t("calls.card.logOutcome")}
             <CaretDown size={13} aria-hidden className={`transition-transform ${showLog ? "rotate-180" : ""}`} />
@@ -856,7 +859,7 @@ const SwipeableCallCard = memo(function SwipeableCallCard({
         </div>
       </div>
       {showLog && (
-        <div className="relative z-1 hidden justify-end border-t border-dashed border-[var(--color-border)] bg-[var(--color-surface-1)] px-4 py-3 sm:flex">
+        <div className="relative z-1 flex justify-end border-t border-dashed border-[var(--color-border)] bg-[var(--color-surface-1)] px-4 py-3">
           <ContactLogForm patientId={r.id} />
         </div>
       )}

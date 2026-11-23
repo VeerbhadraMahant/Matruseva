@@ -78,6 +78,7 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
         phone: r.phone,
         gaLabel: r.ga ? formatGALocalized(r.ga, t) : null,
         reason,
+        risk: r.risk,
         overdueItems: r.overdue.map((e) => e.name),
         overdueDays: daysOverdue(r, today),
         flags: r.flags.filter((fl) => fl.severity !== "info"),

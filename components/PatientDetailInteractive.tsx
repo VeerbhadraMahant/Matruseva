@@ -125,7 +125,7 @@ export function PatientDetailInteractive({
       {/* Sticky Bottom Action Bar for Mobile & Tablet (md:hidden) */}
       <nav
         aria-label={t("patientDetail.interactive.navAria")}
-        className="fixed bottom-0 inset-x-0 z-30 flex h-14 items-center justify-around border-t border-white/10 bg-[var(--color-rail)] px-2 text-white shadow-2xl md:hidden"
+        className="fixed bottom-[var(--mobile-nav-height)] inset-x-0 z-30 flex h-14 items-center justify-around border-t border-white/10 bg-[var(--color-rail)] px-2 text-white shadow-2xl md:hidden"
       >
         {tel ? (
           <a

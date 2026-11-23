@@ -29,7 +29,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </Suspense>
         }
       />
-      <main className="min-w-0 flex-1 pb-20 md:pb-0">{children}</main>
+      <main className="min-w-0 flex-1 pb-[var(--mobile-nav-height)] md:pb-0">{children}</main>
       <AppBottomNav />
       <CommandPalette isDemo={me.isDemo} />
       <Toaster />

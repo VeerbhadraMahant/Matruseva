@@ -428,7 +428,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
         </div>
       </header>
 
-      <div className={pageBody}>
+      <div className={`${pageBody} max-md:pb-20`}>
         {(patient.status === "delivered" || patient.status === "closed" || patient.pregnancy_status === "delivered" || patient.pregnancy_status === "closed") && (
           <div className="rounded-[var(--radius-cards)] border border-[var(--color-on-track)]/40 bg-[var(--color-on-track-surface)] p-5 text-[var(--color-foreground)]">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--color-on-track)]/30 pb-2.5">

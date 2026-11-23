@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   MAX_ATTEMPTS,
   backoffMs,
@@ -212,6 +212,23 @@ describe("submitOrQueue", () => {
     });
     expect(r.queued).toBe(true);
     expect((await queue.list())[0].id).toBe("k2");
+  });
+
+  it("generates and reuses a UUID on HTTP where randomUUID is unavailable", async () => {
+    vi.stubGlobal("crypto", { getRandomValues: crypto.getRandomValues.bind(crypto) });
+    try {
+      const queue = createQueue(createMemoryStorage());
+      const run = vi.fn(async () => {
+        throw new TypeError("Failed to fetch");
+      });
+      const result = await submitOrQueue({ ...base, queue, isOnline: () => true, run });
+      const [entry] = await queue.list();
+      expect(result).toEqual({ error: null, queued: true });
+      expect(entry.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+      expect(run).toHaveBeenCalledWith(entry.id);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("does not queue server-returned errors", async () => {

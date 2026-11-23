@@ -154,7 +154,7 @@ export async function logBatchContacts(
   const isDemo = isDemoActive(cookieStore);
 
   if (isDemo) {
-    const demoRes = logDemoBatchContacts(valid.patientIds, valid.outcome, valid.notes);
+    const demoRes = logDemoBatchContacts(valid.patientIds, valid.outcome, valid.notes, valid.channel);
     revalidatePath("/calls");
     revalidatePath("/today");
     revalidatePath("/patients");

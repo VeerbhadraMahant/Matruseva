@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { preprocessImage, recognizeImage, extractPdfText } from "@/lib/ocr";
 import type { DocSource, DocType } from "@/lib/supabase/enums";
 import { useT } from "@/lib/i18n/provider";
+import { createUuid } from "@/lib/uuid";
 import { uploadDemoDocumentAction } from "@/app/(app)/documents/actions";
 
 interface UploadItem {
@@ -97,7 +98,7 @@ export function DocumentUploader({
           continue;
         }
 
-        const path = `${clinicId}/${folder}/${crypto.randomUUID()}.${extOf(file)}`;
+        const path = `${clinicId}/${folder}/${createUuid()}.${extOf(file)}`;
 
         const { error: uploadError } = await supabase.storage.from("documents").upload(path, uploadBlob, {
           contentType: isPdf ? "application/pdf" : "image/jpeg",
