@@ -76,39 +76,31 @@ export function ObstetricQuestionnaireFields({
       <legend className="sr-only">Obstetric & Past Pregnancy Questionnaire</legend>
 
       {/* Header bar with toggle */}
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={() => setIsOpen(!isOpen)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") setIsOpen(!isOpen);
-        }}
-        className="flex items-center justify-between p-4 sm:p-5 bg-[linear-gradient(135deg,color-mix(in_srgb,var(--color-pc-lilac)_80%,transparent)_0%,transparent_100%)] cursor-pointer select-none"
+      <button
+        type="button"
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((open) => !open)}
+        className="flex w-full items-center justify-between text-left p-4 sm:p-5 bg-[linear-gradient(135deg,color-mix(in_srgb,var(--color-pc-lilac)_80%,transparent)_0%,transparent_100%)] cursor-pointer select-none"
       >
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-primary)] text-white shadow-xs">
+        <span className="flex items-center gap-2.5">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-primary)] text-white shadow-xs">
             <ClipboardText size={18} weight="bold" />
-          </div>
-          <div>
-            <h3 className="text-[15px] font-bold text-[var(--color-foreground)] flex items-center gap-2">
+          </span>
+          <span>
+            <span className="text-[15px] font-bold text-[var(--color-foreground)] flex items-center gap-2">
               <span>Past Pregnancy History & Clinical Questionnaire</span>
               <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
                 Feeds 1-Page Report
               </span>
-            </h3>
-            <p className="text-[12px] text-[var(--color-charcoal)]">
+            </span>
+            <span className="block text-[12px] text-[var(--color-charcoal)]">
               7 clinical questions required for FOGSI risk stratification & the 1-page obstetric dossier
-            </p>
-          </div>
-        </div>
+            </span>
+          </span>
+        </span>
 
-        <button
-          type="button"
-          className="p-1 rounded-md text-[var(--color-charcoal)] hover:bg-[var(--color-surface-2)]"
-        >
-          {isOpen ? <CaretUp size={18} /> : <CaretDown size={18} />}
-        </button>
-      </div>
+        {isOpen ? <CaretUp size={18} aria-hidden /> : <CaretDown size={18} aria-hidden />}
+      </button>
 
       {/* Hidden inputs to feed formData cleanly */}
       <input type="hidden" name="q_previousDeliveryMode" value={deliveryMode} />
@@ -177,10 +169,8 @@ export function ObstetricQuestionnaireFields({
                 ].map((c) => {
                   const selected = complications.includes(c.id);
                   return (
-                    <button
+                    <label
                       key={c.id}
-                      type="button"
-                      onClick={() => toggleMultiSelect(complications, setComplications, c.id)}
                       className={`p-2 text-left rounded-xl border text-xs transition-all cursor-pointer ${
                         selected
                           ? c.alert
@@ -193,12 +183,12 @@ export function ObstetricQuestionnaireFields({
                         <input
                           type="checkbox"
                           checked={selected}
-                          readOnly
-                          className="h-3.5 w-3.5 accent-[var(--color-primary)] pointer-events-none"
+                          onChange={() => toggleMultiSelect(complications, setComplications, c.id)}
+                          className="h-3.5 w-3.5 accent-[var(--color-primary)] cursor-pointer"
                         />
                         <span>{c.label}</span>
                       </span>
-                    </button>
+                    </label>
                   );
                 })}
               </div>
@@ -310,10 +300,8 @@ export function ObstetricQuestionnaireFields({
               ].map((fam) => {
                 const selected = familyComp.includes(fam.id);
                 return (
-                  <button
+                  <label
                     key={fam.id}
-                    type="button"
-                    onClick={() => toggleMultiSelect(familyComp, setFamilyComp, fam.id)}
                     className={`p-2 text-left rounded-xl border text-xs transition cursor-pointer ${
                       selected
                         ? "border-[var(--color-primary)] bg-[var(--color-primary-surface)] text-[var(--color-foreground)] font-semibold ring-1 ring-[var(--color-primary)]"
@@ -324,12 +312,12 @@ export function ObstetricQuestionnaireFields({
                       <input
                         type="checkbox"
                         checked={selected}
-                        readOnly
-                        className="h-3.5 w-3.5 accent-[var(--color-primary)] pointer-events-none"
+                        onChange={() => toggleMultiSelect(familyComp, setFamilyComp, fam.id)}
+                        className="h-3.5 w-3.5 accent-[var(--color-primary)] cursor-pointer"
                       />
                       <span>{fam.label}</span>
                     </span>
-                  </button>
+                  </label>
                 );
               })}
             </div>
@@ -350,10 +338,8 @@ export function ObstetricQuestionnaireFields({
               ].map((chr) => {
                 const selected = chronic.includes(chr.id);
                 return (
-                  <button
+                  <label
                     key={chr.id}
-                    type="button"
-                    onClick={() => toggleMultiSelect(chronic, setChronic, chr.id)}
                     className={`p-2 text-left rounded-xl border text-xs transition cursor-pointer ${
                       selected
                         ? chr.alert
@@ -366,12 +352,12 @@ export function ObstetricQuestionnaireFields({
                       <input
                         type="checkbox"
                         checked={selected}
-                        readOnly
-                        className="h-3.5 w-3.5 accent-[var(--color-primary)] pointer-events-none"
+                        onChange={() => toggleMultiSelect(chronic, setChronic, chr.id)}
+                        className="h-3.5 w-3.5 accent-[var(--color-primary)] cursor-pointer"
                       />
                       <span>{chr.label}</span>
                     </span>
-                  </button>
+                  </label>
                 );
               })}
             </div>

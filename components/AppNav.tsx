@@ -379,7 +379,7 @@ export function AppBottomNav() {
   return (
     <nav
       aria-label={t("shell.nav.primary")}
-      className="pc-glass fixed inset-x-0 bottom-0 z-20 flex !rounded-none !border-x-0 !border-b-0 px-1 pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="pc-glass fixed inset-x-0 bottom-0 z-20 flex h-[var(--mobile-nav-height)] !rounded-none !border-x-0 !border-b-0 px-1 pb-[env(safe-area-inset-bottom)] md:hidden"
     >
       {NAV_ITEMS.map(({ href, label, short, icon: Icon }) => {
         const active = isActive(pathname, href);

@@ -9,6 +9,7 @@
   Unlayered :root beats @theme. Light mode only.
 */
 :root {
+  --mobile-nav-height: calc(4rem + env(safe-area-inset-bottom));
   --color-canvas: var(--color-pc-canvas);
   --color-background: var(--color-pc-card);
   --color-foreground: var(--color-pc-ink);
@@ -126,6 +127,16 @@ h1, h2, h3, h4 {
 
 /* Soft corners by default; in the base layer so rounded-* utilities still win. */
 @layer base {
+  /* Hide the browser's page caret while keeping it available in editable fields. */
+  body {
+    caret-color: transparent;
+  }
+  :where(input, textarea, [contenteditable=""], [contenteditable="true"], [contenteditable="plaintext-only"]) {
+    caret-color: auto;
+  }
+  button:enabled, select:enabled, input[type="checkbox"]:enabled, input[type="radio"]:enabled {
+    cursor: pointer;
+  }
   button, input, select, textarea {
     border-radius: var(--radius-buttons);
   }

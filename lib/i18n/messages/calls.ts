@@ -37,7 +37,7 @@ export const calls = defineArea({
 
     "calls.toolbar.bot": "WhatsApp bot",
     "calls.toolbar.botTitle": "Open WhatsApp Business Bot Simulator to test 2-way patient conversations",
-    "calls.toolbar.language": "Language:",
+    "calls.toolbar.language": "Message language",
     "calls.swipe.hint": "Swipe: Right for Call · Left for WhatsApp",
     "calls.swipe.lang": "WA: {lang}",
     "calls.swipe.call": "Call & Log",
@@ -176,7 +176,7 @@ export const calls = defineArea({
 
     "calls.toolbar.bot": "WhatsApp बॉट",
     "calls.toolbar.botTitle": "मरीज़ों से दो-तरफ़ा बातचीत जाँचने के लिए WhatsApp बिज़नेस बॉट सिम्युलेटर खोलें",
-    "calls.toolbar.language": "भाषा:",
+    "calls.toolbar.language": "संदेश की भाषा",
     "calls.swipe.hint": "स्वाइप: दाएँ – कॉल · बाएँ – WhatsApp",
     "calls.swipe.lang": "WhatsApp: {lang}",
     "calls.swipe.call": "कॉल + दर्ज",
@@ -315,7 +315,7 @@ export const calls = defineArea({
 
     "calls.toolbar.bot": "WhatsApp बॉट",
     "calls.toolbar.botTitle": "रुग्णांशी दुतर्फा संवाद तपासण्यासाठी WhatsApp बिझनेस बॉट सिम्युलेटर उघडा",
-    "calls.toolbar.language": "भाषा:",
+    "calls.toolbar.language": "संदेशाची भाषा",
     "calls.swipe.hint": "स्वाइप: उजवीकडे – कॉल · डावीकडे – WhatsApp",
     "calls.swipe.lang": "WhatsApp: {lang}",
     "calls.swipe.call": "कॉल + नोंद",

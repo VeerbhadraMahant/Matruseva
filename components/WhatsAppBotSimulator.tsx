@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useRef, useEffect } from "react";
+import { useState, useTransition, useRef, useEffect, useEffectEvent } from "react";
 import { CheckCircle, PaperPlaneTilt, ArrowClockwise, X, Robot, ShieldCheck, WhatsappLogo } from "@phosphor-icons/react";
 import { dispatchBotReminder, processBotReply } from "@/app/(app)/calls/actions";
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "@/lib/whatsapp";
@@ -35,7 +35,7 @@ function getCurrentTimeString(tag: string): string {
 }
 
 export function WhatsAppBotSimulator({
-  patients,
+  patients: queuePatients,
   initialPatientId,
   initialLang = "en",
   onClose,
@@ -48,6 +48,9 @@ export function WhatsAppBotSimulator({
   const t = useT();
   const locale = useLocale();
   const timeTag = intlLocale(locale);
+  // Logging a reminder refreshes the underlying queue. Keep the open
+  // conversation on the selected patient even if they leave the worklist.
+  const [patients] = useState(queuePatients);
   const [selectedPatientId, setSelectedPatientId] = useState<string>(
     initialPatientId || patients[0]?.id || ""
   );
@@ -56,6 +59,13 @@ export function WhatsAppBotSimulator({
   const [inputText, setInputText] = useState("");
   const [isPending, startTransition] = useTransition();
   const [dbUpdateNotice, setDbUpdateNotice] = useState<string | null>(null);
+
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    dialog?.showModal();
+    return () => dialog?.close();
+  }, []);
 
   const currentPatient = patients.find((p) => p.id === selectedPatientId) || patients[0];
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -68,39 +78,39 @@ export function WhatsAppBotSimulator({
     scrollToBottom();
   }, [messages]);
 
-  // Initial trigger of reminder when opening or changing patient/language
+  // An effect replay must reuse the in-flight request for this selection.
+  const requestRef = useRef<{ key: string; result: ReturnType<typeof dispatchBotReminder> } | null>(null);
+  const [restart, setRestart] = useState(0);
+  const showReminder = useEffectEvent((text: string) => {
+    setMessages([{ id: nextMessageId("msg"), sender: "bot", text, time: getCurrentTimeString(timeTag), status: "read" }]);
+    setDbUpdateNotice(t(restart ? "calls.bot.noticeRedispatched" : "calls.bot.noticeDispatched"));
+  });
+  const showReminderError = useEffectEvent((error?: string) => {
+    setDbUpdateNotice(t("calls.bot.noticeError", { error: error || t("calls.error.db") }));
+  });
   useEffect(() => {
     if (!currentPatient) return;
-    let isCancelled = false;
-
+    let active = true;
     startTransition(async () => {
-      const res = await dispatchBotReminder(
-        currentPatient.id,
-        currentPatient.name,
-        currentPatient.careEventName,
-        currentPatient.reason,
-        lang
-      );
-      if (isCancelled) return;
-      if (res.reminderText) {
-        setMessages([
-          {
-            id: nextMessageId("msg"),
-            sender: "bot",
-            text: res.reminderText,
-            time: getCurrentTimeString(timeTag),
-            status: "read",
-          },
-        ]);
-        setDbUpdateNotice(t("calls.bot.noticeDispatched"));
+      try {
+        const key = JSON.stringify([currentPatient.id, lang, restart]);
+        if (requestRef.current?.key !== key) {
+          const result = dispatchBotReminder(currentPatient.id, currentPatient.name, currentPatient.careEventName, currentPatient.reason, lang);
+          requestRef.current = { key, result };
+        }
+        const res = await requestRef.current.result;
+        if (!active) return;
+        if (res.reminderText) {
+          showReminder(res.reminderText);
+        } else if (res.error) {
+          showReminderError(res.error);
+        }
+      } catch (error) {
+        if (active) showReminderError(error instanceof Error ? error.message : undefined);
       }
     });
-
-    return () => {
-      isCancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- t/timeTag are stable per locale; re-dispatching on locale change would resend the reminder
-  }, [currentPatient, lang]);
+    return () => { active = false; };
+  }, [currentPatient, lang, restart]);
 
   const handleSendPatientReply = (textToSend?: string) => {
     const text = (textToSend || inputText).trim();
@@ -174,8 +184,13 @@ export function WhatsAppBotSimulator({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-4 backdrop-blur-sm animate-fade-in">
-      <div className="flex h-full max-h-[92vh] w-full max-w-2xl flex-col border border-[var(--color-border-strong)] bg-[var(--color-background)] shadow-2xl">
+    <dialog
+      ref={dialogRef}
+      aria-label={t("calls.bot.title")}
+      onCancel={onClose}
+      className="fixed inset-0 m-auto w-[calc(100%-1.5rem)] max-w-2xl border-0 bg-transparent p-0 text-[var(--color-foreground)] backdrop:bg-black/60 backdrop:backdrop-blur-sm"
+    >
+      <div className="flex h-[92dvh] w-full max-w-2xl flex-col border border-[var(--color-border-strong)] bg-[var(--color-background)] shadow-2xl">
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-[var(--color-border-strong)] bg-[var(--color-surface-2)] px-4 py-3">
           <div className="flex items-center gap-2.5">
@@ -210,10 +225,18 @@ export function WhatsAppBotSimulator({
         {/* Configuration Bar: Patient & Language Switcher */}
         <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-[var(--color-border)] bg-[var(--color-surface-1)] px-4 py-2.5 text-[12px]">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="font-semibold text-[var(--color-charcoal)] whitespace-nowrap">{t("calls.bot.patient")}</span>
+            <label htmlFor="bot-patient" className="font-semibold text-[var(--color-charcoal)] whitespace-nowrap">{t("calls.bot.patient")}</label>
             <select
+              id="bot-patient"
+              disabled={isPending}
               value={selectedPatientId}
-              onChange={(e) => setSelectedPatientId(e.target.value)}
+              onChange={(e) => {
+                setSelectedPatientId(e.target.value);
+                setMessages([]);
+                setInputText("");
+                setDbUpdateNotice(null);
+                setRestart(0);
+              }}
               className="rounded-xl max-w-[260px] truncate border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2 py-1 text-[12px] font-medium"
             >
               {patients.map((p) => (
@@ -231,7 +254,16 @@ export function WhatsAppBotSimulator({
                 <button
                   key={l.code}
                   type="button"
-                  onClick={() => setLang(l.code)}
+                  aria-pressed={lang === l.code}
+                  disabled={isPending}
+                  onClick={() => {
+                    if (lang === l.code) return;
+                    setLang(l.code);
+                    setMessages([]);
+                    setInputText("");
+                    setDbUpdateNotice(null);
+                    setRestart(0);
+                  }}
                   className={`px-2 py-0.5 text-[11px] font-medium transition-colors ${
                     lang === l.code
                       ? "bg-[var(--color-foreground)] text-white font-semibold"
@@ -275,30 +307,8 @@ export function WhatsAppBotSimulator({
             </div>
             <button
               type="button"
-              onClick={() => {
-                startTransition(async () => {
-                  if (!currentPatient) return;
-                  const res = await dispatchBotReminder(
-                    currentPatient.id,
-                    currentPatient.name,
-                    currentPatient.careEventName,
-                    currentPatient.reason,
-                    lang
-                  );
-                  if (res.reminderText) {
-                    setMessages([
-                      {
-                        id: nextMessageId("msg"),
-                        sender: "bot",
-                        text: res.reminderText,
-                        time: getCurrentTimeString(timeTag),
-                        status: "read",
-                      },
-                    ]);
-                    setDbUpdateNotice(t("calls.bot.noticeRedispatched"));
-                  }
-                });
-              }}
+              disabled={isPending}
+              onClick={() => setRestart((count) => count + 1)}
               className="flex items-center gap-1 text-[11px] text-white/90 hover:text-white bg-white/10 px-2 py-1"
               title={t("calls.bot.resetTitle")}
             >
@@ -416,6 +426,6 @@ export function WhatsAppBotSimulator({
           </button>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }

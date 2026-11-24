@@ -6,6 +6,7 @@ import withSerwistInit from "@serwist/next";
 process.env.SERWIST_SUPPRESS_TURBOPACK_WARNING = "1";
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ["192.168.1.7"],
   env: {
     DEMO_MODE: process.env.DEMO_MODE ?? "1",
   },

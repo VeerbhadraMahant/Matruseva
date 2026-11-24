@@ -9,6 +9,7 @@
  * Replays are idempotent server-side via `client_request_id` (= entry id).
  */
 import { offlineT } from "./offlineI18n";
+import { createUuid } from "./uuid";
 
 export type QueueEntryType = "visit" | "contact";
 export type QueueEntryStatus = "pending" | "failed";
@@ -200,7 +201,7 @@ export function setOfflineUserId(id: string | null) {
 
 export function createQueue(storage: QueueStorage, deps: QueueDeps = {}): OfflineQueue {
   const now = deps.now ?? Date.now;
-  const uuid = deps.uuid ?? (() => crypto.randomUUID());
+  const uuid = deps.uuid ?? createUuid;
 
   async function update(id: string, fn: (e: QueueEntry) => QueueEntry) {
     const all = await storage.getAll();

@@ -695,7 +695,8 @@ export function closeDemoPregnancy(
 export function logDemoBatchContacts(
   patientIds: string[],
   outcome: ContactOutcome,
-  _notes?: string
+  notes?: string,
+  channel: "call" | "whatsapp" = "call"
 ): { error: string | null; loggedCount: number; skippedCount: number } {
   const store = getDemoStore();
   let loggedCount = 0;
@@ -718,9 +719,9 @@ export function logDemoBatchContacts(
     const contacts = store.contacts[pid] ?? [];
     contacts.unshift({
       id: `c-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
-      channel: "call",
+      channel,
       outcome,
-      notes: _notes || "Logged via Batch Follow-up",
+      notes: notes || "Logged via Batch Follow-up",
       created_at: new Date().toISOString(),
     });
     store.contacts[pid] = contacts;
