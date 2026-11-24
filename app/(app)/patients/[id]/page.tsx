@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Phone, WhatsappLogo, FilePdf, Baby, FileText } from "@phosphor-icons/react/dist/ssr";
+import { Phone, WhatsappLogo, FilePdf, Baby, FileText, Microphone } from "@phosphor-icons/react/dist/ssr";
 import { createClient } from "@/lib/supabase/server";
 import { gestationalAge, formatGALocalized, trimester } from "@/lib/pregnancy";
 import { getT } from "@/lib/i18n/server";
@@ -279,11 +279,15 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
           <div className="flex flex-wrap items-center gap-2">
             <Link
               href={`/patients/${patient.id}/report`}
-              className="${buttonSecondary} gap-1.5"
+              className={buttonSecondary}
               title={t("patientDetail.header.reportTitle")}
             >
               <FileText size={16} weight="bold" className="text-[var(--color-primary)]" aria-hidden />
               <span>{t("patientDetail.header.report")}</span>
+            </Link>
+            <Link href={`/patients/${patient.id}/consult`} className={buttonSecondary} title={t("consult.openTitle")}>
+              <Microphone size={16} weight="bold" className="text-[var(--color-primary)]" aria-hidden />
+              <span>{t("consult.open")}</span>
             </Link>
             <VoiceCounselorButton
               data={{

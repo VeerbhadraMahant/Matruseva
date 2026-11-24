@@ -12,6 +12,7 @@ import { documents } from "./documents";
 import { opd } from "./opd";
 import { settings } from "./settings";
 import { clinical } from "./clinical";
+import { consult } from "./consult";
 import type { Locale } from "../config";
 
 import * as commonMod from "./common";
@@ -28,6 +29,7 @@ import * as documentsMod from "./documents";
 import * as opdMod from "./opd";
 import * as settingsMod from "./settings";
 import * as clinicalMod from "./clinical";
+import * as consultMod from "./consult";
 
 /** Every area, by name. To add an area, add its file and one line here. */
 export const AREAS = {
@@ -45,6 +47,7 @@ export const AREAS = {
   opd,
   settings,
   clinical,
+  consult,
 } as const;
 
 /** Each area file's optional `untranslated` allow-list (parity test unions these). */
@@ -63,6 +66,7 @@ export const AREA_UNTRANSLATED: Record<keyof typeof AREAS, readonly string[]> = 
   opd: opdMod.untranslated,
   settings: settingsMod.untranslated,
   clinical: clinicalMod.untranslated,
+  consult: consultMod.untranslated,
 };
 
 type Areas = (typeof AREAS)[keyof typeof AREAS];
