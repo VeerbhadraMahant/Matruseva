@@ -3,10 +3,11 @@
  * summary LLM. Runs on our server only; the LLM never sees the raw text.
  *
  * Layers:
- *  1. Known identifiers from the record (patient/doctor names, address words,
- *     clinic patient number), matched in Latin and Devanagari. Names are
- *     compared by consonant skeleton so spelling and transliteration variants
- *     (Sunita / Suneeta / सुनीता / सुनित) all match.
+ *  1. Known identifiers from the record (patient/doctor names, address words),
+ *     matched in Latin and Devanagari. Cross-script matching relies on the
+ *     caller passing Devanagari transliterations of each term. Latin words are
+ *     compared after folding spelling variants (Suneeta / Sunita, Deshmukh /
+ *     Desmuk); Devanagari words by consonant skeleton (सुनीता / सुनित).
  *  2. Patterns: phone / Aadhaar / any long digit run, email addresses.
  *
  * shortcut: names NOT in the record (a relative, a neighbour) are not caught;
@@ -26,15 +27,29 @@ const WORD = /[\p{L}\p{M}\p{N}]+/gu;
 const DEVANAGARI_MARKS = /[ऀ-ःऺ-ॏॕ-ॗॢॣ]/g;
 // Independent Devanagari vowels carry no consonant information either.
 const DEVANAGARI_VOWELS = /[ऄ-औॠॡॲ-ॷ]/g;
-const LATIN_VOWELS = /[aeiouy]/g;
 const DEVANAGARI_DIGITS = /[०-९]/g;
 
-/** Consonant skeleton used for fuzzy name matching. */
+/**
+ * Match key for a word. Devanagari: consonant skeleton (vowel signs vary in
+ * speech-to-text output). Latin: spelling variants are folded (aspiration h,
+ * ee/ea, oo, y, doubled letters), then every vowel after the first becomes "a"
+ * and a final vowel is dropped (Patel / Patil, Sunita / Suneeta, Ram / Rama).
+ * The first vowel is kept: dropping all vowels made common words collide with
+ * names (sugar / Sagar, sent / Sunita).
+ */
 export function skeleton(word: string): string {
   const w = word.normalize("NFC").toLowerCase();
   if (/[ऀ-ॿ]/.test(w)) return w.replace(DEVANAGARI_MARKS, "").replace(DEVANAGARI_VOWELS, "");
-  // "h" after a consonant is aspiration in romanised Indic names (Deshmukh / Desmuk).
-  return w.replace(/([^aeiou])h/g, "$1").replace(LATIN_VOWELS, "").replace(/(.)\1+/g, "$1");
+  const folded = w
+    .replace(/([^aeiou])h/g, "$1")
+    .replace(/ee|ea/g, "i")
+    .replace(/oo/g, "u")
+    .replace(/y/g, "i")
+    .replace(/(.)\1+/g, "$1");
+  const first = folded.search(/[aeiou]/);
+  if (first < 0) return folded;
+  const key = folded.slice(0, first + 1) + folded.slice(first + 1).replace(/[aeiou]+/g, "a");
+  return (key.length > 3 ? key.replace(/a$/, "") : key).replace(/(.)\1+/g, "$1");
 }
 
 function toAsciiDigits(text: string): string {
@@ -42,7 +57,9 @@ function toAsciiDigits(text: string): string {
 }
 
 // 10+ digits, optionally split by spaces or dashes: phones, Aadhaar, ABHA numbers.
-const LONG_NUMBER = /(?<![\d.])\d(?:[\s-]?\d){9,}(?![\d.])/g;
+// A dot only blocks the match when it is a decimal point ("9.8"), not sentence punctuation.
+// shortcut: space-separated readings ("FHR 146 148 150 144") also match and are scrubbed; fine for privacy, loses that series.
+const LONG_NUMBER = /(?<!\d)(?<!\d\.)\d(?:[\s-]?\d){9,}(?!\d)(?!\.\d)/g;
 const EMAIL = /[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g;
 
 function buildMatcher(terms: KnownTerm[]) {
@@ -51,8 +68,8 @@ function buildMatcher(terms: KnownTerm[]) {
   for (const { word, placeholder } of terms) {
     for (const part of word.match(WORD) ?? []) {
       const sk = skeleton(part);
-      // Short skeletons ("Demo" -> "dm") would match ordinary words, so they must match exactly.
-      if (sk.length >= 3) fuzzy.set(sk, placeholder);
+      // Very short keys ("Om", a one-consonant Devanagari name) would match ordinary words, so they must match exactly.
+      if (sk.length >= (/[ऀ-ॿ]/.test(part) ? 2 : 3)) fuzzy.set(sk, placeholder);
       else if (part.length >= 2) exact.set(part.normalize("NFC").toLowerCase(), placeholder);
     }
   }

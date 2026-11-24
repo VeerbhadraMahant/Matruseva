@@ -27,11 +27,12 @@ export type CheckResult =
 async function loadPatient(patientId: string, me: CurrentUser) {
   if (me.isDemo) {
     const p = getDemoStore().patients.find((x) => x.id === patientId);
-    return p ? { name: p.name, address: p.address ?? null, clinicPatientNo: p.clinicPatientNo ?? null } : null;
+    return p ? { name: p.name, address: p.address ?? null } : null;
   }
   const supabase = await createClient();
-  const { data } = await supabase.from("patients").select("name, address, clinic_patient_no").eq("id", patientId).maybeSingle();
-  return data ? { name: data.name, address: data.address, clinicPatientNo: data.clinic_patient_no } : null;
+  const { data, error } = await supabase.from("patients").select("name, address").eq("id", patientId).maybeSingle();
+  if (error) throw error; // a DB outage must not read as "patient not found"
+  return data ? { name: data.name, address: data.address } : null;
 }
 
 function message(e: unknown): string {
@@ -79,12 +80,14 @@ export async function checkConsultation(token: string): Promise<CheckResult> {
     }
     if (status.job_state !== "Completed") return { state: "processing" };
 
-    const [segments, patient] = await Promise.all([downloadTranscript(job.jobId, status), loadPatient(job.patientId, me)]);
-    if (!patient) return { state: "error", error: "Patient not found." };
+    const segments = await downloadTranscript(job.jobId, status);
     if (!segments.length) return { state: "done", segments, summary: null, summaryError: "No speech was detected in the recording." };
 
     try {
-      const terms = await knownTerms({ patientName: patient.name, doctorName: me.fullName, address: patient.address, clinicPatientNo: patient.clinicPatientNo });
+      // Inside the inner try so a DB hiccup costs only the summary, not the transcript.
+      const patient = await loadPatient(job.patientId, me);
+      if (!patient) throw new ScribeError("Patient not found.");
+      const terms = await knownTerms({ patientName: patient.name, doctorName: me.fullName, address: patient.address });
       return { state: "done", segments, summary: await summarize(segments, terms), summaryError: null };
     } catch (e) {
       // The doctor still gets the raw transcript when the summary step fails or is withheld.

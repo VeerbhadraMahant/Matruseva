@@ -20,15 +20,24 @@ type Phase =
   | { kind: "uploading" }
   | { kind: "processing" }
   | { kind: "done"; token: string; result: Done }
-  | { kind: "error"; message: string };
+  | { kind: "error"; message: string; retry?: { label: string; run: () => void } };
+
+interface Part {
+  index: number;
+  blob: Blob;
+  ok?: boolean;
+  error?: string;
+  expired?: boolean;
+}
 
 interface Session {
   token: string;
   stream: MediaStream;
   mimeType: string;
   parts: number;
+  list: Part[];
   uploads: Promise<void>[];
-  partStopped: Promise<void>;
+  stopped: Promise<void>[];
   recorder: MediaRecorder | null;
   wakeLock: WakeLockSentinel | null;
   stopping: boolean;
@@ -36,7 +45,7 @@ interface Session {
 
 // Each part is uploaded as its own request; Vercel caps request bodies at 4.5 MB.
 const PART_BYTES = 3_000_000;
-const MAX_PARTS = 20; // Sarvam: files per job
+const MAX_PARTS = 20; // Sarvam: files per job. Must equal MAX_PARTS in lib/consultation.ts.
 const MIME_TYPES = ["audio/webm;codecs=opus", "audio/mp4", "audio/ogg;codecs=opus"];
 const POLL_MS = 4000;
 const POLL_LIMIT = 150; // ~10 minutes
@@ -45,24 +54,36 @@ const SECTIONS: (keyof ConsultSummary)[] = ["redFlags", "complaints", "findings"
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
-async function uploadPart(token: string, index: number, blob: Blob): Promise<void> {
-  let error = "Upload failed.";
+// Never rejects: the outcome is recorded on the part so failed parts can be retried alone.
+async function uploadPart(token: string, part: Part): Promise<void> {
+  part.ok = false;
+  part.error = undefined;
+  part.expired = false;
   for (let attempt = 0; attempt < 3; attempt++) {
     if (attempt) await sleep(1500 * attempt);
     try {
+      // "manual": a session-expiry redirect must not be followed and mistaken for success.
       const res = await fetch("/api/consultations/upload", {
         method: "POST",
-        body: blob,
-        headers: { "x-consult-token": token, "x-part-index": String(index), "Content-Type": blob.type },
+        body: part.blob,
+        redirect: "manual",
+        headers: { "x-consult-token": token, "x-part-index": String(part.index), "Content-Type": part.blob.type },
       });
-      if (res.ok) return;
-      error = ((await res.json().catch(() => null)) as { error?: string } | null)?.error ?? error;
-      if (res.status < 500) break; // retrying won't fix a rejected part
+      if (res.type === "opaqueredirect" || res.status === 401 || res.status === 403) {
+        part.expired = true;
+        return;
+      }
+      const body = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+      if (res.ok && body?.ok === true) {
+        part.ok = true;
+        return;
+      }
+      part.error = body?.error;
+      if (res.status < 500 && !res.ok) break; // retrying won't fix a rejected part
     } catch {
-      error = "Network error while uploading. Check the connection.";
+      part.error = "Network error while uploading. Check the connection.";
     }
   }
-  throw new Error(error);
 }
 
 export function ConsultationRecorder({ patientId }: { patientId: string }) {
@@ -73,6 +94,7 @@ export function ConsultationRecorder({ patientId }: { patientId: string }) {
   const [elapsed, setElapsed] = useState(0);
   const session = useRef<Session | null>(null);
   const alive = useRef(true);
+  const starting = useRef(false);
 
   const busy = phase.kind === "recording" || phase.kind === "uploading";
 
@@ -104,8 +126,13 @@ export function ConsultationRecorder({ patientId }: { patientId: string }) {
     return () => window.removeEventListener("beforeunload", warn);
   }, [busy]);
 
+  function micStopped(s: Session) {
+    if (s.stopping) return;
+    setNotice(t("consult.micStopped"));
+    void stop();
+  }
+
   function startPart(s: Session) {
-    const index = s.parts++;
     const rec = new MediaRecorder(s.stream, { ...(s.mimeType && { mimeType: s.mimeType }), audioBitsPerSecond: 32000 });
     const chunks: Blob[] = [];
     let size = 0;
@@ -121,20 +148,42 @@ export function ConsultationRecorder({ patientId }: { patientId: string }) {
       }
       // Rotate to a fresh recorder so every part is a complete, independently decodable file.
       rec.stop();
-      startPart(s);
+      try {
+        startPart(s);
+      } catch {
+        micStopped(s);
+      }
     };
-    s.partStopped = new Promise((resolve) => {
-      rec.onstop = () => {
-        const type = (rec.mimeType || s.mimeType || "audio/webm").split(";")[0];
-        if (chunks.length) s.uploads.push(uploadPart(s.token, index, new Blob(chunks, { type })));
-        resolve();
-      };
-    });
-    rec.start(1000);
+    rec.onerror = () => micStopped(s);
+    rec.start(1000); // may throw; nothing below runs then, so no part is counted
+    const index = s.parts++;
+    s.stopped.push(
+      new Promise<void>((resolve) => {
+        rec.onstop = () => {
+          const type = (rec.mimeType || s.mimeType || "audio/webm").split(";")[0];
+          if (chunks.length) {
+            const part: Part = { index, blob: new Blob(chunks, { type }) };
+            s.list.push(part);
+            s.uploads.push(uploadPart(s.token, part));
+          }
+          resolve();
+        };
+      }),
+    );
     s.recorder = rec;
   }
 
   async function start() {
+    if (starting.current) return;
+    starting.current = true;
+    try {
+      await begin();
+    } finally {
+      starting.current = false;
+    }
+  }
+
+  async function begin() {
     setNotice(null);
     setElapsed(0);
     if (!window.isSecureContext) return setPhase({ kind: "error", message: t("consult.insecure") });
@@ -150,7 +199,12 @@ export function ConsultationRecorder({ patientId }: { patientId: string }) {
       return setPhase({ kind: "error", message: t("consult.micDenied") });
     }
 
-    const res = await startConsultation(patientId);
+    let res: Awaited<ReturnType<typeof startConsultation>>;
+    try {
+      res = await startConsultation(patientId);
+    } catch {
+      res = { error: t("consult.genericError") };
+    }
     if ("error" in res) {
       stream.getTracks().forEach((tr) => tr.stop());
       return setPhase({ kind: "error", message: res.error });
@@ -161,14 +215,28 @@ export function ConsultationRecorder({ patientId }: { patientId: string }) {
       stream,
       mimeType: MIME_TYPES.find((m) => MediaRecorder.isTypeSupported(m)) ?? "",
       parts: 0,
+      list: [],
       uploads: [],
-      partStopped: Promise.resolve(),
+      stopped: [],
       recorder: null,
       wakeLock: (await navigator.wakeLock?.request("screen").catch(() => null)) ?? null,
       stopping: false,
     };
+    if (!alive.current) {
+      // Left the page during the permission prompt or the server round trip: release the mic.
+      stream.getTracks().forEach((tr) => tr.stop());
+      void s.wakeLock?.release().catch(() => {});
+      return;
+    }
     session.current = s;
-    startPart(s);
+    try {
+      startPart(s);
+    } catch {
+      stream.getTracks().forEach((tr) => tr.stop());
+      void s.wakeLock?.release().catch(() => {});
+      return setPhase({ kind: "error", message: t("consult.unsupported") });
+    }
+    stream.getAudioTracks()[0].onended = () => micStopped(s);
     setPhase({ kind: "recording" });
   }
 
@@ -177,31 +245,58 @@ export function ConsultationRecorder({ patientId }: { patientId: string }) {
     if (!s || s.stopping) return;
     s.stopping = true;
     if (s.recorder?.state === "recording") s.recorder.stop();
-    await s.partStopped;
+    await Promise.all(s.stopped);
     s.stream.getTracks().forEach((tr) => tr.stop());
     void s.wakeLock?.release().catch(() => {});
-    setPhase({ kind: "uploading" });
+    if (!s.list.length) return setPhase({ kind: "error", message: t("consult.tooShort") });
+    await submit(s);
+  }
 
-    try {
-      await Promise.all(s.uploads);
-    } catch (e) {
-      return setPhase({ kind: "error", message: (e as Error).message });
+  async function submit(s: Session) {
+    setPhase({ kind: "uploading" });
+    await Promise.all(s.uploads); // never rejects; outcomes are on each part
+    const failed = s.list.filter((p) => !p.ok);
+    if (failed.length) {
+      const message = failed.some((p) => p.expired) ? t("consult.sessionExpired") : (failed.find((p) => p.error)?.error ?? t("consult.uploadFailed"));
+      return setPhase({ kind: "error", message, retry: { label: t("consult.retryUploads"), run: () => retryUploads(s) } });
     }
-    const fin = await finishConsultation(s.token);
+    let fin: { error: string | null };
+    try {
+      fin = await finishConsultation(s.token);
+    } catch {
+      fin = { error: t("consult.genericError") };
+    }
     if (fin.error) return setPhase({ kind: "error", message: fin.error });
     await poll(s.token);
   }
 
+  function retryUploads(s: Session) {
+    s.uploads = s.list.filter((p) => !p.ok).map((p) => uploadPart(s.token, p));
+    void submit(s);
+  }
+
   async function poll(token: string) {
     setPhase({ kind: "processing" });
+    let fails = 0;
     for (let i = 0; i < POLL_LIMIT && alive.current; i++) {
-      const r = await checkConsultation(token);
+      let r: CheckResult | null = null;
+      try {
+        r = await checkConsultation(token);
+      } catch {
+        // transient; counted below
+      }
       if (!alive.current) return;
-      if (r.state === "done") return setPhase({ kind: "done", token, result: r });
-      if (r.state === "error") return setPhase({ kind: "error", message: r.error });
+      if (r) {
+        fails = 0;
+        if (r.state === "done") return setPhase({ kind: "done", token, result: r });
+        if (r.state === "error") return setPhase({ kind: "error", message: r.error });
+      } else if (++fails >= 3) {
+        return setPhase({ kind: "error", message: t("consult.genericError") });
+      }
       await sleep(POLL_MS);
     }
-    if (alive.current) setPhase({ kind: "error", message: "Transcription is taking too long. Please try again later." });
+    // Keep the token: the job may still finish, so offer to resume polling.
+    if (alive.current) setPhase({ kind: "error", message: t("consult.slow"), retry: { label: t("consult.checkAgain"), run: () => void poll(token) } });
   }
 
   function speakerLabel(id: string) {
@@ -216,7 +311,7 @@ export function ConsultationRecorder({ patientId }: { patientId: string }) {
       await navigator.clipboard.writeText(text);
       showToast(t("consult.copied"));
     } catch {
-      // Clipboard can be blocked; the summary stays on screen to select by hand.
+      showToast(t("consult.copyFailed"));
     }
   }
 
@@ -243,10 +338,12 @@ export function ConsultationRecorder({ patientId }: { patientId: string }) {
                 <p role="alert" className="rounded-[var(--radius-buttons)] bg-[var(--color-due-surface)] px-3 py-2 text-[13px] text-[var(--color-foreground)]">
                   {summaryError}
                 </p>
-                <button type="button" className={buttonSecondary} onClick={() => poll(phase.token)}>
-                  <ArrowCounterClockwise size={16} aria-hidden />
-                  {t("consult.retrySummary")}
-                </button>
+                {segments.length > 0 && (
+                  <button type="button" className={buttonSecondary} onClick={() => poll(phase.token)}>
+                    <ArrowCounterClockwise size={16} aria-hidden />
+                    {t("consult.retrySummary")}
+                  </button>
+                )}
               </div>
             ) : filled.length ? (
               filled.map((k) => (
@@ -299,6 +396,12 @@ export function ConsultationRecorder({ patientId }: { patientId: string }) {
           <p role="alert" className="rounded-[var(--radius-buttons)] bg-[var(--color-overdue-surface)] px-3 py-2 text-[13px] text-[var(--color-foreground)]">
             {phase.message}
           </p>
+        )}
+        {phase.kind === "error" && phase.retry && (
+          <button type="button" className={buttonSecondary} onClick={phase.retry.run}>
+            <ArrowCounterClockwise size={16} aria-hidden />
+            {phase.retry.label}
+          </button>
         )}
 
         {(phase.kind === "idle" || phase.kind === "error") && (

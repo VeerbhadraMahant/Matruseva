@@ -15,6 +15,9 @@ export const MAX_PARTS = 20; // Sarvam batch limit: files per job.
 
 export class ScribeError extends Error {}
 
+// Every outbound call gets a deadline so a hung upstream cannot pin the function until maxDuration.
+const timeout = () => AbortSignal.timeout(20_000);
+
 function sarvamKey(): string {
   const key = process.env.SARVAM_API_KEY;
   if (!key) throw new ScribeError("Transcription is not configured (SARVAM_API_KEY missing).");
@@ -26,6 +29,7 @@ async function sarvam<T>(path: string, init: RequestInit = {}): Promise<T> {
     ...init,
     headers: { "api-subscription-key": sarvamKey(), "Content-Type": "application/json", ...init.headers },
     cache: "no-store",
+    signal: timeout(),
   });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -45,6 +49,7 @@ interface TokenPayload {
 }
 
 // The Sarvam key is the one secret this feature always has, so it doubles as the HMAC key.
+// Rotating SARVAM_API_KEY therefore invalidates every in-flight consultation token.
 const mac = (data: string) => createHmac("sha256", `consult-token:${sarvamKey()}`).update(data).digest();
 
 export function signJobToken(p: Omit<TokenPayload, "exp">, ttlSeconds = 6 * 60 * 60): string {
@@ -93,7 +98,7 @@ export async function uploadPart(jobId: string, fileName: string, audio: ArrayBu
   });
   const url = res.upload_urls[fileName]?.file_url;
   if (!url) throw new ScribeError("Sarvam did not return an upload link.");
-  const put = await fetch(url, { method: "PUT", body: audio, headers: { "Content-Type": mimeType, "x-ms-blob-type": "BlockBlob" } });
+  const put = await fetch(url, { method: "PUT", body: audio, headers: { "Content-Type": mimeType }, signal: timeout() });
   if (!put.ok) throw new ScribeError(`Audio upload failed (${put.status}).`);
 }
 
@@ -150,7 +155,9 @@ export async function downloadTranscript(jobId: string, status: JobStatus): Prom
   });
   const outputs = await Promise.all(
     files.map(async (f) => {
-      const r = await fetch(res.download_urls[f].file_url, { cache: "no-store" });
+      const url = res.download_urls[f]?.file_url;
+      if (!url) throw new ScribeError("Sarvam did not return a transcript link.");
+      const r = await fetch(url, { cache: "no-store", signal: timeout() });
       if (!r.ok) throw new ScribeError(`Transcript download failed (${r.status}).`);
       return (await r.json()) as SarvamOutput;
     })
@@ -164,19 +171,25 @@ export interface PersonalDetails {
   patientName: string;
   doctorName: string;
   address?: string | null;
-  clinicPatientNo?: string | null;
 }
+
+// Address words that are also everyday speech or generic ("near", "road"); never treat them as identifiers.
+const ADDRESS_STOPWORDS = new Set(["near", "road", "flat", "nagar", "colony", "ward", "behind", "sector", "city", "galli", "chowk", "lane", "street", "house", "floor", "building"]);
 
 /** Record identifiers in Latin plus their Devanagari transliterations (Hindi and Marathi differ). */
 export async function knownTerms(d: PersonalDetails): Promise<KnownTerm[]> {
+  // Without the name there is nothing to scrub against, so refuse rather than send it unscrubbed.
+  if (!d.patientName.trim()) throw new ScribeError("Summary withheld: the patient record has no name.");
   const doctor = d.doctorName.replace(/^\s*dr\.?\s+/i, "");
-  // Address numbers would collide with clinical values (flat 140 vs BP 140), so only words.
-  const place = (d.address ?? "").replace(/[\d]/g, " ");
+  // Address numbers collide with clinical values (flat 140 vs BP 140) and short or generic
+  // address words with speech ("No. 4" vs "no swelling"), so only distinctive words of 4+ letters.
+  // Marks count too: Devanagari vowel signs are \p{M}, so "पुणे" must not split into single letters.
+  const place = ((d.address ?? "").match(/[\p{L}\p{M}]{4,}/gu) ?? []).filter((w) => !ADDRESS_STOPWORDS.has(w.toLowerCase())).join(" ");
+  // The clinic card number (ANC-101) is left out: its parts are clinical words and values.
   const latin = ([
     { word: d.patientName, placeholder: "[PATIENT]" },
     { word: doctor, placeholder: "[DOCTOR]" },
     { word: place, placeholder: "[PLACE]" },
-    { word: d.clinicPatientNo ?? "", placeholder: "[ID]" },
   ] satisfies KnownTerm[]).filter((t) => t.word.trim()) as KnownTerm[];
 
   // One request per term: the API collapses newlines, so a batched call can't be split back reliably.
@@ -246,19 +259,20 @@ export async function summarize(segments: Segment[], terms: KnownTerm[]): Promis
         generationConfig: { temperature: 0.2, responseMimeType: "application/json", responseSchema: SUMMARY_SCHEMA },
       }),
       cache: "no-store",
-    });
-    if (res.status === 429 || res.status >= 500) {
-      lastError = res.status === 429 ? "Summary rate limit reached; try again in a minute." : lastError;
+      signal: AbortSignal.timeout(30_000),
+    }).catch(() => null);
+    // Any failure (timeout, 429, 5xx, a retired model's 404) falls through to the next model.
+    if (!res?.ok) {
+      if (res?.status === 429) lastError = "Summary rate limit reached; try again in a minute.";
       continue;
     }
     const body = (await res.json().catch(() => ({}))) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
-    if (!res.ok) throw new ScribeError(`Summary request failed (${res.status}).`);
     const text = body.candidates?.[0]?.content?.parts?.[0]?.text;
     try {
       const parsed = JSON.parse(text ?? "") as Partial<ConsultSummary>;
       return Object.fromEntries(SUMMARY_KEYS.map((k) => [k, Array.isArray(parsed[k]) ? parsed[k].map(String) : []])) as unknown as ConsultSummary;
     } catch {
-      throw new ScribeError("Summary response was not valid.");
+      lastError = "Summary response was not valid."; // truncated or empty JSON: try the next model
     }
   }
   throw new ScribeError(lastError);

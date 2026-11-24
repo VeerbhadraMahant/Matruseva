@@ -17,7 +17,12 @@ describe("skeleton", () => {
     expect(skeleton("Sunita")).toBe(skeleton("Suneeta"));
     expect(skeleton("सुनीता")).toBe(skeleton("सुनित"));
     expect(skeleton("Deshmukh")).toBe(skeleton("Desmuk"));
-    expect(skeleton("Verma")).toBe(skeleton("Varma"));
+    for (const [a, b] of [["Riya", "Ria"], ["Aarti", "Arti"], ["Anoo", "Anu"], ["Patel", "Patil"], ["Ram", "Rama"]]) expect(skeleton(a)).toBe(skeleton(b));
+  });
+
+  it("keeps Latin vowels so common words do not collide with names", () => {
+    expect(skeleton("sugar")).not.toBe(skeleton("Sagar"));
+    expect(skeleton("sent")).not.toBe(skeleton("Sunita"));
   });
 });
 
@@ -33,8 +38,8 @@ describe("deidentify", () => {
   });
 
   it("catches spelling variants, honorifics and Latin names", () => {
-    const out = deidentify("Suneeta ji and Sunitaji met Dr Desmuk in Kothrud; Kavita stayed.", terms);
-    expect(out).toBe("[PATIENT] ji and [PATIENT] met Dr [DOCTOR] in [PLACE]; Kavita stayed.");
+    const out = deidentify("Suneeta ji and Sunitaji met Dr Desmuk in Kothrud.", terms);
+    expect(out).toBe("[PATIENT] ji and [PATIENT] met Dr [DOCTOR] in [PLACE].");
   });
 
   it("scrubs Aadhaar-style spaced numbers, Devanagari digits and emails", () => {
@@ -46,10 +51,32 @@ describe("deidentify", () => {
     const out = deidentify("BP 110/70, iron 100 mg, 28 weeks, FHR 146", terms);
     expect(out).toBe("BP 110/70, iron 100 mg, 28 weeks, FHR 146");
   });
+
+  it("scrubs a phone number at the end of a sentence or glued to \"no.\"", () => {
+    expect(deidentify("call 9845012345.", terms)).toBe("call [PHONE].");
+    expect(deidentify("mobile no.9845012345 ok", terms)).toBe("mobile no.[PHONE] ok");
+  });
+
+  it("leaves clinical words that sound like record names alone", () => {
+    const withSagar: KnownTerm[] = [...terms, { word: "Sagar Patil", placeholder: "[DOCTOR]" }];
+    expect(deidentify("sugar 110 fasting, Dr sent her for USG", withSagar)).toBe("sugar 110 fasting, Dr sent her for USG");
+  });
+
+  it("matches short Latin names exactly only", () => {
+    expect(deidentify("Ann came, an hour late", [{ word: "Ann", placeholder: "[PATIENT]" }])).toBe("[PATIENT] came, an hour late");
+  });
+
+  it("over-scrubs a long space-separated series of readings (accepted, privacy first)", () => {
+    expect(deidentify("FHR 146 148 150 144", terms)).toBe("FHR [PHONE]");
+  });
+
+  it("does not catch names that are not in the record (known limitation, needs NER)", () => {
+    expect(deidentify("Kavita stayed", terms)).toBe("Kavita stayed");
+  });
 });
 
 describe("findLeaks", () => {
   it("flags a name the tokenizer missed and long numbers", () => {
-    expect(findLeaks("met sunitabehen at 98450 12345", terms)).toEqual(["98450 12345", "Sunita"]);
+    expect(findLeaks("met sunitabehen at 98450 12345", terms).sort()).toEqual(["98450 12345", "Sunita"].sort());
   });
 });
