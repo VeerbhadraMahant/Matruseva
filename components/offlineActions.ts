@@ -5,7 +5,7 @@ import { logContact, quickLogContact } from "@/app/(app)/calls/actions";
 import { showToast } from "@/components/Toaster";
 import { offlineT } from "@/lib/offlineI18n";
 import { formDataFields, submitOrQueue, type SubmitResult } from "@/lib/offlineSubmit";
-import type { ContactOutcome } from "@/lib/supabase/enums";
+import type { ManualContactOutcome } from "@/lib/supabase/enums";
 
 /**
  * Form action for "Save visit": same as recordVisit, but when the server can't
@@ -47,7 +47,7 @@ export function submitContactLog(patientId: string, formData: FormData): Promise
 export function submitQuickContact(
   patientId: string,
   channel: "call" | "whatsapp",
-  outcome: ContactOutcome,
+  outcome: ManualContactOutcome,
   notes?: string,
 ): Promise<SubmitResult> {
   return submitOrQueue({

@@ -20,12 +20,12 @@ import { getT } from "@/lib/i18n/server";
 
 const FILTER_IDS: CallFilter[] = ["all", "overdue", "at_risk", "lost", "pending"];
 
-export default async function CallsPage({ searchParams }: { searchParams: Promise<{ f?: string }> }) {
+export default async function CallsPage({ searchParams }: { searchParams: Promise<{ f?: string; simulator?: string }> }) {
   const { t } = await getT();
   const me = await getCurrentUser();
   const supabase = me.isDemo ? null : await createClient();
 
-  const [{ f }, { rows, today }, { data: clinic }, { data: contacts }] = await Promise.all([
+  const [{ f, simulator }, { rows, today }, { data: clinic }, { data: contacts }] = await Promise.all([
     searchParams,
     getClinicSnapshot(),
     supabase
@@ -113,7 +113,7 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
         }
       />
       <div className={pageBody}>
-        <CallQueue rows={queue} initialFilter={initialFilter} defaultLang={defaultLang} />
+        <CallQueue rows={queue} initialFilter={initialFilter} defaultLang={defaultLang} showSimulator={me.isDemo && simulator === "1"} />
       </div>
     </>
   );

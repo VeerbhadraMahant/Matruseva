@@ -11,6 +11,7 @@ export type DocType = "report" | "scan" | "prescription" | "case_paper" | "regis
 export type DocSource = "whatsapp" | "pdf" | "paper" | "camera";
 export type ContactChannel = "call" | "whatsapp";
 export type ContactOutcome = "reached" | "no_answer" | "wrong_number" | "will_visit" | "refused" | "automated_reminder";
+export type ManualContactOutcome = Exclude<ContactOutcome, "automated_reminder">;
 export type StaffRole = "doctor" | "staff";
 export type CareEventStatus = "done" | "skipped" | "upcoming" | "due" | "overdue";
 export type FollowUpRisk = "on_track" | "at_risk" | "lost";

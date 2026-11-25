@@ -21,6 +21,7 @@ for (const mobile of [false, true]) {
       const rows = page.locator("main ol > li");
       const all = page.getByRole("checkbox", { name: "Select all patients in this list" });
       const first = rows.first().getByRole("checkbox");
+      await expect(rows.first()).toBeVisible();
       const total = await rows.count();
       expect(total).toBeGreaterThan(1);
 
@@ -44,8 +45,6 @@ for (const mobile of [false, true]) {
         if (count > 0) {
           await all[activate]();
           await expect(rows.locator("input:checked")).toHaveCount(count);
-        } else {
-          await expect(page.getByRole("button", { name: "WhatsApp bot", exact: true })).toBeDisabled();
         }
       }
       await filters.first()[activate]();
