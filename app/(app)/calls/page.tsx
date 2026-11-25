@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { getClinicSnapshot, daysOverdue, needsFollowUp, followUpPriority } from "@/lib/snapshot";
+import { getClinicSnapshot, daysOverdue, followUpPriority } from "@/lib/snapshot";
+import { needsFollowUp } from "@/lib/followUp";
 import { formatGALocalized } from "@/lib/pregnancy";
 import { daysBetween, parseLocalDate } from "@/lib/format";
 import {

@@ -1,5 +1,7 @@
 "use client";
 
+import { hasOverdueItems, isAtRisk, isLost } from "@/lib/followUp";
+
 import { memo, useCallback, useDeferredValue, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -40,9 +42,9 @@ const FILTERS: { id: PatientFilter; label: MessageKey; test: (r: PatientListRow)
   { id: "t1", label: "patients.filter.t1", test: (r) => r.trimester === 1 },
   { id: "t2", label: "patients.filter.t2", test: (r) => r.trimester === 2 },
   { id: "t3", label: "patients.filter.t3", test: (r) => r.trimester === 3 },
-  { id: "overdue", label: "patients.filter.overdue", test: (r) => r.overdueCount > 0 },
-  { id: "at_risk", label: "patients.filter.atRisk", test: (r) => r.risk === "at_risk" },
-  { id: "lost", label: "patients.filter.lost", test: (r) => r.risk === "lost" },
+  { id: "overdue", label: "patients.filter.overdue", test: (r) => hasOverdueItems(r.overdueCount) },
+  { id: "at_risk", label: "patients.filter.atRisk", test: (r) => isAtRisk(r.risk) },
+  { id: "lost", label: "patients.filter.lost", test: (r) => isLost(r.risk) },
   { id: "alerts", label: "patients.filter.alerts", test: (r) => r.flags.some((f) => f.severity !== "info") },
   { id: "term", label: "patients.filter.term", test: (r) => r.eddInDays !== null && r.eddInDays <= 30 },
 ];

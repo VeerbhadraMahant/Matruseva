@@ -72,8 +72,8 @@ export const shell = defineArea({
     "shell.offline.logoutConfirm_other":
       "{count} changes saved offline have not synced yet. Signing out will discard them. Sign out anyway?",
 
-    "shell.callBadge.overdue_one": "{count} patient overdue",
-    "shell.callBadge.overdue_other": "{count} patients overdue",
+    "shell.callBadge.followUp_one": "{count} patient needs follow-up",
+    "shell.callBadge.followUp_other": "{count} patients need follow-up",
 
     "shell.loading.settings": "Loading settings",
     "shell.loading.patient": "Loading patient",
@@ -152,8 +152,8 @@ export const shell = defineArea({
     "shell.offline.logoutConfirm_other":
       "ऑफ़लाइन सहेजे गए {count} बदलाव अभी सिंक नहीं हुए हैं। साइन आउट करने पर ये हट जाएँगे। फिर भी साइन आउट करें?",
 
-    "shell.callBadge.overdue_one": "{count} मरीज़ की फ़ॉलो-अप तारीख़ निकल चुकी है",
-    "shell.callBadge.overdue_other": "{count} मरीज़ों की फ़ॉलो-अप तारीख़ निकल चुकी है",
+    "shell.callBadge.followUp_one": "{count} मरीज़ को फ़ॉलो-अप चाहिए",
+    "shell.callBadge.followUp_other": "{count} मरीज़ों को फ़ॉलो-अप चाहिए",
 
     "shell.loading.settings": "सेटिंग्स लोड हो रही हैं",
     "shell.loading.patient": "मरीज़ की जानकारी लोड हो रही है",
@@ -232,8 +232,8 @@ export const shell = defineArea({
     "shell.offline.logoutConfirm_other":
       "ऑफलाइन जतन केलेले {count} बदल अजून सिंक झालेले नाहीत. साइन आउट केल्यास ते काढून टाकले जातील. तरीही साइन आउट करायचे?",
 
-    "shell.callBadge.overdue_one": "{count} रुग्णाची पाठपुराव्याची तारीख उलटून गेली आहे",
-    "shell.callBadge.overdue_other": "{count} रुग्णांची पाठपुराव्याची तारीख उलटून गेली आहे",
+    "shell.callBadge.followUp_one": "{count} रुग्णाला पाठपुरावा हवा",
+    "shell.callBadge.followUp_other": "{count} रुग्णांना पाठपुरावा हवा",
 
     "shell.loading.settings": "सेटिंग्ज लोड होत आहेत",
     "shell.loading.patient": "रुग्णाची माहिती लोड होत आहे",

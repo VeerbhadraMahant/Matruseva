@@ -1,5 +1,7 @@
 "use client";
 
+import { hasOverdueItems, isAtRisk, isLost } from "@/lib/followUp";
+
 import { memo, useCallback, useMemo, useState, useRef, useTransition } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -65,9 +67,9 @@ type MsgKey = Parameters<Translator>[0];
 const FILTERS: { id: CallFilter; labelKey: MsgKey; test: (r: CallRow) => boolean }[] = [
   { id: "all", labelKey: "calls.filter.all", test: () => true },
   { id: "pending", labelKey: "calls.filter.pending", test: (r) => r.lastContact?.daysAgo !== 0 },
-  { id: "overdue", labelKey: "calls.filter.overdue", test: (r) => r.overdueItems.length > 0 },
-  { id: "at_risk", labelKey: "calls.filter.atRisk", test: (r) => r.risk === "at_risk" },
-  { id: "lost", labelKey: "calls.filter.lost", test: (r) => r.reason === "lost" },
+  { id: "overdue", labelKey: "calls.filter.overdue", test: (r) => hasOverdueItems(r.overdueItems.length) },
+  { id: "at_risk", labelKey: "calls.filter.atRisk", test: (r) => isAtRisk(r.risk) },
+  { id: "lost", labelKey: "calls.filter.lost", test: (r) => isLost(r.risk) },
 ];
 
 const OUTCOME: Record<ContactOutcome, { labelKey: MsgKey; tone: Tone }> = {

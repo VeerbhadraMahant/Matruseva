@@ -1,8 +1,9 @@
 import { getClinicSnapshot } from "@/lib/snapshot";
+import { needsFollowUp } from "@/lib/followUp";
 import { getT } from "@/lib/i18n/server";
 
 /**
- * Overdue-patient count for the Call queue nav item. Async server component:
+ * Patients needing follow-up for the Call queue nav item. Async server component:
  * render it inside <Suspense fallback={null}> so the nav never waits on the
  * snapshot queries. Styling reacts to the sidebar's `group/sb` data-collapsed
  * attribute (number pill when expanded, small dot on the icon when collapsed).
@@ -11,7 +12,7 @@ export async function CallQueueBadge() {
   let count = 0;
   try {
     const { rows } = await getClinicSnapshot();
-    count = rows.filter((r) => r.overdue.length > 0).length;
+    count = rows.filter(needsFollowUp).length;
   } catch {
     return null;
   }
@@ -25,7 +26,7 @@ export async function CallQueueBadge() {
         {count > 99 ? "99+" : count}
       </span>
       <span className="sr-only">
-        {t("shell.callBadge.overdue", { count })}
+        {t("shell.callBadge.followUp", { count })}
       </span>
     </span>
   );

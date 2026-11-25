@@ -1,4 +1,5 @@
-import { daysOverdue, followUpPriority, needsFollowUp, type PatientRow } from "@/lib/snapshot";
+import { daysOverdue, followUpPriority, type PatientRow } from "@/lib/snapshot";
+import { hasOverdueItems, isAtRisk, needsFollowUp } from "@/lib/followUp";
 import { trimester } from "@/lib/pregnancy";
 import { daysBetween, formatDate, formatShortDate, parseLocalDate, relativeDays } from "@/lib/format";
 import { toISODate } from "@/lib/today";
@@ -72,8 +73,8 @@ function toRow(row: PatientRow, today: Date, t: Translator, locale: Locale): Wor
     telHref,
     status: rowStatus(row),
     summary: rowSummary(row, today, t),
-    isAtRisk: row.risk !== "on_track",
-    isOverdue: row.overdue.length > 0,
+    isAtRisk: isAtRisk(row.risk),
+    isOverdue: hasOverdueItems(row.overdue.length),
     alerts: row.flags
       .filter((f) => f.severity !== "info")
       .map((f) => ({ label: flagLabel(f, t), critical: f.severity === "critical" })),

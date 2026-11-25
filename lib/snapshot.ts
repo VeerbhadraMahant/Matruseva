@@ -154,10 +154,6 @@ export function daysOverdue(row: PatientRow, today: Date): number {
   return Math.max(...row.overdue.map((e) => daysBetween(parseLocalDate(e.dueTo), today)));
 }
 
-export function needsFollowUp(row: PatientRow): boolean {
-  return row.risk !== "on_track" || row.overdue.length > 0;
-}
-
 /** Lower sorts first: lost, then critical clinical flags, then most overdue, then at-risk. */
 export function followUpPriority(row: PatientRow, today: Date): number {
   if (row.risk === "lost") return 0;
