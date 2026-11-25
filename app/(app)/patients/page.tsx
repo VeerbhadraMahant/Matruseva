@@ -50,7 +50,7 @@ export default async function PatientsPage({ searchParams }: { searchParams: Pro
         }
       />
       <div className={pageBody}>
-        <PatientTable rows={list} initialFilter={initialFilter} />
+        <PatientTable key={initialFilter} rows={list} initialFilter={initialFilter} />
       </div>
     </>
   );

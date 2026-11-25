@@ -52,6 +52,10 @@ function makePatientSchema(t: Translator) {
   });
 }
 
+function escapeSearchPattern(value: string): string {
+  return value.replace(/[\\%_*]/g, (character) => "\\" + character);
+}
+
 function normalizedName(name: string): string {
   return name.trim().replace(/\s+/g, " ").toLowerCase();
 }
@@ -128,7 +132,7 @@ export async function createPatient(_prev: ActionResult, formData: FormData): Pr
     const [supabase, me] = await Promise.all([createClient(), getCurrentUser()]);
     const profile = { clinic_id: me.clinicId };
     if (phone) {
-      const pattern = name.replace(/[\\%_*]/g, (character) => `\${character}`).replaceAll(" ", "%");
+      const pattern = escapeSearchPattern(name).replaceAll(" ", "%");
       const { data: matches, error } = await supabase.from("patients").select("name, phone")
         .eq("clinic_id", me.clinicId).ilike("name", `%${pattern}%`);
       if (error) return { error: t("patients.error.dbConnection") };
@@ -289,7 +293,7 @@ export async function resolvePatientCard(raw: string): Promise<string | null> {
     if (error) throw error;
     if (data) return data.id;
   }
-  const exactCard = reference.replace(/[\\%_*]/g, (character) => `\${character}`);
+  const exactCard = escapeSearchPattern(reference);
   const { data, error } = await supabase.from("patients").select("id")
     .eq("clinic_id", me.clinicId).ilike("clinic_patient_no", exactCard).limit(2);
   if (error) throw error;

@@ -113,7 +113,7 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
         }
       />
       <div className={pageBody}>
-        <CallQueue rows={queue} initialFilter={initialFilter} defaultLang={defaultLang} showSimulator={me.isDemo && simulator === "1"} />
+        <CallQueue key={initialFilter} rows={queue} initialFilter={initialFilter} defaultLang={defaultLang} showSimulator={me.isDemo && simulator === "1"} />
       </div>
     </>
   );

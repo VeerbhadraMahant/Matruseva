@@ -684,8 +684,8 @@ const CallCard = memo(function CallCard({
             </span>
           </div>
           <div className="flex flex-wrap gap-1">
-            {r.reason === "lost" && <Tag tone="critical">{t("calls.card.lostToFollowUp")}</Tag>}
-            {r.reason === "at_risk" && (
+            {isLost(r.risk) && <Tag tone="critical">{t("calls.card.lostToFollowUp")}</Tag>}
+            {isAtRisk(r.risk) && (
               <Tag tone="warning">{r.noAnswerStreak >= 2 ? t("calls.card.unreachable", { count: r.noAnswerStreak }) : t("calls.card.atRisk")}</Tag>
             )}
             {r.flags.map((f) => (
