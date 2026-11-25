@@ -103,3 +103,26 @@ test("demo Settings show thresholds, schedule and message templates", async ({ p
   await expect(main.getByRole("heading", { name: /Reminder message templates/ })).toBeVisible();
   await expect(main.locator("textarea").first()).not.toHaveValue("");
 });
+
+test("phone navigation has five links and the menu retains access to scanning", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/today");
+  const bottom = page.getByRole("navigation", { name: "Primary" });
+  await expect(bottom.getByRole("link")).toHaveCount(5);
+  await expect(bottom.getByRole("link", { name: "Today", exact: true })).toHaveCount(1);
+  await expect(page.getByRole("banner").getByRole("link")).toHaveCount(0);
+  await page.getByRole("button", { name: "Open menu", exact: true }).click();
+  await page.getByRole("dialog", { name: "Main menu" }).getByRole("link", { name: "Scan QR Card" }).click();
+  await expect(page).toHaveURL(/\/scan$/);
+});
+
+test("desktop navigation keeps explicit accessible link names when collapsed", async ({ page }) => {
+  const sidebar = page.getByRole("complementary", { name: "Main menu" });
+  const nav = sidebar.getByRole("navigation", { name: "Primary" });
+  for (const name of ["Today", "Patients", "Scan QR Card", "Call queue", "Documents", "OPD register", "Settings"]) {
+    await expect(nav.getByRole("link", { name, exact: true })).toBeVisible();
+  }
+  await sidebar.getByRole("button", { name: "Collapse sidebar", exact: true }).click();
+  await expect(nav.getByRole("link", { name: "Patients", exact: true })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Call queue", exact: true })).toHaveAccessibleDescription(/patients? needs? follow-up/);
+});

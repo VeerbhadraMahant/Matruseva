@@ -18,6 +18,7 @@ export const landing = defineArea({
       "MatruSetu is the clinical worklist for OB-GYN practices — automatic ANC schedules from LMP, a risk score for patients who are drifting away, and a digitised OPD register your staff can actually search.",
     "landing.cta.create": "Create your clinic account",
     "landing.cta.signIn": "Sign in",
+    "landing.cta.demo": "Try the demo",
     "landing.hero.imageAlt":
       "MatruSetu Today dashboard showing patients due today, a week strip and the follow-up worklist",
 
@@ -89,6 +90,7 @@ export const landing = defineArea({
       "MatruSetu OB-GYN क्लिनिक की क्लिनिकल कार्य-सूची है — LMP से अपने आप बनने वाला ANC शेड्यूल, दूर होते मरीज़ों के लिए जोखिम स्कोर, और डिजिटल OPD रजिस्टर जिसमें आपका स्टाफ़ सचमुच खोज सकता है।",
     "landing.cta.create": "अपने क्लिनिक का खाता बनाएँ",
     "landing.cta.signIn": "साइन इन करें",
+    "landing.cta.demo": "डेमो आज़माएँ",
     "landing.hero.imageAlt":
       "MatruSetu का आज वाला डैशबोर्ड, जिसमें आज देय मरीज़, सप्ताह की पट्टी और फ़ॉलो-अप कार्य-सूची दिख रही है",
 
@@ -160,6 +162,7 @@ export const landing = defineArea({
       "MatruSetu ही OB-GYN क्लिनिकची क्लिनिकल कामाची यादी आहे — LMP वरून आपोआप तयार होणारे ANC वेळापत्रक, दूर जाणाऱ्या रुग्णांसाठी जोखीम स्कोअर आणि तुमचा स्टाफ खरोखर शोधू शकेल अशी डिजिटल OPD नोंदवही.",
     "landing.cta.create": "तुमच्या क्लिनिकचे खाते तयार करा",
     "landing.cta.signIn": "साइन इन करा",
+    "landing.cta.demo": "डेमो वापरून पाहा",
     "landing.hero.imageAlt":
       "MatruSetu चा आजचा डॅशबोर्ड, ज्यात आज देय रुग्ण, आठवड्याची पट्टी आणि पाठपुरावा कामाची यादी दिसत आहे",
 

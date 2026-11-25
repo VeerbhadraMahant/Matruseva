@@ -567,7 +567,7 @@ function computeDemoPatientDetail(id: string, today: Date, todayIso: string) {
 
   const seedVisit = patientRaw.latestVisit;
   const customVisits = store.visits[patientRaw.id] ?? [];
-  const visits = [...customVisits, ...(seeded && seedVisit && customVisits.length === 0 ? [{
+  const visits = [...customVisits, ...(seeded && seedVisit ? [{
     id: "v-1",
     patient_id: patientRaw.id,
     visit_date: dateOffset(-seedVisit.daysAgo),
@@ -584,7 +584,7 @@ function computeDemoPatientDetail(id: string, today: Date, todayIso: string) {
 
   const isDeliveredOrClosed = patientRaw.status === "delivered" || patientRaw.status === "closed";
   const contacts = getDemoPatientContacts(patientRaw, today);
-  const nextVisitDate = isDeliveredOrClosed ? null : visits[0]?.next_visit_date ?? null;
+  const nextVisitDate = isDeliveredOrClosed ? null : visits.find((visit) => visit.next_visit_date)?.next_visit_date ?? null;
   const followUpRisk = computeFollowUpRisk({
     patientStatus: patientRaw.status ?? "active",
     nextVisitDate: nextVisitDate ? parseLocalDate(nextVisitDate) : null,
@@ -940,11 +940,11 @@ function getDemoPatientContacts(patient: DemoPatientRaw, today: Date): DemoConta
   seedDate.setDate(seedDate.getDate() - 2);
   return [...contacts, {
     id: "c-seed-sunita",
-    channel: "whatsapp",
-    outcome: "reached",
+    channel: "whatsapp" as const,
+    outcome: "reached" as const,
     notes: "Reminder confirmed",
-    created_at: `${toISODate(seedDate)}T04:30:00Z`,
-  }];
+    created_at: toISODate(seedDate),
+  }].sort((a, b) => b.created_at.localeCompare(a.created_at));
 }
 
 export function getDemoContacts() {

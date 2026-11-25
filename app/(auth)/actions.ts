@@ -1,15 +1,16 @@
 "use server";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n/server";
 import type { Translator } from "@/lib/i18n/translate-client";
-import { DEMO_COOKIE, DEMO_EMAIL, DEMO_PASSWORD } from "@/lib/demo";
+import { DEMO_COOKIE, DEMO_EMAIL, DEMO_PASSWORD, isDemoModeEnabled, isSupabaseConfigured } from "@/lib/demo";
 
 export interface ActionResult {
   error: string | null;
   checkEmail?: boolean;
+  resetDemo?: boolean;
 }
 
 const credentialsSchema = (t: Translator) =>
@@ -19,6 +20,7 @@ const credentialsSchema = (t: Translator) =>
   });
 
 async function startDemoSession(): Promise<never> {
+  if (!isDemoModeEnabled()) redirect("/login");
   const cookieStore = await cookies();
   cookieStore.set(DEMO_COOKIE, "1", {
     httpOnly: true,
@@ -94,9 +96,40 @@ export async function signup(_prev: ActionResult, formData: FormData): Promise<A
   redirect("/onboarding");
 }
 
+export async function requestPasswordReset(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
+  const { t } = await getT();
+  const email = z.email().safeParse(formData.get("email"));
+  if (!email.success) return { error: t("auth.error.email") };
+  if (isDemoModeEnabled()) return { error: null, resetDemo: true };
+  if (!isSupabaseConfigured()) return { error: t("auth.reset.unavailable") };
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (await headers()).get("origin");
+  if (!siteUrl) return { error: t("auth.reset.unavailable") };
+  const redirectTo = new URL("/auth/callback", siteUrl);
+  redirectTo.searchParams.set("flow", "recovery");
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email.data, { redirectTo: redirectTo.toString() });
+  return error ? { error: t("auth.reset.unavailable") } : { error: null, checkEmail: true };
+}
+
+export async function updatePassword(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
+  const { t } = await getT();
+  if (isDemoModeEnabled() || !isSupabaseConfigured()) return { error: t("auth.reset.unavailable") };
+  const password = z.string().min(8).safeParse(formData.get("password"));
+  if (!password.success) return { error: t("auth.error.passwordLength") };
+  if (password.data !== formData.get("confirmPassword")) return { error: t("auth.reset.passwordMismatch") };
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser({ password: password.data });
+  if (error) return { error: t("auth.reset.updateError") };
+  redirect("/today");
+}
+
 export async function logout(): Promise<void> {
   const cookieStore = await cookies();
+  const demo = isDemoModeEnabled() && cookieStore.get(DEMO_COOKIE)?.value === "1";
   cookieStore.delete(DEMO_COOKIE);
+  if (demo) redirect("/login");
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/login");

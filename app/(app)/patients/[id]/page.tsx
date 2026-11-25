@@ -5,10 +5,9 @@ import { Phone, FilePdf, Baby, FileText, Microphone, DotsThree } from "@phosphor
 import { createClient } from "@/lib/supabase/server";
 import { gestationalAge, formatGALocalized, trimester } from "@/lib/pregnancy";
 import { getT } from "@/lib/i18n/server";
-import { intlLocale } from "@/lib/i18n/intl";
 import { careEventKind, careEventName, careStatusLabel, contactOutcomeLabel, documentTypeLabel, followUpRiskLabel } from "@/lib/clinicalLabels";
 import { todayInClinicTimezone, toISODate } from "@/lib/today";
-import { daysBetween, formatDate, formatGravidaPara, formatShortDate, parseLocalDate, relativeDays } from "@/lib/format";
+import { daysBetween, formatContactDate, formatDate, formatGravidaPara, formatShortDate, parseLocalDate, relativeDays } from "@/lib/format";
 import { bpFlag, hbFlag, fhrFlag, patientFlags, vitalsFlags, sortFlags, localizeFlags } from "@/lib/clinical";
 import {
   telLink,
@@ -641,15 +640,9 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
                         {c.channel === "whatsapp" ? t("clinical.channel.whatsapp") : t("clinical.channel.call")} ·{" "}
                         <span className="font-medium">{contactOutcomeLabel(c.outcome as ContactOutcome, t)}</span>
                       </span>
-                      <span className="num text-[12px] text-[var(--color-charcoal)]">
-                        {new Date(c.created_at).toLocaleString(intlLocale(locale), {
-                          day: "2-digit",
-                          month: "short",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          timeZone: "Asia/Kolkata",
-                        })}
-                      </span>
+                      <time dateTime={c.created_at} className="num text-[12px] text-[var(--color-charcoal)]">
+                        {formatContactDate(c.created_at, locale)}
+                      </time>
                     </li>
                   ))}
                 </ul>

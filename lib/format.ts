@@ -34,6 +34,20 @@ export function formatShortDate(isoDate: string | null | undefined, locale: Loca
   return formatDateWith(isoDate, { day: "2-digit", month: "short" }, locale);
 }
 
+export function formatContactDate(value: string, locale: Locale = DEFAULT_LOCALE): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return formatShortDate(value, locale);
+
+  const date = new Date(value);
+  const timeZone = "Asia/Kolkata";
+  const hasTime = new Intl.DateTimeFormat("en-GB", {
+    timeZone, hourCycle: "h23", hour: "2-digit", minute: "2-digit", second: "2-digit",
+  }).format(date) !== "00:00:00";
+  return date.toLocaleString(intlLocale(locale), {
+    timeZone, day: "2-digit", month: "short",
+    ...(hasTime ? { hour: "2-digit", minute: "2-digit" } : {}),
+  });
+}
+
 /** Locale-aware number (Latin digits, Indian grouping). */
 export function formatNumber(value: number, locale: Locale = DEFAULT_LOCALE, options?: Intl.NumberFormatOptions): string {
   return new Intl.NumberFormat(intlLocale(locale), options).format(value);

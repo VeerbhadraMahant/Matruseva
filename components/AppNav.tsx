@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import {
   CalendarCheck,
@@ -13,7 +13,7 @@ import {
   MagnifyingGlass,
   SignOut,
   QrCode,
-  House,
+  List,
   X,
   SidebarSimple,
 } from "@phosphor-icons/react";
@@ -50,6 +50,7 @@ const NAV_ITEMS: { href: string; label: MessageKey; short?: MessageKey; icon: Ic
   { href: "/documents", label: "shell.nav.documents", short: "shell.nav.documents.short", icon: Tray },
   { href: "/opd", label: "shell.nav.opd", short: "shell.nav.opd.short", icon: BookOpenText },
 ];
+const MOBILE_NAV_ITEMS = NAV_ITEMS.filter((item) => item.href !== "/scan");
 const SETTINGS_ITEM = { href: "/settings", label: "shell.nav.settings" as MessageKey, icon: Gear };
 
 function isActive(pathname: string, href: string) {
@@ -103,6 +104,7 @@ function MenuBody({
 }) {
   const keys = useModKeyLabel();
   const t = useT();
+  const callBadgeId = useId();
   return (
     <>
         <div className={`flex items-center gap-3 pb-4 pt-5 ${collapsed ? "justify-center" : "justify-between px-5"}`}>
@@ -162,6 +164,8 @@ function MenuBody({
                 href={href}
                 prefetch={true}
                 onClick={onNavigate}
+                aria-label={label}
+                aria-describedby={href === "/calls" && callBadge ? callBadgeId : undefined}
                 aria-current={active ? "page" : undefined}
                 title={collapsed ? label : undefined}
                 className={`group/link relative flex min-h-12 items-center rounded-xl text-[15px] transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)] ${
@@ -174,7 +178,7 @@ function MenuBody({
               >
                 <Icon size={20} weight={active ? "fill" : "regular"} aria-hidden />
                 <span className={collapsed ? "sr-only" : "min-w-0 flex-1 leading-snug"}>{label}</span>
-                {href === "/calls" && callBadge}
+                {href === "/calls" && callBadge && <span id={callBadgeId} className="contents">{callBadge}</span>}
               </Link>
             );
           })}
@@ -283,13 +287,13 @@ export function AppTopBar({
             title={t("shell.nav.menu")}
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--color-primary-surface)] text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-white"
           >
-            <House size={22} weight="fill" aria-hidden />
+            <List size={22} weight="bold" aria-hidden />
           </button>
-          <Link href="/today" className="flex min-w-0 items-center gap-2.5">
+          <div className="flex min-w-0 items-center gap-2.5">
             <BrandMark />
             <span className="text-[17px] font-semibold tracking-tight text-[var(--color-foreground)]">MatruSetu</span>
             <span className="hidden truncate text-[13px] text-[var(--color-charcoal)] sm:inline">· {clinicName}</span>
-          </Link>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -333,6 +337,7 @@ export function AppTopBar({
         role="dialog"
         aria-modal="true"
         aria-label={t("shell.nav.mainMenu")}
+        aria-hidden={!open}
         inert={!open}
         className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col md:hidden bg-[var(--color-background)] shadow-[0_24px_60px_-12px_rgb(62_42_92/0.45)] transition-transform duration-300 ease-out ${
           open ? "translate-x-0" : "-translate-x-full"
@@ -381,7 +386,7 @@ export function AppBottomNav() {
       aria-label={t("shell.nav.primary")}
       className="pc-glass fixed inset-x-0 bottom-0 z-20 flex h-[var(--mobile-nav-height)] !rounded-none !border-x-0 !border-b-0 px-1 pb-[env(safe-area-inset-bottom)] md:hidden"
     >
-      {NAV_ITEMS.map(({ href, label, short, icon: Icon }) => {
+      {MOBILE_NAV_ITEMS.map(({ href, label, short, icon: Icon }) => {
         const active = isActive(pathname, href);
         return (
           <Link

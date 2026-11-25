@@ -11,6 +11,8 @@ import {
   ShieldWarning,
   UsersThree,
 } from "@phosphor-icons/react/dist/ssr";
+import { isDemoModeEnabled } from "@/lib/demo";
+import { loginDemo } from "./(auth)/actions";
 import { getT } from "@/lib/i18n/server";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Reveal } from "@/components/marketing/Reveal";
@@ -82,7 +84,7 @@ export default async function LandingPage() {
         {/* Hero */}
         <section className="relative mx-auto max-w-6xl px-4 pt-16 pb-20 sm:px-6 sm:pt-24 sm:pb-28">
           <HeroBackdrop />
-          <Reveal className="mx-auto max-w-3xl text-center">
+          <div className="mx-auto max-w-3xl text-center">
             <span className="inline-flex items-center rounded-full bg-[#ebe1f1] px-4 py-1.5 text-[13px] font-semibold text-[#3e2a5c]">
               {t("landing.hero.badge")}
             </span>
@@ -106,8 +108,18 @@ export default async function LandingPage() {
               >
                 {t("landing.cta.signIn")}
               </Link>
+              {isDemoModeEnabled() && (
+                <form action={loginDemo} className="w-full sm:w-auto">
+                  <button
+                    type="submit"
+                    className="w-full rounded-full border border-[#221b2b]/15 bg-white px-7 py-3.5 text-center text-[16px] font-semibold text-[#221b2b] transition-colors hover:bg-[#221b2b]/5"
+                  >
+                    {t("landing.cta.demo")}
+                  </button>
+                </form>
+              )}
             </div>
-          </Reveal>
+          </div>
 
           {/* Hero product shot */}
           <Reveal delay={150} className="mx-auto mt-16 max-w-4xl">

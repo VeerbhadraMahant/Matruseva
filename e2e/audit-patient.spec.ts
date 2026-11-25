@@ -117,3 +117,24 @@ test("registration shows LMP before an English questionnaire with consecutive nu
   await questionnaire.getByRole("button", { name: /Normal Vaginal/ }).click();
   expect(await visibleNumbers()).toEqual([1, 2, 3, 4, 5, 6, 7]);
 });
+
+test("a past booked visit has the same date and follow-up risk across screens", async ({ page }) => {
+  await page.goto("/patients/p4-priya-sharma");
+  const main = page.getByRole("main");
+  const bookedDate = new Date(Date.now() - 24 * 86400000);
+  await main.locator("#nextVisitDate").fill(bookedDate.toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" }));
+  await main.getByRole("button", { name: "Save visit", exact: true }).click();
+  await expect(main.getByText(/24d ago/)).toBeVisible();
+  await expect(main.getByText("Lost to follow-up", { exact: true }).first()).toBeVisible();
+  await page.goto("/calls?f=lost");
+  await expect(main.locator("ol > li").filter({ hasText: "Priya Sharma" })).toBeVisible();
+});
+
+test("contact history shows a date without a time for a date-only entry", async ({ page }) => {
+  await page.goto("/patients/p2-sunita-verma");
+  const row = page.getByRole("main").getByRole("listitem").filter({ hasText: /WhatsApp.*Reached/i });
+  const date = new Date(Date.now() - 2 * 86400000).toLocaleDateString("en-IN", {
+    timeZone: "Asia/Kolkata", day: "2-digit", month: "short",
+  });
+  await expect(row.locator("time")).toHaveText(date);
+});
