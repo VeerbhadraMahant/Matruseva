@@ -82,6 +82,9 @@ export default async function TodayPage() {
         <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] lg:items-start">
           <div className="contents lg:flex lg:flex-col lg:gap-5">
             <div className="order-1">
+              <TodayWorklist days={worklist.days} rows={worklist.rows} />
+            </div>
+            <div className="order-2">
               <HeroCard
                 dueToday={worklist.days[0]?.entries.filter((entry) => entry.scheduled).length ?? 0}
                 overdue={overdueCount}
@@ -89,13 +92,10 @@ export default async function TodayPage() {
                 totalActive={totalActive}
               />
             </div>
-            <div className="order-3">
-              <TodayWorklist days={worklist.days} rows={worklist.rows} />
-            </div>
           </div>
 
           <div className="contents lg:flex lg:flex-col lg:gap-5">
-            <div className="order-2">
+            <div className="order-3">
               <QuickActions />
             </div>
             <div className="order-4">

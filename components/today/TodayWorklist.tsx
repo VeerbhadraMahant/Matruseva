@@ -256,8 +256,6 @@ export function TodayWorklist({ days, rows }: { days: WorklistDay[]; rows: Workl
 
   return (
     <section aria-labelledby="worklist-title" className="space-y-4">
-      <WeekStrip days={days} selected={selected} onSelect={selectDay} />
-
       <div className="pc-glass overflow-hidden rounded-[24px]">
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 pb-3 pt-4 sm:px-5">
           <h2 id="worklist-title" className="text-[17px] font-semibold">
@@ -271,7 +269,7 @@ export function TodayWorklist({ days, rows }: { days: WorklistDay[]; rows: Workl
           </Link>
         </div>
 
-        <div role="group" aria-label={t("today.worklist.filterLabel")} className="flex gap-2 overflow-x-auto px-4 pb-4 sm:px-5">
+        <div role="group" aria-label={t("today.worklist.filterLabel")} className="flex flex-wrap gap-2 px-4 pb-4 sm:px-5">
           {chips.map((c) => {
             const count = pairs.filter(({ entry, row }) => matches(c.id, entry, row)).length;
             const active = filter === c.id;
@@ -341,6 +339,7 @@ export function TodayWorklist({ days, rows }: { days: WorklistDay[]; rows: Workl
           </button>
         )}
       </div>
+      <WeekStrip days={days} selected={selected} onSelect={selectDay} />
     </section>
   );
 }

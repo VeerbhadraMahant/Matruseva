@@ -730,9 +730,9 @@ export function logDemoBatchContacts(
 }
 
 export function getDemoContactStats(): { reached: number; total: number; successRate: number } {
-  // Synthesized realistic metrics from demo call activities
-  const reached = 38;
-  const total = 46;
+  const contacts = getDemoContacts();
+  const reached = contacts.filter((contact) => contact.outcome === "reached" || contact.outcome === "will_visit").length;
+  const total = contacts.length;
   const successRate = total > 0 ? Math.round((reached / total) * 100) : 0;
   return { reached, total, successRate };
 }
@@ -921,7 +921,12 @@ export function updateDemoPatient(
 }
 
 function getDemoPatientContacts(patient: DemoPatientRaw, today: Date): DemoContactRecord[] {
-  const contacts = getDemoStore().contacts[patient.id] ?? [];
+  const contacts = (getDemoStore().contacts[patient.id] ?? []).map((contact): DemoContactRecord =>
+    contact.channel === "whatsapp" && contact.outcome === "reached" &&
+    (contact.notes === "Automated WhatsApp reminder sent" || /^Automated (reminder sent:|Bot reminder sent \()/.test(contact.notes ?? ""))
+      ? { ...contact, outcome: "automated_reminder" }
+      : contact,
+  );
   if (patient.id !== "p2-sunita-verma") return contacts;
   const seedDate = new Date(today);
   seedDate.setDate(seedDate.getDate() - 2);

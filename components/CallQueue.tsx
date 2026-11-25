@@ -78,6 +78,7 @@ const OUTCOME: Record<ContactOutcome, { labelKey: MsgKey; tone: Tone }> = {
   no_answer: { labelKey: "calls.outcome.noAnswer", tone: "warning" },
   wrong_number: { labelKey: "calls.outcome.wrongNumber", tone: "critical" },
   refused: { labelKey: "calls.outcome.refused", tone: "critical" },
+  automated_reminder: { labelKey: "calls.batch.opt.automated", tone: "neutral" },
 };
 
 function ago(t: Translator, days: number) {
@@ -144,7 +145,7 @@ export function CallQueue({
   const selectedIds = useMemo(() => visible.filter((r) => selection.has(r.id)).map((r) => r.id), [visible, selection]);
   const allSelected = visible.length > 0 && selectedIds.length === visible.length;
   const partiallySelected = selectedIds.length > 0 && !allSelected;
-  const [batchOutcome, setBatchOutcome] = useState<ContactOutcome | "automated_reminder">("no_answer");
+  const [batchOutcome, setBatchOutcome] = useState<ContactOutcome>("no_answer");
   const [batchNotes, setBatchNotes] = useState("");
   const [showBatchConfirm, setShowBatchConfirm] = useState(false);
   const [batchToast, setBatchToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
@@ -185,8 +186,7 @@ export function CallQueue({
     setSelection(new Set());
   };
 
-  const getBatchOutcomeLabel = (out: ContactOutcome | "automated_reminder") => {
-    if (out === "automated_reminder") return t("calls.batch.opt.automated");
+  const getBatchOutcomeLabel = (out: ContactOutcome) => {
     const o = OUTCOME[out as ContactOutcome];
     return o ? t(o.labelKey) : out;
   };
@@ -194,14 +194,13 @@ export function CallQueue({
   const handleBatchSubmit = () => {
     if (selectedIds.length === 0) return;
     const ids = selectedIds;
-    const outcomeToLog: ContactOutcome = batchOutcome === "automated_reminder" ? "reached" : batchOutcome;
     const finalNotes =
       batchOutcome === "automated_reminder"
         ? (batchNotes.trim() ? `Automated reminder sent: ${batchNotes.trim()}` : "Automated WhatsApp reminder sent")
         : (batchNotes.trim() || undefined);
 
     startBatchTransition(async () => {
-      const res = await logBatchContacts(ids, outcomeToLog, finalNotes, batchOutcome === "automated_reminder" ? "whatsapp" : "call");
+      const res = await logBatchContacts(ids, batchOutcome, finalNotes, batchOutcome === "automated_reminder" ? "whatsapp" : "call");
       setShowBatchConfirm(false);
       if (res.error) {
         setBatchToast({ message: res.error, type: "error" });
@@ -558,7 +557,7 @@ export function CallQueue({
                 <select
                   id="batch-outcome"
                   value={batchOutcome}
-                  onChange={(e) => setBatchOutcome(e.target.value as ContactOutcome | "automated_reminder")}
+                  onChange={(e) => setBatchOutcome(e.target.value as ContactOutcome)}
                   className="rounded-xl min-h-9 border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2.5 py-1 text-xs font-medium focus:ring-1 focus:ring-[var(--color-primary)]"
                 >
                   <option value="no_answer">{t("calls.batch.opt.noAnswer")}</option>

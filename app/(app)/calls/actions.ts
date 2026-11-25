@@ -22,6 +22,7 @@ export interface BatchContactResult {
 
 /** Every page that renders contact-log derived data for a patient. */
 function revalidateContactViews(patientId: string) {
+  revalidatePath("/(app)", "layout");
   revalidatePath("/calls");
   revalidatePath("/today");
   revalidatePath("/patients");
@@ -122,7 +123,7 @@ const batchContactSchema = (msg: { none: string; tooMany: string; outcome: strin
     .array(z.string().min(1))
     .min(1, msg.none)
     .max(100, msg.tooMany),
-  outcome: z.enum(["reached", "no_answer", "wrong_number", "will_visit", "refused"], {
+  outcome: z.enum(["reached", "no_answer", "wrong_number", "will_visit", "refused", "automated_reminder"], {
     message: msg.outcome,
   }),
   channel: z.enum(["call", "whatsapp"]).default("call"),
@@ -155,6 +156,7 @@ export async function logBatchContacts(
 
   if (isDemo) {
     const demoRes = logDemoBatchContacts(valid.patientIds, valid.outcome, valid.notes, valid.channel);
+    revalidatePath("/(app)", "layout");
     revalidatePath("/calls");
     revalidatePath("/today");
     revalidatePath("/patients");
@@ -216,6 +218,7 @@ export async function logBatchContacts(
       }
     }
 
+    revalidatePath("/(app)", "layout");
     revalidatePath("/calls");
     revalidatePath("/today");
     revalidatePath("/patients");
@@ -251,9 +254,8 @@ export async function dispatchBotReminder(
   });
 
   if (isDemo) {
-    logDemoContact(patientId, "whatsapp", "reached", `Automated Bot reminder sent (${lang.toUpperCase()}): "${reminderText.slice(0, 100)}..."`);
-    revalidatePath("/calls");
-    revalidatePath(`/patients/${patientId}`);
+    logDemoContact(patientId, "whatsapp", "automated_reminder", `Automated Bot reminder sent (${lang.toUpperCase()}): "${reminderText.slice(0, 100)}..."`);
+    revalidateContactViews(patientId);
     return { error: null, reminderText };
   }
 
@@ -274,15 +276,14 @@ export async function dispatchBotReminder(
       patient_id: patientId,
       clinic_id: me.clinicId,
       channel: "whatsapp",
-      outcome: "reached",
+      outcome: "automated_reminder",
       notes: `Automated Bot reminder sent (${lang.toUpperCase()}): "${liveReminderText.slice(0, 100)}..."`,
       created_by: me.userId,
     });
 
     if (error) return { error: error.message };
 
-    revalidatePath("/calls");
-    revalidatePath(`/patients/${patientId}`);
+    revalidateContactViews(patientId);
     return { error: null, reminderText: liveReminderText };
   } catch (err: unknown) {
     return { error: err instanceof Error ? err.message : t("calls.error.db") };

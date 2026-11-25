@@ -74,6 +74,7 @@ const OUTCOME_KEYS: Record<string, MessageKey> = {
   no_answer: "clinical.outcome.no_answer",
   wrong_number: "clinical.outcome.wrong_number",
   refused: "clinical.outcome.refused",
+  automated_reminder: "calls.batch.opt.automated",
 };
 export function contactOutcomeLabel(outcome: string, t: Translator): string {
   const key = OUTCOME_KEYS[outcome];

@@ -65,7 +65,7 @@ test("patient history, risk, blood pressure and schedule agree across surfaces",
 
   await page.goto("/calls");
   const callRow = main.locator("ol > li").filter({ hasText: "Sunita Verma" });
-  await expect(callRow.getByText(/Reached/i).first()).toBeVisible();
+  await expect(callRow.getByText(/Never contacted/i)).toHaveCount(0);
   await expect(callRow.getByText(/[1-9]\d* attempts? in 30d/)).toBeVisible();
 });
 
@@ -92,4 +92,34 @@ test("a booked visit and task on the same day share one patient row", async ({ p
   await expect(kavita.getByRole("button", { name: /Visit booked.*NT Scan/i })).toBeVisible();
   await kavita.getByRole("button", { name: /Kavita Patel/i }).click();
   await expect(kavita.getByText(/NT Scan.*by/i)).toBeVisible();
+});
+
+test("batch reminders are logged without increasing successful contacts", async ({ page }) => {
+  const main = page.getByRole("main");
+  const stats = main.getByText(/\d+ of \d+ reached/);
+  await expect(stats).toBeVisible();
+  const before = (await stats.innerText()).match(/\d+/g)!.map(Number);
+  await page.goto("/calls");
+  const sunita = main.locator("ol > li").filter({ hasText: "Sunita Verma" });
+  await sunita.getByRole("checkbox").check();
+  await main.locator("#batch-outcome").selectOption("automated_reminder");
+  await page.getByRole("button", { name: "Log for 1 selected" }).click();
+  await page.getByRole("button", { name: "Yes, Log Contacts" }).click();
+  await expect(sunita.getByText("Automated reminder sent (WhatsApp)", { exact: true }).first()).toBeVisible();
+  await page.goto("/patients/p2-sunita-verma");
+  await expect(main.getByText("Automated reminder sent (WhatsApp)", { exact: true }).first()).toBeVisible();
+  await page.goto("/today");
+  await expect(stats).toHaveText(`${before[0]} of ${before[1] + 1} reached`);
+});
+
+test("Today puts work first and wraps worklist filters on mobile", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 740 });
+  const main = page.getByRole("main");
+  const worklist = main.getByRole("heading", { name: /^Worklist/ });
+  const hero = main.getByRole("region", { name: "Patients due today" });
+  const filters = main.getByRole("group", { name: "Filter worklist" });
+  await expect(worklist).toBeInViewport();
+  expect((await worklist.boundingBox())!.y).toBeLessThan((await hero.boundingBox())!.y);
+  expect(await filters.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+  await expect(filters.getByRole("button", { name: /^Due today/ })).toBeInViewport({ ratio: 1 });
 });
