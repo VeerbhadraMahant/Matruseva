@@ -6,6 +6,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser, isDemoActive } from "@/lib/auth";
 import { todayInClinicTimezone, toISODate } from "@/lib/today";
+import { normalizeVisitDate } from "@/lib/visitDate";
 import { formatDate, parseLocalDate } from "@/lib/format";
 import { closeDemoPregnancy, getDemoPatientDetail, markDemoCareEventDone, recordDemoVisit, updateDemoPatient } from "@/lib/demo-data";
 import { isDuplicateRequest } from "@/lib/idempotency";
@@ -64,12 +65,12 @@ export async function markCareEventDone(careEventId: string, patientId: string):
 
 const visitSchema = z.object({
   visitDate: z.iso.date().optional().or(z.literal("")),
-  bpSys: z.coerce.number().int().positive().optional().or(z.literal("")),
-  bpDia: z.coerce.number().int().positive().optional().or(z.literal("")),
-  weight: z.coerce.number().positive().optional().or(z.literal("")),
-  hb: z.coerce.number().positive().optional().or(z.literal("")),
-  fhr: z.coerce.number().int().positive().optional().or(z.literal("")),
-  fundalHeight: z.coerce.number().positive().optional().or(z.literal("")),
+  bpSys: z.coerce.number().int().min(30).max(300).optional().or(z.literal("")),
+  bpDia: z.coerce.number().int().min(10).max(200).optional().or(z.literal("")),
+  weight: z.coerce.number().min(15).max(400).optional().or(z.literal("")),
+  hb: z.coerce.number().min(1).max(30).optional().or(z.literal("")),
+  fhr: z.coerce.number().int().min(30).max(300).optional().or(z.literal("")),
+  fundalHeight: z.coerce.number().min(1).max(65).optional().or(z.literal("")),
   notes: z.string().optional(),
   nextVisitDate: z.iso.date().optional().or(z.literal("")),
   // Idempotency key from the offline queue / client (optional, backwards compatible).
@@ -92,7 +93,11 @@ export async function recordVisit(
 ): Promise<ActionResult> {
   const { t } = await getT();
   const raw = Object.fromEntries(formData.entries());
-  const parsed = visitSchema.safeParse(raw);
+  const parsed = visitSchema.safeParse({
+    ...raw,
+    visitDate: normalizeVisitDate(raw.visitDate),
+    nextVisitDate: normalizeVisitDate(raw.nextVisitDate),
+  });
   if (!parsed.success) {
     const field = String(parsed.error.issues[0]?.path[0] ?? "");
     const label = VISIT_FIELD_LABELS[field];
@@ -101,6 +106,10 @@ export async function recordVisit(
   }
   const v = parsed.data;
   const num = (x: number | "" | undefined) => (x === "" || x === undefined ? null : x);
+  if (![v.bpSys, v.bpDia, v.weight, v.hb, v.fhr, v.fundalHeight].some((value) => num(value) !== null)
+    && !v.notes?.trim() && !v.nextVisitDate) {
+    return { error: t("visits.error.empty") };
+  }
   const clientRequestId = v.clientRequestId || undefined;
 
   const cookieStore = await cookies();
