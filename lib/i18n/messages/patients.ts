@@ -134,7 +134,9 @@ export const patients = defineArea({
     "patients.qr.fileError": "Could not find a valid QR code in this image. Please ensure the code is clear and well-lit.",
     "patients.qr.upload": "Upload QR card photo (WhatsApp)",
     "patients.qr.orEnterId": "or enter ID",
-    "patients.qr.idPlaceholder": "Enter UHID or patient ID...",
+    "patients.qr.idPlaceholder": "Card number",
+    "patients.qr.noPatient": "No patient found for that card. Check the number and try again.",
+    "patients.qr.lookupError": "Could not look up the card. Try again.",
     "patients.qr.go": "Go",
 
     // Scan page
@@ -294,7 +296,9 @@ export const patients = defineArea({
     "patients.qr.fileError": "इस फ़ोटो में कोई मान्य QR कोड नहीं मिला। कृपया देखें कि कोड साफ़ और रोशनी में हो।",
     "patients.qr.upload": "QR कार्ड की फ़ोटो अपलोड करें (WhatsApp)",
     "patients.qr.orEnterId": "या ID दर्ज करें",
-    "patients.qr.idPlaceholder": "UHID या मरीज़ ID दर्ज करें...",
+    "patients.qr.idPlaceholder": "कार्ड नंबर",
+    "patients.qr.noPatient": "इस कार्ड का कोई मरीज़ नहीं मिला। नंबर जाँचकर फिर कोशिश करें।",
+    "patients.qr.lookupError": "कार्ड नहीं खोज पाए। फिर कोशिश करें।",
     "patients.qr.go": "खोलें",
 
     "patients.scan.title": "QR कार्ड स्कैन करें",
@@ -452,7 +456,9 @@ export const patients = defineArea({
     "patients.qr.fileError": "या फोटोत वैध QR कोड सापडला नाही. कृपया कोड स्पष्ट आणि उजेडात असल्याची खात्री करा.",
     "patients.qr.upload": "QR कार्डचा फोटो अपलोड करा (WhatsApp)",
     "patients.qr.orEnterId": "किंवा ID टाका",
-    "patients.qr.idPlaceholder": "UHID किंवा रुग्ण ID टाका...",
+    "patients.qr.idPlaceholder": "कार्ड क्रमांक",
+    "patients.qr.noPatient": "या कार्डसाठी रुग्ण सापडला नाही. क्रमांक तपासून पुन्हा प्रयत्न करा.",
+    "patients.qr.lookupError": "कार्ड शोधता आले नाही. पुन्हा प्रयत्न करा.",
     "patients.qr.go": "उघडा",
 
     "patients.scan.title": "QR कार्ड स्कॅन करा",

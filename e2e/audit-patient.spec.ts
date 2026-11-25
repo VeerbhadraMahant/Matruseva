@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import QRCode from "qrcode";
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/login");
@@ -41,4 +42,26 @@ test("visit entry rejects blank and extreme readings and saves a valid visit", a
   await main.locator("#notes").fill(note);
   await main.getByRole("button", { name: "Save visit", exact: true }).click();
   await expect(main.getByRole("row", { name: new RegExp(note) })).toContainText("118/76");
+});
+
+test("card lookup and QR scan open the patient record and unknown cards show an error", async ({ page }) => {
+  await page.goto("/scan");
+  await page.getByRole("button", { name: "Scan card", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  const card = dialog.getByRole("textbox");
+  await expect(card).toHaveAccessibleName(/card number/i);
+  await card.fill("missing-card");
+  await dialog.getByRole("button", { name: "Go" }).click();
+  await expect(dialog.getByText(/no patient.*card/i)).toBeVisible();
+  await card.fill("anc-102");
+  await dialog.getByRole("button", { name: "Go" }).click();
+  await expect(page).toHaveURL(/\/patients\/p2-sunita-verma$/);
+  await expect(page.getByRole("heading", { name: "Sunita Verma" })).toBeVisible();
+
+  await page.goto("/scan");
+  await page.getByRole("button", { name: "Scan card", exact: true }).click();
+  const buffer = await QRCode.toBuffer("https://example.test/patients/p2-sunita-verma/report", { width: 512 });
+  await dialog.locator('input[type="file"]').setInputFiles({ name: "card.png", mimeType: "image/png", buffer });
+  await expect(page).toHaveURL(/\/patients\/p2-sunita-verma$/);
+  await expect(page.getByRole("heading", { name: "Sunita Verma" })).toBeVisible();
 });
