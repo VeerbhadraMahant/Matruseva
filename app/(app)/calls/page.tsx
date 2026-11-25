@@ -3,7 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getClinicSnapshot, daysOverdue, followUpPriority } from "@/lib/snapshot";
 import { needsFollowUp } from "@/lib/followUp";
 import { formatGALocalized } from "@/lib/pregnancy";
-import { daysBetween, parseLocalDate } from "@/lib/format";
+import { daysBetween } from "@/lib/format";
+import { todayInClinicTimezone } from "@/lib/today";
 import {
   telLink,
   whatsAppLink,
@@ -69,9 +70,9 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
       };
       const history = contactsBy.get(r.id) ?? [];
       const last = history[0];
-      const lastDate = last ? new Date(last.createdAt) : null;
+      const lastDate = last ? todayInClinicTimezone(new Date(last.createdAt)) : null;
       const lastDaysAgo = lastDate
-        ? daysBetween(parseLocalDate(lastDate.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" })), today)
+        ? daysBetween(lastDate, today)
         : null;
       return {
         id: r.id,
@@ -84,7 +85,10 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
         overdueDays: daysOverdue(r, today),
         flags: r.flags.filter((fl) => fl.severity !== "info"),
         noAnswerStreak: r.noAnswerStreak,
-        attempts30d: history.filter((h) => daysBetween(new Date(h.createdAt), today) <= 30).length,
+        attempts30d: history.filter((h) => {
+          const age = daysBetween(todayInClinicTimezone(new Date(h.createdAt)), today);
+          return age >= 0 && age <= 30;
+        }).length,
         lastContact: last
           ? { outcome: last.outcome as ContactOutcome, channel: last.channel, daysAgo: lastDaysAgo ?? 0 }
           : null,

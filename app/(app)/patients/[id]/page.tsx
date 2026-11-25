@@ -101,7 +101,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
   const cookieStore = await cookies();
   const isDemo = isDemoActive(cookieStore);
   const { t, locale } = await getT();
-  const [me, supabase] = await Promise.all([getCurrentUser(), createClient()]);
+  const [me, supabase] = await Promise.all([getCurrentUser(), isDemo ? null : createClient()]);
 
   let patient: PatientRecord | null = null;
   let careEvents: CareEventRecord[] = [];
@@ -135,7 +135,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
     documents = demo.documents as DocRecord[];
     contacts = demo.contacts as ContactRecord[];
     risk = demo.risk as RiskRecord;
-  } else {
+  } else if (supabase) {
     const [pRes, ceRes, vRes, dRes, cRes, rRes] = await Promise.all([
       supabase.from("patients").select("*").eq("id", id).maybeSingle(),
       supabase
@@ -173,7 +173,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
   if (!patient) notFound();
 
   const docs = documents ?? [];
-  const { data: signed } = (!isDemo && docs.length)
+  const { data: signed } = (supabase && docs.length)
     ? await supabase.storage.from("documents").createSignedUrls(docs.map((d: DocRecord) => d.storage_path), 300)
     : { data: [] };
   const urlByPath = new Map((signed ?? []).map((s) => [s.path, s.signedUrl]));
@@ -214,9 +214,9 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
   ]);
   const alertFlags = localizeFlags(flags, t);
 
-  const [{ data: clinic }] = await Promise.all([
-    supabase.from("clinics").select("name, message_templates").eq("id", patient.clinic_id).single(),
-  ]);
+  const { data: clinic } = supabase
+    ? await supabase.from("clinics").select("name, message_templates").eq("id", patient.clinic_id).single()
+    : { data: null };
 
   const clinicTemplates = (clinic?.message_templates ?? {}) as MessageTemplates;
   const defaultLang = clinicTemplates.default_lang ?? "en";

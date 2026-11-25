@@ -114,32 +114,7 @@ export function VitalsTrendCharts({ visits, lmp, patientName }: VitalsTrendChart
   const weightVisits = useMemo(() => parsedVisits.filter((v) => v.weight !== null), [parsedVisits]);
   const fhrVisits = useMemo(() => parsedVisits.filter((v) => v.fhr !== null), [parsedVisits]);
 
-  // Derived summaries for quick header cards
-  const bpSummary = useMemo(() => {
-    if (bpVisits.length === 0) return null;
-    const latest = bpVisits[bpVisits.length - 1];
-    const baseline = bpVisits[0];
-    const deltaDia = latest.bpDia! - baseline.bpDia!;
-    const deltaSys = latest.bpSys! - baseline.bpSys!;
-    const isHypertensive = latest.bpSys! >= 140 || latest.bpDia! >= 90;
-    const isRapidRise = (deltaDia >= 15 || deltaSys >= 30) && bpVisits.length > 1;
-    const isElevated = (latest.bpSys! >= 120 && latest.bpSys! < 140) || (latest.bpDia! >= 80 && latest.bpDia! < 90);
-
-    let status = t("reports.charts.bpNormal");
-    let tone: "ok" | "warning" | "critical" = "ok";
-    if (isHypertensive) {
-      status = t("reports.charts.bpStage1");
-      tone = "critical";
-    } else if (isRapidRise) {
-      status = t("reports.charts.bpRiseAlert", { delta: deltaDia });
-      tone = "warning";
-    } else if (isElevated) {
-      status = t("reports.charts.bpWatch");
-      tone = "warning";
-    }
-
-    return { latest, baseline, deltaDia, deltaSys, status, tone };
-  }, [bpVisits, t]);
+  const bpSummary = bpVisits.length > 0 ? describeBloodPressure(bpVisits, t) : null;
 
   const sfhSummary = useMemo(() => {
     if (sfhVisits.length === 0) return null;
@@ -469,6 +444,29 @@ function gaAxis(visits: ParsedVisit[], t: Translator, preferred?: [number, numbe
    1. Blood Pressure Trajectory Chart
    ========================================================================= */
 
+function describeBloodPressure(visits: ParsedVisit[], t: Translator) {
+  const baseline = visits[0];
+  const latest = visits[visits.length - 1];
+  const deltaDia = latest.bpDia! - baseline.bpDia!;
+  const deltaSys = latest.bpSys! - baseline.bpSys!;
+  const isHypertensive = latest.bpSys! >= 140 || latest.bpDia! >= 90;
+  const isRapidRise = visits.length > 1 && (deltaDia >= 15 || deltaSys >= 30);
+  const isElevated = latest.bpSys! >= 120 || latest.bpDia! >= 80;
+  let status = t("reports.charts.bpNormal");
+  let tone: "ok" | "warning" | "critical" = "ok";
+  if (isHypertensive) {
+    status = t("reports.charts.bpStage1");
+    tone = "critical";
+  } else if (isRapidRise) {
+    status = t("reports.charts.bpRiseAlert", { delta: deltaDia });
+    tone = "warning";
+  } else if (isElevated) {
+    status = t("reports.charts.bpWatch");
+    tone = "warning";
+  }
+  return { latest, baseline, deltaDia, deltaSys, status, tone, isHypertensive, isRapidRise, isElevated };
+}
+
 function BpChart({
   visits,
 }: {
@@ -484,13 +482,8 @@ function BpChart({
     );
   }
 
-  // Clinical alerts calculation
-  const latest = visits[visits.length - 1];
-  const baseline = visits[0];
-  const deltaDia = latest.bpDia! - baseline.bpDia!;
-  const deltaSys = latest.bpSys! - baseline.bpSys!;
-  const isRapidRise = (deltaDia >= 15 || deltaSys >= 30) && visits.length > 1;
-
+  const { latest, baseline, deltaDia, isHypertensive, isRapidRise, isElevated, tone } =
+    describeBloodPressure(visits, t);
 
   return (
     <div className="space-y-3">
@@ -522,25 +515,27 @@ function BpChart({
       {/* Clinical Guidance Interpretation Box */}
       <div className="rounded-xl p-3 border border-[var(--color-border)] bg-[var(--color-surface-1)] text-[12px] leading-relaxed">
         <div className="flex items-start gap-2">
-          {isRapidRise || latest.bpSys! >= 140 || latest.bpDia! >= 90 ? (
+          {tone !== "ok" ? (
             <Warning size={16} className="text-[var(--color-overdue)] shrink-0 mt-0.5" />
           ) : (
             <CheckCircle size={16} className="text-[var(--color-on-track)] shrink-0 mt-0.5" />
           )}
           <div className="space-y-1">
             <p className="font-semibold text-[var(--color-foreground)]">
-              {latest.bpSys! >= 140 || latest.bpDia! >= 90
+              {isHypertensive
                 ? t("reports.charts.bpHtnTitle")
                 : isRapidRise
                 ? t("reports.charts.bpRiseTitle")
+                : isElevated
+                ? t("reports.charts.bpWatch")
                 : t("reports.charts.bpOkTitle")}
             </p>
             <p className="text-[var(--color-charcoal)]">
-              {isRapidRise
-                ? t("reports.charts.bpRiseBody", { delta: deltaDia, from: baseline.bpDia!, to: latest.bpDia! })
-                : latest.bpSys! >= 140 || latest.bpDia! >= 90
+              {isHypertensive
                 ? t("reports.charts.bpHtnBody")
-                : t("reports.charts.bpOkBody", { sys: latest.bpSys!, dia: latest.bpDia! })}
+                : isRapidRise
+                ? t("reports.charts.bpRiseBody", { delta: deltaDia, from: baseline.bpDia!, to: latest.bpDia! })
+                : !isElevated && t("reports.charts.bpOkBody", { sys: latest.bpSys!, dia: latest.bpDia! })}
             </p>
           </div>
         </div>

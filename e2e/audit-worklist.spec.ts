@@ -45,3 +45,26 @@ test("Today, Patients and Calls use the same follow-up counts", async ({ page })
   expect(await countIn(main.getByRole("tab", { name: /^At risk/ }))).toBe(riskCount);
   expect(await countIn(main.getByRole("tab", { name: /^Overdue/ }))).toBe(overdueCount);
 });
+
+test("patient history, risk, blood pressure and schedule agree across surfaces", async ({ page }) => {
+  const main = page.getByRole("main");
+  const sunita = main.getByRole("button", { name: /Sunita Verma/ });
+  await sunita.click();
+  const sunitaRow = main.locator("li").filter({ hasText: "Sunita Verma" });
+  const ogtt = sunitaRow.getByText(/OGTT.*· (by|was due)/i);
+  await expect(ogtt).toBeVisible();
+  const dueDate = (await ogtt.innerText()).match(/\d{1,2} [A-Za-z]{3}/)?.[0];
+  expect(dueDate).toBeDefined();
+  await sunitaRow.getByRole("link", { name: "Open record" }).click();
+  await expect(main.getByRole("heading", { name: "Sunita Verma" })).toBeVisible();
+  const scheduleItem = main.getByRole("row", { name: /OGTT/i });
+  await expect(scheduleItem).toContainText(dueDate!);
+  await expect(main.getByText(/Pre-hypertension/i).first()).toBeVisible();
+  await expect(main.getByText(/Blood pressure within normal limits/i)).toHaveCount(0);
+  await expect(main.getByText("Reached", { exact: true }).first()).toBeVisible();
+
+  await page.goto("/calls");
+  const callRow = main.locator("ol > li").filter({ hasText: "Sunita Verma" });
+  await expect(callRow.getByText(/Reached/i).first()).toBeVisible();
+  await expect(callRow.getByText(/[1-9]\d* attempts? in 30d/)).toBeVisible();
+});
