@@ -88,6 +88,7 @@ export interface DemoDocumentRecord {
 export interface DemoStoreState {
   patients: DemoPatientRaw[];
   completedEvents: Record<string, string[]>;
+  completedEventDates?: Record<string, Record<string, string>>;
   visits: Record<string, DemoVisitRecord[]>;
   contacts: Record<string, DemoContactRecord[]>;
   documents: DemoDocumentRecord[];
@@ -551,7 +552,7 @@ function computeDemoPatientDetail(id: string, today: Date, todayIso: string) {
       : "upcoming";
     return {
       ...event,
-      completed_at: completed ? (event.due_from < todayIso ? event.due_from : todayIso) : null,
+      completed_at: completed ? store.completedEventDates?.[patientRaw.id]?.[event.id] ?? (event.due_from < todayIso ? event.due_from : todayIso) : null,
       status,
     };
   }).sort((a, b) => a.due_from.localeCompare(b.due_from));
@@ -814,12 +815,25 @@ export function addDemoPatient(data: {
   return id;
 }
 
-export function markDemoCareEventDone(careEventId: string, patientId: string): void {
+export function markDemoCareEventDone(careEventId: string, patientId: string, completedAt?: string): void {
   const store = getDemoStore();
   const current = store.completedEvents[patientId] ?? [];
   if (!current.includes(careEventId)) {
     store.completedEvents[patientId] = [...current, careEventId];
+    if (completedAt) {
+      const dates = store.completedEventDates ??= {};
+      (dates[patientId] ??= {})[careEventId] = completedAt;
+    }
   }
+  saveDemoStore(store);
+  invalidateDemoCache();
+}
+
+export function undoDemoCareEvent(careEventId: string, patientId: string): void {
+  const store = getDemoStore();
+  store.completedEvents[patientId] = (store.completedEvents[patientId] ?? []).filter((id) => id !== careEventId);
+  const dates = store.completedEventDates?.[patientId];
+  if (dates) delete dates[careEventId];
   saveDemoStore(store);
   invalidateDemoCache();
 }

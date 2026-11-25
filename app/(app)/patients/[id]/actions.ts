@@ -8,7 +8,7 @@ import { getCurrentUser, isDemoActive } from "@/lib/auth";
 import { todayInClinicTimezone, toISODate } from "@/lib/today";
 import { normalizeVisitDate } from "@/lib/visitDate";
 import { formatDate, parseLocalDate } from "@/lib/format";
-import { closeDemoPregnancy, getDemoPatientDetail, markDemoCareEventDone, recordDemoVisit, updateDemoPatient } from "@/lib/demo-data";
+import { closeDemoPregnancy, getDemoPatientDetail, markDemoCareEventDone, undoDemoCareEvent, recordDemoVisit, updateDemoPatient } from "@/lib/demo-data";
 import { isDuplicateRequest } from "@/lib/idempotency";
 import { eddFromLmp } from "@/lib/pregnancy";
 import { getT } from "@/lib/i18n/server";
@@ -29,37 +29,52 @@ export interface ActionResult {
 
 /** Every page that renders per-patient schedule/visit/risk data. */
 function revalidatePatientViews(patientId: string) {
+  revalidatePath("/(app)", "layout");
   revalidatePath(`/patients/${patientId}`);
   revalidatePath("/patients");
   revalidatePath("/today");
   revalidatePath("/calls");
 }
 
-export async function markCareEventDone(careEventId: string, patientId: string): Promise<ActionResult> {
+export async function setCareEventCompletion(
+  careEventId: string, patientId: string, completedOn: string, undo: boolean,
+): Promise<ActionResult> {
   const { t } = await getT();
+  const todayIso = toISODate(todayInClinicTimezone());
+  if (!z.iso.date().safeParse(completedOn).success || completedOn > todayIso) {
+    return { error: t("visits.error.invalidDate") };
+  }
+  const completedAt = `${completedOn}T04:30:00Z`;
   const cookieStore = await cookies();
-  const isDemo = isDemoActive(cookieStore);
-  if (isDemo) {
-    markDemoCareEventDone(careEventId, patientId);
+  if (isDemoActive(cookieStore)) {
+    const detail = getDemoPatientDetail(patientId);
+    const event = detail.patient.id === patientId && detail.careEvents.find((item) => item.id === careEventId);
+    if (!event || (undo ? event.completed_at !== completedAt : event.status !== "due" && event.status !== "overdue")) {
+      return { error: t("patientDetail.error.markDoneFailed") };
+    }
+    if (undo) undoDemoCareEvent(careEventId, patientId);
+    else markDemoCareEventDone(careEventId, patientId, completedAt);
     revalidatePatientViews(patientId);
     return { error: null };
   }
 
   try {
     const [supabase, me] = await Promise.all([createClient(), getCurrentUser()]);
-    const { error } = await supabase
-      .from("care_events")
-      .update({ completed_at: new Date().toISOString() })
+    const update = supabase.from("care_events")
+      .update({ completed_at: undo ? null : completedAt })
       .eq("id", careEventId)
       .eq("patient_id", patientId)
-      .eq("clinic_id", me.clinicId);
-
-    if (error) return { error: error.message };
+      .eq("clinic_id", me.clinicId)
+      .is("skipped_reason", null)
+      .lte("due_from", todayIso);
+    const { data, error } = await (undo ? update.eq("completed_at", completedAt) : update.is("completed_at", null))
+      .select("id").maybeSingle();
+    if (error || !data) return { error: error?.message ?? t("patientDetail.error.markDoneFailed") };
 
     revalidatePatientViews(patientId);
     return { error: null };
-  } catch (err: unknown) {
-    return { error: err instanceof Error ? err.message : t("patientDetail.error.dbConnection") };
+  } catch {
+    return { error: t("patientDetail.error.dbConnection") };
   }
 }
 

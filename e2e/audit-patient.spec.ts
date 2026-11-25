@@ -65,3 +65,28 @@ test("card lookup and QR scan open the patient record and unknown cards show an 
   await expect(page).toHaveURL(/\/patients\/p2-sunita-verma$/);
   await expect(page.getByRole("heading", { name: "Sunita Verma" })).toBeVisible();
 });
+
+test("care event completion is confirmed, dated and undoable", async ({ page }) => {
+  await page.goto("/patients/p2-sunita-verma");
+  const main = page.getByRole("main");
+  const upcoming = main.getByRole("row", { name: /Growth scan/i });
+  await expect(upcoming).toContainText(/upcoming/i);
+  await expect(upcoming.getByRole("button", { name: "Mark done" })).toHaveCount(0);
+  const ogtt = main.getByRole("row", { name: /OGTT/i });
+  const button = ogtt.getByRole("button", { name: "Mark done" });
+  expect((await button.boundingBox())?.height).toBeGreaterThanOrEqual(44);
+  await button.click();
+  const dialog = page.getByRole("dialog", { name: "Confirm completion" });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await expect(ogtt).toContainText(/due now/i);
+  await button.click();
+  const date = new Date(Date.now() - 86400000);
+  await dialog.getByLabel("Completion date").fill(date.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }));
+  await dialog.getByRole("button", { name: "Confirm" }).click();
+  await expect(ogtt).toContainText(date.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short" }));
+  await expect(ogtt).toContainText(/done/i);
+  await ogtt.getByRole("button", { name: "Undo" }).click();
+  await expect(ogtt).toContainText(/due now/i);
+  await expect(button).toBeVisible();
+});

@@ -558,7 +558,9 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
                             )}
                           </td>
                           <td className={`${td} text-right`}>
-                            {e.status !== "done" && e.status !== "skipped" && <MarkDoneButton careEventId={e.id} patientId={id} />}
+                            {(e.status === "due" || e.status === "overdue" || e.status === "done") && (
+                              <MarkDoneButton careEventId={e.id} patientId={id} todayIso={toISODate(today)} done={e.status === "done"} />
+                            )}
                           </td>
                         </tr>
                       ))}
