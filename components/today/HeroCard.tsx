@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { getT } from "@/lib/i18n/server";
-import { CountUp } from "./CountUp";
 
 function SubStat({ href, value, label, dot }: { href: string; value: number; label: string; dot: string }) {
   return (
@@ -11,7 +10,7 @@ function SubStat({ href, value, label, dot }: { href: string; value: number; lab
     >
       <span aria-hidden className={`h-2.5 w-2.5 rounded-full ${dot}`} />
       <span>
-        <CountUp value={value} className="block text-[22px] font-semibold leading-tight tabular-nums" />
+        <span className="block text-[22px] font-semibold leading-tight tabular-nums">{value}</span>
         <span className="block text-[13px] text-pc-muted">{label}</span>
       </span>
       <ArrowRight
@@ -63,7 +62,7 @@ export async function HeroCard({
         {t("today.hero.title")}
       </p>
       <div className="mt-2 flex items-end gap-3">
-        <CountUp value={dueToday} className="text-[76px] font-medium leading-[0.9] tracking-[-0.04em] tabular-nums" />
+        <span className="text-[76px] font-medium leading-[0.9] tracking-[-0.04em] tabular-nums">{dueToday}</span>
         <p className="min-w-0 pb-2 text-[13px] text-pc-muted">
           {ofBefore}
           <span className="font-semibold text-pc-ink tabular-nums">{totalActive}</span>

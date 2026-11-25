@@ -1,5 +1,4 @@
 import { ChartPieSlice, CheckCircle, ClipboardText, PhoneCall, Users } from "@phosphor-icons/react/dist/ssr";
-import { CountUp } from "@/components/today/CountUp";
 import { getT } from "@/lib/i18n/server";
 
 /**
@@ -118,7 +117,7 @@ export async function ClinicAnalyticsSummary({
               <Ring pct={complianceRate} colorClass="stroke-pc-plum" label={t("today.overview.complianceRing", { pct: complianceRate })} />
               <div>
                 <p className="text-[28px] font-semibold leading-none tabular-nums">
-                  <CountUp value={complianceRate} />%
+                  {complianceRate}%
                 </p>
                 <p className="mt-1 text-[12px] text-pc-muted">
                   {t("today.overview.complianceCount", { done: compliantCount, total: totalActive })}
@@ -132,7 +131,7 @@ export async function ClinicAnalyticsSummary({
               <Ring pct={contactSuccessRate} colorClass="stroke-pc-active" label={t("today.overview.contactRing", { pct: contactSuccessRate })} />
               <div>
                 <p className="text-[28px] font-semibold leading-none tabular-nums">
-                  <CountUp value={contactSuccessRate} />%
+                  {contactSuccessRate}%
                 </p>
                 <p className="mt-1 text-[12px] text-pc-muted">
                   {t("today.overview.contactCount", { reached: contactsReached, attempted: contactsAttempted })}
@@ -144,7 +143,7 @@ export async function ClinicAnalyticsSummary({
           <Card title={t("today.overview.cohort")} icon={<ChartPieSlice size={18} />}>
             <div>
               <p className="text-[28px] font-semibold leading-none tabular-nums">
-                <CountUp value={totalActive} />
+                {totalActive}
                 <span className="ml-1.5 text-[13px] font-normal text-pc-muted">{t("today.overview.mothers", { count: totalActive })}</span>
               </p>
               <div
@@ -176,7 +175,7 @@ export async function ClinicAnalyticsSummary({
           <Card title={t("today.overview.deliveries")} icon={<ClipboardText size={18} />}>
             <div>
               <p className="text-[28px] font-semibold leading-none tabular-nums">
-                <CountUp value={deliveriesThisMonth} />
+                {deliveriesThisMonth}
                 <span className="ml-1.5 text-[13px] font-normal text-pc-muted">{t("today.overview.delivered")}</span>
               </p>
               <p className="mt-2 text-[12px] text-pc-muted">

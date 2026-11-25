@@ -1,7 +1,9 @@
-import { FilePdf, MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
+import { MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatShortDate } from "@/lib/format";
+import { DocumentPreview } from "@/components/DocumentPreview";
+import { documentTypeLabel } from "@/lib/clinicalLabels";
 import { DocumentUploader } from "@/components/DocumentUploader";
 import { AssignDocumentForm } from "@/components/AssignDocumentForm";
 import { PageHeader, Panel, Tag, type Tone, pageBody } from "@/components/ui";
@@ -30,13 +32,15 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
 
   let query = supabase
     ?.from("documents")
-    .select("id, doc_type, source, storage_path, ocr_status, created_at, patient_id, patients(name)")
+    .select("id, doc_type, source, storage_path, ocr_status, ocr_text, created_at, patient_id, patients(name)")
     .order("created_at", { ascending: false })
     .limit(50);
-  if (query) query = searching ? query.textSearch("search", q!, { type: "websearch", config: "simple" }) : query.is("patient_id", null);
+  if (query) query = searching ? query.textSearch("search", q!, { type: "websearch", config: "simple" }) : query.is("patient_id", null).neq("doc_type", "register_page");
 
   const { data: documents } = query ? await query : { data: null };
-  const docs = me.isDemo ? getDemoDocuments(undefined, q) : (documents ?? []);
+  const docs = me.isDemo
+    ? getDemoDocuments(undefined, q).filter((doc) => searching || (!doc.patient_id && doc.doc_type !== "register_page"))
+    : (documents ?? []);
   const { data: signed } = supabase && docs.length
     ? await supabase.storage.from("documents").createSignedUrls(docs.map((d) => d.storage_path), 300)
     : { data: [] };
@@ -78,22 +82,15 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
             <ul className="grid gap-3 px-4 pb-4 sm:grid-cols-2 xl:grid-cols-3">
               {docs.map((doc) => {
                 const url = me.isDemo ? ((doc as { data_url?: string | null }).data_url ?? null) : (urlByPath.get(doc.storage_path) ?? null);
-                const isImage = /\.(jpe?g|png|webp)$/i.test(doc.storage_path);
                 const status = OCR_STATUS[(doc.ocr_status ?? "pending") as keyof typeof OCR_STATUS] ?? OCR_STATUS.pending;
                 const sourceKey = SOURCE_KEY[doc.source as keyof typeof SOURCE_KEY];
                 const patientName = (doc.patients as { name: string } | null)?.name;
                 return (
                   <li key={doc.id} className="flex flex-col overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-background)]">
-                    <a href={url ?? undefined} target="_blank" rel="noreferrer" className="block">
-                      {url && isImage ? (
-                        // eslint-disable-next-line @next/next/no-img-element -- private signed URL, not an optimizable static asset
-                        <img src={url} alt="" loading="lazy" className="h-44 w-full object-cover" />
-                      ) : (
-                        <div className="flex h-44 items-center justify-center bg-[var(--color-surface-1)]">
-                          <FilePdf size={40} className="text-[var(--color-charcoal)]" aria-hidden />
-                        </div>
-                      )}
-                    </a>
+<DocumentPreview
+  url={url} path={doc.storage_path} title={documentTypeLabel(doc.doc_type, t)}
+  text={doc.ocr_text} className="h-44"
+/>
                     <div className="flex flex-1 flex-col gap-2 p-3">
                       <div className="flex flex-wrap items-center gap-1.5 text-[12px]">
                         <span className="num text-[var(--color-charcoal)]">{formatShortDate(doc.created_at, locale)}</span>

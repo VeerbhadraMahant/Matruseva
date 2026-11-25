@@ -123,3 +123,20 @@ test("Today puts work first and wraps worklist filters on mobile", async ({ page
   expect(await filters.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
   await expect(filters.getByRole("button", { name: /^Due today/ })).toBeInViewport({ ratio: 1 });
 });
+
+test("Today counters render their final value before JavaScript and expose it once", async ({ page, browser }) => {
+  const context = await browser.newContext({ storageState: await page.context().storageState() });
+  try {
+    await context.route(/\/_next\/static\/.*\.js(?:\?.*)?$/, (route) => route.abort());
+    const ssr = await context.newPage();
+    await ssr.goto("http://localhost:3000/today");
+    const hero = ssr.getByRole("region", { name: "Patients due today" });
+    const link = hero.getByRole("link", { name: /At risk$/ });
+    const count = await countIn(ssr.getByRole("group", { name: "Filter worklist" }).getByRole("button", { name: /^At risk/ }));
+    expect(count).toBeGreaterThan(0);
+    expect((await link.textContent())?.trim().replace(/\s+/g, " ")).toBe(`${count}At risk`);
+    await expect(link).toHaveAccessibleName(`${count} At risk`);
+  } finally {
+    await context.close();
+  }
+});

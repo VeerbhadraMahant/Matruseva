@@ -98,9 +98,9 @@ export function LanguageSwitcher({
   const base =
     "inline-flex items-center rounded-xl text-[var(--color-charcoal)] transition-colors hover:bg-[var(--color-primary-surface)] hover:text-[var(--color-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)] disabled:opacity-60";
   const variants: Record<Variant, string> = {
-    row: "min-h-10 w-full gap-3 px-3 text-[13px]",
+    row: "min-h-11 w-full gap-3 px-3 text-[13px]",
     icon: "mx-auto h-11 w-11 justify-center",
-    pill: "min-h-10 gap-2 border border-[var(--color-border)] bg-[var(--color-background)] px-3 text-[13px] font-medium",
+    pill: "min-h-11 gap-2 border border-[var(--color-border)] bg-[var(--color-background)] px-3 text-[13px] font-medium",
   };
 
   return (
@@ -140,7 +140,7 @@ export function LanguageSwitcher({
                   aria-checked={l === locale}
                   lang={l}
                   onClick={() => choose(l)}
-                  className="flex min-h-10 w-full items-center justify-between gap-4 rounded-xl px-3 text-left text-[14px] text-[var(--color-foreground)] hover:bg-[var(--color-primary-surface)] focus-visible:outline-2 focus-visible:outline-[var(--color-primary)]"
+                  className="flex min-h-11 w-full items-center justify-between gap-4 rounded-xl px-3 text-left text-[14px] text-[var(--color-foreground)] hover:bg-[var(--color-primary-surface)] focus-visible:outline-2 focus-visible:outline-[var(--color-primary)]"
                 >
                   <span className={l === locale ? "font-semibold" : ""}>{LOCALE_NATIVE_NAMES[l]}</span>
                   {l === locale && <Check size={16} weight="bold" aria-hidden className="text-[var(--color-primary)]" />}

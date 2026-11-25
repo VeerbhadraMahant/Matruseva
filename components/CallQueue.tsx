@@ -265,7 +265,7 @@ export function CallQueue({
                     type="button"
                     aria-pressed={selectedLang === l.code}
                     onClick={() => setSelectedLang(l.code)}
-                    className={`min-h-8 rounded-full px-3 text-[13px] font-medium transition-colors ${
+                    className={`min-h-11 min-w-11 rounded-full px-3 text-[13px] font-medium transition-colors ${
                       selectedLang === l.code
                         ? "bg-[var(--color-primary)] text-white font-semibold"
                         : "text-[var(--color-foreground)] hover:bg-[var(--color-background)]"
@@ -676,7 +676,7 @@ const CallCard = memo(function CallCard({
 
         <div className="min-w-0 space-y-1">
           <div className="flex flex-wrap items-baseline gap-x-2">
-            <Link href={`/patients/${r.id}`} className="font-semibold hover:underline">
+            <Link href={`/patients/${r.id}`} className="inline-flex min-h-11 min-w-11 items-center font-semibold hover:underline">
               {r.name}
             </Link>
             <span className="num text-[12px] text-[var(--color-charcoal)]">

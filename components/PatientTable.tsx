@@ -119,7 +119,7 @@ const PatientRow = memo(function PatientRow({
           </span>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <Link href={`/patients/${r.id}`} prefetch={true} className="block font-semibold hover:underline">
+              <Link href={`/patients/${r.id}`} prefetch={true} className="inline-flex min-h-11 min-w-11 items-center font-semibold hover:underline">
                 {r.name}
               </Link>
               {isRecentlyAdded(r.createdAt) && (
@@ -153,7 +153,7 @@ const PatientRow = memo(function PatientRow({
           </span>
         )}
       </td>
-      <td className={`${td} num hidden md:table-cell`}>{r.nextVisitLabel}</td>
+      <td className={`${td} num hidden xl:table-cell`}>{r.nextVisitLabel}</td>
       <td className={td}>
         <div className="flex flex-wrap gap-1">
           <Tag tone={RISK[r.risk].tone}>{t(RISK[r.risk].label)}</Tag>
@@ -280,7 +280,7 @@ export function PatientTable({ rows, initialFilter }: { rows: PatientListRow[]; 
               <th className={`${th} hidden sm:table-cell`}>{t("patients.table.colAgeGp")}</th>
               {sortHeader("ga", t("patients.table.colGa"))}
               {sortHeader("edd", t("patients.table.colEdd"), "hidden sm:table-cell")}
-              {sortHeader("next", t("patients.table.colNextVisit"), "hidden md:table-cell")}
+              {sortHeader("next", t("patients.table.colNextVisit"), "hidden xl:table-cell")}
               <th className={th}>{t("patients.table.colStatus")}</th>
             </tr>
           </thead>

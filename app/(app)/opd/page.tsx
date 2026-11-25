@@ -1,7 +1,9 @@
-import { FilePdf, MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
+import { MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/format";
+import { DocumentPreview } from "@/components/DocumentPreview";
+import { documentTypeLabel } from "@/lib/clinicalLabels";
 import { DocumentUploader } from "@/components/DocumentUploader";
 import { PageHeader, Panel, Tag, type Tone, pageBody } from "@/components/ui";
 import { getT } from "@/lib/i18n/server";
@@ -17,12 +19,11 @@ const OCR_STATUS = {
 export default async function OpdRegisterPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const [{ q }, me, { t, locale }] = await Promise.all([searchParams, getCurrentUser(), getT()]);
   const searching = Boolean(q && q.trim());
-  // Demo sessions have no register pages; never hit Supabase.
   const supabase = me.isDemo ? null : await createClient();
 
   let query = supabase
     ?.from("documents")
-    .select("id, doc_date, storage_path, ocr_status, created_at")
+    .select("id, doc_type, doc_date, storage_path, ocr_status, ocr_text, created_at")
     .eq("doc_type", "register_page")
     .order("doc_date", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false })
@@ -89,20 +90,13 @@ export default async function OpdRegisterPage({ searchParams }: { searchParams: 
                 <ul className="grid grid-cols-2 gap-3 px-4 pb-4 sm:grid-cols-3 xl:grid-cols-5">
                   {datePages.map((p) => {
                     const url = me.isDemo ? ((p as { data_url?: string | null }).data_url ?? null) : (urlByPath.get(p.storage_path) ?? null);
-                    const isImage = /\.(jpe?g|png|webp)$/i.test(p.storage_path);
                     const status = OCR_STATUS[(p.ocr_status ?? "pending") as keyof typeof OCR_STATUS] ?? OCR_STATUS.pending;
                     return (
                       <li key={p.id} className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-background)]">
-                        <a href={url ?? undefined} target="_blank" rel="noreferrer" className="block hover:opacity-90">
-                          {url && isImage ? (
-                            // eslint-disable-next-line @next/next/no-img-element -- private signed URL, not an optimizable static asset
-                            <img src={url} alt="" loading="lazy" className="h-40 w-full object-cover" />
-                          ) : (
-                            <div className="flex h-40 items-center justify-center bg-[var(--color-surface-1)]">
-                              <FilePdf size={36} className="text-[var(--color-charcoal)]" aria-hidden />
-                            </div>
-                          )}
-                        </a>
+    <DocumentPreview
+      url={url} path={p.storage_path} title={documentTypeLabel(p.doc_type, t)}
+      text={p.ocr_text} className="h-40"
+    />
                         <div className="p-2">
                           <Tag tone={status.tone}>{t(status.labelKey)}</Tag>
                         </div>

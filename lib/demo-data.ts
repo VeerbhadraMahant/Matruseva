@@ -4,6 +4,7 @@ import { todayInClinicTimezone, toISODate } from "@/lib/today";
 import { gestationalAge } from "@/lib/pregnancy";
 import { parseLocalDate } from "@/lib/format";
 import { patientFlags, vitalsFlags, sortFlags } from "@/lib/clinical";
+import { CLINICAL_RISK_THRESHOLDS } from "@/lib/clinicalProtocols";
 import { computeFollowUpRisk } from "@/lib/risk";
 import type { PatientRow, OpenEvent, LatestVisit } from "@/lib/snapshot";
 import type { CareEventStatus, FollowUpRisk, ContactOutcome } from "@/lib/supabase/enums";
@@ -287,6 +288,17 @@ const INITIAL_RAW_DEMO_PATIENTS: DemoPatientRaw[] = [
   },
 ];
 
+export const DEMO_SCHEDULE_ITEMS = [
+  { id: "ce-1", name: "Booking visit + Labs", kind: "test", windowStartWeek: 6, windowEndWeek: 10, isCritical: false },
+  { id: "ce-2", name: "Dating / Viability scan", kind: "scan", windowStartWeek: 7, windowEndWeek: 11, isCritical: false },
+  { id: "ce-3", name: "NT Scan + Double Marker", kind: "scan", windowStartWeek: 11, windowEndWeek: 14, isCritical: false },
+  { id: "ce-4", name: "Anomaly Scan (TIFFA)", kind: "scan", windowStartWeek: 18, windowEndWeek: 22, isCritical: true },
+  { id: "ce-5", name: "Td Dose 1", kind: "injection", windowStartWeek: 20, windowEndWeek: 24, isCritical: false },
+  { id: "ce-6", name: "OGTT Sugar Screening", kind: "test", windowStartWeek: 24, windowEndWeek: 28, isCritical: true },
+  { id: "ce-rh", name: "Anti-D Prophylaxis (28w)", kind: "injection", windowStartWeek: 28, windowEndWeek: 30, isCritical: true },
+  { id: "ce-7", name: "Growth Scan + Doppler (32w)", kind: "scan", windowStartWeek: 32, windowEndWeek: 36, isCritical: false },
+];
+
 export const INITIAL_DEMO_DOCUMENTS: DemoDocumentRecord[] = [
   {
     id: "doc-demo-1",
@@ -504,16 +516,12 @@ function computeDemoPatientDetail(id: string, today: Date, todayIso: string) {
   const completedList = store.completedEvents[patientRaw.id] ?? [];
   const completedSet = new Set(completedList);
 
-  const rawEvents = [
-    { id: "ce-1", name: "Booking visit + Labs", kind: "test", due_from: addWeeks(6), due_to: addWeeks(10) },
-    { id: "ce-2", name: "Dating / Viability scan", kind: "scan", due_from: addWeeks(7), due_to: addWeeks(11) },
-    { id: "ce-3", name: "NT Scan + Double Marker", kind: "scan", due_from: addWeeks(11), due_to: addWeeks(14) },
-    { id: "ce-4", name: "Anomaly Scan (TIFFA)", kind: "scan", due_from: addWeeks(18), due_to: addWeeks(22) },
-    { id: "ce-5", name: "Td Dose 1", kind: "injection", due_from: addWeeks(20), due_to: addWeeks(24) },
-    { id: "ce-6", name: "OGTT Sugar Screening", kind: "test", due_from: addWeeks(24), due_to: addWeeks(28) },
-    ...(patientRaw.rhNegative ? [{ id: "ce-rh", name: "Anti-D Prophylaxis (28w)", kind: "injection", due_from: addWeeks(28), due_to: addWeeks(30) }] : []),
-    { id: "ce-7", name: "Growth Scan + Doppler (32w)", kind: "scan", due_from: addWeeks(32), due_to: addWeeks(36) },
-  ];
+  const rawEvents = DEMO_SCHEDULE_ITEMS
+    .filter((item) => item.id !== "ce-rh" || patientRaw.rhNegative)
+    .map((item) => ({
+      id: item.id, name: item.name, kind: item.kind,
+      due_from: addWeeks(item.windowStartWeek), due_to: addWeeks(item.windowEndWeek),
+    }));
 
   const seeded = INITIAL_RAW_DEMO_PATIENTS.some((patient) => patient.id === patientRaw.id);
   const dateOffset = (days: number) =>
@@ -581,12 +589,12 @@ function computeDemoPatientDetail(id: string, today: Date, todayIso: string) {
     patientStatus: patientRaw.status ?? "active",
     nextVisitDate: nextVisitDate ? parseLocalDate(nextVisitDate) : null,
     hasOverdueCriticalEvent: careEvents.some((event) =>
-      event.status === "overdue" && (event.id === "ce-4" || event.id === "ce-6" || event.id === "ce-rh"),
+      event.status === "overdue" && DEMO_SCHEDULE_ITEMS.some((item) => item.id === event.id && item.isCritical),
     ),
     recentContactNoAnswerStreak: patientRaw.noAnswerStreak,
     today,
-    riskAtRiskDays: 7,
-    riskLostDays: 21,
+    riskAtRiskDays: CLINICAL_RISK_THRESHOLDS.atRiskDays,
+    riskLostDays: CLINICAL_RISK_THRESHOLDS.lostDays,
   });
 
   const result = {

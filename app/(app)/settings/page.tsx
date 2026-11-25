@@ -13,13 +13,14 @@ import { GearSix } from "@phosphor-icons/react/dist/ssr";
 import { PageHeader, Panel, Tag, buttonSecondary, card, pageBody } from "@/components/ui";
 import type { MessageTemplates } from "@/lib/whatsapp";
 import { getT } from "@/lib/i18n/server";
+import { DEMO_SCHEDULE_ITEMS } from "@/lib/demo-data";
+import { CLINICAL_RISK_THRESHOLDS } from "@/lib/clinicalProtocols";
 import { careEventName } from "@/lib/clinicalLabels";
 
 export default async function SettingsPage() {
   const [me, { t }] = await Promise.all([getCurrentUser(), getT()]);
   if (me.role !== "doctor") redirect("/today");
 
-  // Demo sessions have no clinic rows: skip Supabase and show the demo empty state.
   const supabase = me.isDemo ? null : await createClient();
   const [{ data: clinic }, { data: staff }, { data: template }] = supabase
     ? await Promise.all([
@@ -33,7 +34,7 @@ export default async function SettingsPage() {
           .maybeSingle(),
       ])
     : [{ data: null }, { data: null }, { data: null }];
-  if (!clinic) {
+  if (!clinic && !me.isDemo) {
     return (
       <>
         <PageHeader title={t("settings.title")} />
@@ -55,23 +56,32 @@ export default async function SettingsPage() {
     );
   }
 
-  const items = [...(template?.schedule_template_items ?? [])].sort((a, b) => a.sort_order - b.sort_order);
+  const items = me.isDemo ? DEMO_SCHEDULE_ITEMS : [...(template?.schedule_template_items ?? [])]
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map((item) => ({
+      id: item.id, name: item.name, windowStartWeek: item.window_start_week,
+      windowEndWeek: item.window_end_week, isCritical: item.is_critical,
+    }));
+  const clinicName = clinic?.name ?? me.clinicName;
 
   return (
     <>
-      <PageHeader title={t("settings.title")} meta={clinic.name} />
+      <PageHeader title={t("settings.title")} meta={me.isDemo ? t("settings.demo.readOnly") : clinicName} />
       <div className={`${pageBody} grid grid-cols-[minmax(0,1fr)] gap-5 space-y-0 xl:grid-cols-2`}>
         <div className="space-y-5">
           <Panel title={t("settings.panel.clinic")}>
-            <div className="p-4 pt-1">
-              <ClinicDetailsForm name={clinic.name} city={clinic.city} phone={clinic.phone} />
-            </div>
+            <fieldset disabled={me.isDemo} className="p-4 pt-1">
+              <ClinicDetailsForm name={clinicName} city={clinic?.city ?? null} phone={clinic?.phone ?? null} />
+            </fieldset>
           </Panel>
 
           <Panel title={t("settings.panel.thresholds")}>
-            <div className="p-4 pt-1">
-              <RiskThresholdsForm atRiskDays={clinic.risk_at_risk_days} lostDays={clinic.risk_lost_days} />
-            </div>
+            <fieldset disabled={me.isDemo} className="p-4 pt-1">
+              <RiskThresholdsForm
+                atRiskDays={clinic?.risk_at_risk_days ?? CLINICAL_RISK_THRESHOLDS.atRiskDays}
+                lostDays={clinic?.risk_lost_days ?? CLINICAL_RISK_THRESHOLDS.lostDays}
+              />
+            </fieldset>
           </Panel>
 
           <Panel title={t("settings.panel.staff")} count={(staff ?? []).length}>
@@ -87,40 +97,38 @@ export default async function SettingsPage() {
                 </li>
               ))}
             </ul>
-            <div className="p-4 pt-1">
-              <StaffInviteForm />
-            </div>
+            {!me.isDemo && <div className="p-4 pt-1"><StaffInviteForm /></div>}
           </Panel>
         </div>
 
         <div className="space-y-5">
-          <Panel title={t("settings.panel.signoff")}>
-            <div className="p-4 pt-1">
-              <ClinicalProtocolSignOff />
-            </div>
-          </Panel>
+          {!me.isDemo && (
+            <Panel title={t("settings.panel.signoff")}>
+              <div className="p-4 pt-1"><ClinicalProtocolSignOff /></div>
+            </Panel>
+          )}
 
           <Panel title={t("settings.panel.schedule")} count={items.length}>
             <p className="px-4 pb-2 text-[13px] text-[var(--color-charcoal)]">
               {t("settings.schedule.help")}
             </p>
-            <div className="px-4 pb-2">
+            <fieldset disabled={me.isDemo} className="px-4 pb-2">
               {items.map((item) => (
                 <ScheduleItemRow
                   key={item.id}
                   id={item.id}
                   name={careEventName(item.name, t)}
-                  windowStartWeek={item.window_start_week}
-                  windowEndWeek={item.window_end_week}
-                  isCritical={item.is_critical}
+                  windowStartWeek={item.windowStartWeek}
+                  windowEndWeek={item.windowEndWeek}
+                  isCritical={item.isCritical}
                 />
               ))}
-            </div>
+            </fieldset>
           </Panel>
 
           <Panel title={t("settings.panel.templates")}>
             <div className="p-4 pt-1">
-              <MessageTemplatesForm templates={(clinic.message_templates ?? {}) as MessageTemplates} />
+              <MessageTemplatesForm templates={(clinic?.message_templates ?? {}) as MessageTemplates} readOnly={me.isDemo} />
             </div>
           </Panel>
         </div>
