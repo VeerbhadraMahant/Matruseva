@@ -53,19 +53,43 @@ export async function recognizeImage(image: Blob): Promise<string> {
   return text.trim();
 }
 
-/** Digital PDFs: read the text layer directly. Scanned/image-only PDFs return "" (see ocr.ts's caller). */
-export async function extractPdfText(file: File): Promise<string> {
+async function openPdf(source: File | string) {
   const pdfjs = await import("pdfjs-dist");
   pdfjs.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
+  return pdfjs.getDocument(typeof source === "string" ? { url: source } : { data: await source.arrayBuffer() });
+}
 
-  const buffer = await file.arrayBuffer();
-  const doc = await pdfjs.getDocument({ data: buffer }).promise;
-
-  const pageTexts: string[] = [];
-  for (let i = 1; i <= doc.numPages; i++) {
-    const page = await doc.getPage(i);
-    const content = await page.getTextContent();
-    pageTexts.push(content.items.map((item) => ("str" in item ? item.str : "")).join(" "));
+/** Digital PDFs: read their selectable text layer. */
+export async function extractPdfText(file: File): Promise<string> {
+  const task = await openPdf(file);
+  try {
+    const doc = await task.promise;
+    const pageTexts: string[] = [];
+    for (let i = 1; i <= doc.numPages; i++) {
+      const page = await doc.getPage(i);
+      const content = await page.getTextContent();
+      pageTexts.push(content.items.map((item) => ("str" in item ? item.str : "")).join(" "));
+    }
+    return pageTexts.join("\n").trim();
+  } finally {
+    await task.destroy();
   }
-  return pageTexts.join("\n").trim();
+}
+
+/** Small first-page image, including scans without a text layer. */
+export async function renderPdfPreview(source: File | string): Promise<string> {
+  const task = await openPdf(source);
+  try {
+    const doc = await task.promise;
+    const page = await doc.getPage(1);
+    const size = page.getViewport({ scale: 1 });
+    const viewport = page.getViewport({ scale: 420 / Math.max(size.width, size.height) });
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.ceil(viewport.width);
+    canvas.height = Math.ceil(viewport.height);
+    await page.render({ canvas, viewport }).promise;
+    return canvas.toDataURL("image/jpeg", 0.8);
+  } finally {
+    await task.destroy();
+  }
 }

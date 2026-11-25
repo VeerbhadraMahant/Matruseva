@@ -1,7 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getClinicSnapshot, daysOverdue, followUpPriority } from "@/lib/snapshot";
-import { needsFollowUp } from "@/lib/followUp";
+import { isManualContact, needsFollowUp } from "@/lib/followUp";
 import { formatGALocalized } from "@/lib/pregnancy";
 import { daysBetween } from "@/lib/format";
 import { todayInClinicTimezone } from "@/lib/today";
@@ -89,6 +89,8 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
           const age = daysBetween(todayInClinicTimezone(new Date(h.createdAt)), today);
           return age >= 0 && age <= 30;
         }).length,
+        contactedToday: history.some((contact) => isManualContact(contact.outcome) &&
+          daysBetween(todayInClinicTimezone(new Date(contact.createdAt)), today) === 0),
         lastContact: last
           ? { outcome: last.outcome as ContactOutcome, channel: last.channel, daysAgo: lastDaysAgo ?? 0 }
           : null,
@@ -100,7 +102,7 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
     });
 
   const initialFilter = FILTER_IDS.includes(f as CallFilter) ? (f as CallFilter) : "all";
-  const pending = queue.filter((q) => q.lastContact?.daysAgo !== 0).length;
+  const pending = queue.filter((row) => !row.contactedToday).length;
 
   return (
     <>

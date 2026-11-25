@@ -1,5 +1,6 @@
 "use server";
 
+import { randomInt } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { cookies, headers } from "next/headers";
 import { z } from "zod";
@@ -37,14 +38,18 @@ function revalidatePatientViews(patientId: string) {
 }
 
 export async function setCareEventCompletion(
-  careEventId: string, patientId: string, completedOn: string, undo: boolean,
-): Promise<ActionResult> {
+  careEventId: string, patientId: string, value: string, undo: boolean,
+): Promise<ActionResult & { completionToken?: string }> {
   const { t } = await getT();
   const todayIso = toISODate(todayInClinicTimezone());
-  if (!z.iso.date().safeParse(completedOn).success || completedOn > todayIso) {
+  const completedOn = undo ? value.slice(0, 10) : value;
+  if (!z.iso.date().safeParse(completedOn).success || completedOn > todayIso ||
+      (undo && !z.iso.datetime().safeParse(value).success)) {
     return { error: t("visits.error.invalidDate") };
   }
-  const completedAt = `${completedOn}T04:30:00Z`;
+  // Keep the selected day in IST and give each completion its own undo token.
+  const completedAt = undo ? value
+    : new Date(Date.parse(`${completedOn}T00:00:00Z`) + randomInt(18 * 60 * 60 * 1000)).toISOString();
   const cookieStore = await cookies();
   if (isDemoActive(cookieStore)) {
     const detail = getDemoPatientDetail(patientId);
@@ -55,7 +60,7 @@ export async function setCareEventCompletion(
     if (undo) undoDemoCareEvent(careEventId, patientId);
     else markDemoCareEventDone(careEventId, patientId, completedAt);
     revalidatePatientViews(patientId);
-    return { error: null };
+    return { error: null, completionToken: undo ? undefined : completedAt };
   }
 
   try {
@@ -72,7 +77,7 @@ export async function setCareEventCompletion(
     if (error || !data) return { error: error?.message ?? t("patientDetail.error.markDoneFailed") };
 
     revalidatePatientViews(patientId);
-    return { error: null };
+    return { error: null, completionToken: undo ? undefined : completedAt };
   } catch {
     return { error: t("patientDetail.error.dbConnection") };
   }

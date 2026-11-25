@@ -101,7 +101,7 @@ export async function createPatient(_prev: ActionResult, formData: FormData): Pr
   }
 
   if (isDemo) {
-    if (getDemoStore().patients.some(matchesRegistration)) {
+    if (getDemoStore().patients.some((patient) => (patient.status ?? "active") === "active" && matchesRegistration(patient))) {
       return { error: t("patients.error.duplicate") };
     }
     const newId = addDemoPatient({
@@ -134,7 +134,7 @@ export async function createPatient(_prev: ActionResult, formData: FormData): Pr
     if (phone) {
       const pattern = escapeSearchPattern(name).replaceAll(" ", "%");
       const { data: matches, error } = await supabase.from("patients").select("name, phone")
-        .eq("clinic_id", me.clinicId).ilike("name", `%${pattern}%`);
+        .eq("clinic_id", me.clinicId).eq("status", "active").ilike("name", `%${pattern}%`);
       if (error) return { error: t("patients.error.dbConnection") };
       if (matches?.some(matchesRegistration)) return { error: t("patients.error.duplicate") };
     }

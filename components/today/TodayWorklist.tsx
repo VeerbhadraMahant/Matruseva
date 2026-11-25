@@ -5,7 +5,7 @@ import { useId, useMemo, useState } from "react";
 import { ArrowRight, CaretDown, CheckCircle, Phone, Warning } from "@phosphor-icons/react";
 import { useT } from "@/lib/i18n/provider";
 import { Badge, STATUS_BADGE } from "./StatusBadge";
-import type { DayEntry, WorklistDay, WorklistRow } from "./types";
+import type { DayEntry, WorklistDay, WorklistItem, WorklistRow } from "./types";
 
 type Filter = "all" | "atRisk" | "overdue" | "scheduled";
 
@@ -93,12 +93,14 @@ function Detail({ label, value, sub }: { label: string; value: string; sub: stri
 function Row({
   row,
   reason,
+  items,
   expanded,
   onToggle,
   index,
 }: {
   row: WorklistRow;
   reason: string;
+  items: WorklistItem[];
   expanded: boolean;
   onToggle: () => void;
   index: number;
@@ -162,14 +164,14 @@ function Row({
               {row.edd && <Detail label={t("today.worklist.edd")} value={row.edd} sub={row.eddRelative} />}
             </dl>
 
-            {(row.alerts.length > 0 || row.openItems.length > 0) && (
+            {(row.alerts.length > 0 || items.length > 0) && (
               <div className="flex flex-wrap gap-1.5">
                 {row.alerts.map((a) => (
                   <Badge key={a.label} tone={a.critical ? "overdue" : "risk"}>
                     {a.label}
                   </Badge>
                 ))}
-                {row.openItems.map((item) => (
+                {items.map((item) => (
                   <Badge key={`${item.name}-${item.closes}`} tone={item.status === "overdue" ? "overdue" : "plum"}>
                     {t(item.status === "overdue" ? "today.worklist.itemWasDue" : "today.worklist.itemBy", {
                       name: item.name,
@@ -321,6 +323,7 @@ export function TodayWorklist({ days, rows }: { days: WorklistDay[]; rows: Workl
                 key={row.id}
                 row={row}
                 reason={entry.reasons.join(" · ") || row.summary}
+                items={day?.isToday ? row.openItems : entry.items}
                 index={i}
                 expanded={expanded === row.id}
                 onToggle={() => setExpanded((cur) => (cur === row.id ? null : row.id))}

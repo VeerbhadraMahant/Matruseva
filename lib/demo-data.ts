@@ -5,6 +5,7 @@ import { gestationalAge } from "@/lib/pregnancy";
 import { parseLocalDate } from "@/lib/format";
 import { patientFlags, vitalsFlags, sortFlags } from "@/lib/clinical";
 import { CLINICAL_RISK_THRESHOLDS } from "@/lib/clinicalProtocols";
+import { isManualContact } from "@/lib/followUp";
 import { computeFollowUpRisk } from "@/lib/risk";
 import type { PatientRow, OpenEvent, LatestVisit } from "@/lib/snapshot";
 import type { CareEventStatus, FollowUpRisk, ContactOutcome } from "@/lib/supabase/enums";
@@ -295,6 +296,7 @@ export const DEMO_SCHEDULE_ITEMS = [
   { id: "ce-4", name: "Anomaly Scan (TIFFA)", kind: "scan", windowStartWeek: 18, windowEndWeek: 22, isCritical: true },
   { id: "ce-5", name: "Td Dose 1", kind: "injection", windowStartWeek: 20, windowEndWeek: 24, isCritical: false },
   { id: "ce-6", name: "OGTT Sugar Screening", kind: "test", windowStartWeek: 24, windowEndWeek: 28, isCritical: true },
+  { id: "ce-cbc", name: "Repeat CBC", kind: "test", windowStartWeek: 28, windowEndWeek: 28, isCritical: false },
   { id: "ce-rh", name: "Anti-D Prophylaxis (28w)", kind: "injection", windowStartWeek: 28, windowEndWeek: 30, isCritical: true },
   { id: "ce-7", name: "Growth Scan + Doppler (32w)", kind: "scan", windowStartWeek: 32, windowEndWeek: 36, isCritical: false },
 ];
@@ -437,7 +439,7 @@ export function getDemoSnapshot(): { rows: PatientRow[]; today: Date; todayIso: 
 
     const detail = getDemoPatientDetail(p.id);
     const open = detail.careEvents.flatMap((event): OpenEvent[] =>
-      event.status === "due" || event.status === "overdue"
+      event.status === "due" || event.status === "overdue" || event.status === "upcoming"
         ? [{
             id: event.id, name: event.name, kind: event.kind,
             dueFrom: event.due_from, dueTo: event.due_to, status: event.status,
@@ -483,6 +485,7 @@ export function getDemoSnapshot(): { rows: PatientRow[]; today: Date; todayIso: 
       latestVisit,
       overdue: open.filter((event) => event.status === "overdue"),
       due: open.filter((event) => event.status === "due"),
+      upcoming: open.filter((event) => event.status === "upcoming"),
       flags,
       createdAt: p.createdAt ?? "2026-04-01T08:00:00Z",
     };
@@ -584,6 +587,8 @@ function computeDemoPatientDetail(id: string, today: Date, todayIso: string) {
 
   const isDeliveredOrClosed = patientRaw.status === "delivered" || patientRaw.status === "closed";
   const contacts = getDemoPatientContacts(patientRaw, today);
+  const noAnswerStreak = contacts.filter((contact) => isManualContact(contact.outcome)).slice(0, 2)
+    .filter(({ outcome }) => outcome === "no_answer" || outcome === "wrong_number").length;
   const nextVisitDate = isDeliveredOrClosed ? null : visits.find((visit) => visit.next_visit_date)?.next_visit_date ?? null;
   const followUpRisk = computeFollowUpRisk({
     patientStatus: patientRaw.status ?? "active",
@@ -591,7 +596,7 @@ function computeDemoPatientDetail(id: string, today: Date, todayIso: string) {
     hasOverdueCriticalEvent: careEvents.some((event) =>
       event.status === "overdue" && DEMO_SCHEDULE_ITEMS.some((item) => item.id === event.id && item.isCritical),
     ),
-    recentContactNoAnswerStreak: patientRaw.noAnswerStreak,
+    recentContactNoAnswerStreak: noAnswerStreak,
     today,
     riskAtRiskDays: CLINICAL_RISK_THRESHOLDS.atRiskDays,
     riskLostDays: CLINICAL_RISK_THRESHOLDS.lostDays,
@@ -634,7 +639,7 @@ function computeDemoPatientDetail(id: string, today: Date, todayIso: string) {
     risk: {
       risk: followUpRisk,
       next_visit_date: nextVisitDate,
-      no_answer_streak: isDeliveredOrClosed ? 0 : patientRaw.noAnswerStreak,
+      no_answer_streak: isDeliveredOrClosed ? 0 : noAnswerStreak,
     },
   };
 
@@ -715,12 +720,6 @@ export function logDemoBatchContacts(
     }
 
     loggedCount++;
-    if (outcome === "reached" || outcome === "will_visit") {
-      patient.noAnswerStreak = 0;
-    } else if (outcome === "no_answer") {
-      patient.noAnswerStreak += 1;
-    }
-
     const contacts = store.contacts[pid] ?? [];
     contacts.unshift({
       id: `c-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
@@ -893,14 +892,6 @@ export function logDemoContact(
 ): void {
   const store = getDemoStore();
   if (clientRequestId && (store.contacts[patientId] ?? []).some((x) => x.client_request_id === clientRequestId)) return;
-  const patient = store.patients.find((p) => p.id === patientId);
-  if (patient) {
-    if (outcome === "reached" || outcome === "will_visit") {
-      patient.noAnswerStreak = 0;
-    } else if (outcome === "no_answer") {
-      patient.noAnswerStreak += 1;
-    }
-  }
   const contacts = store.contacts[patientId] ?? [];
   contacts.unshift({
     id: `c-${Date.now().toString(36)}`,
@@ -935,16 +926,24 @@ function getDemoPatientContacts(patient: DemoPatientRaw, today: Date): DemoConta
       ? { ...contact, outcome: "automated_reminder" }
       : contact,
   );
-  if (patient.id !== "p2-sunita-verma") return contacts;
-  const seedDate = new Date(today);
-  seedDate.setDate(seedDate.getDate() - 2);
-  return [...contacts, {
-    id: "c-seed-sunita",
-    channel: "whatsapp" as const,
-    outcome: "reached" as const,
-    notes: "Reminder confirmed",
-    created_at: toISODate(seedDate),
-  }].sort((a, b) => b.created_at.localeCompare(a.created_at));
+  const seed = INITIAL_RAW_DEMO_PATIENTS.find((item) => item.id === patient.id);
+  const previousDate = (days: number) =>
+    toISODate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - days));
+  if (seed) {
+    for (let i = 0; i < seed.noAnswerStreak; i++) {
+      contacts.push({
+        id: `c-seed-${patient.id}-${i}`, channel: "call", outcome: "no_answer",
+        notes: null, created_at: previousDate(i + 3),
+      });
+    }
+  }
+  if (patient.id === "p2-sunita-verma") {
+    contacts.push({
+      id: "c-seed-sunita", channel: "whatsapp", outcome: "reached",
+      notes: "Reminder confirmed", created_at: previousDate(2),
+    });
+  }
+  return contacts.sort((a, b) => b.created_at.localeCompare(a.created_at));
 }
 
 export function getDemoContacts() {
@@ -1003,7 +1002,7 @@ export function addDemoDocument(data: {
     doc_type: data.docType ?? "other",
     doc_date: data.docDate || null,
     source: data.source ?? "camera",
-    storage_path: data.storagePath ?? `demo/${data.folder ?? "inbox"}/${id}.jpg`,
+    storage_path: data.storagePath ?? `demo/${data.folder ?? "inbox"}/${id}.${data.source === "pdf" ? "pdf" : "jpg"}`,
     ocr_status: data.ocrStatus ?? (data.ocrText ? "done" : "skipped"),
     ocr_text: data.ocrText || null,
     created_at: new Date().toISOString(),

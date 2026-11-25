@@ -4,7 +4,7 @@ import { useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Camera } from "@phosphor-icons/react";
 import { createClient } from "@/lib/supabase/client";
-import { preprocessImage, recognizeImage, extractPdfText } from "@/lib/ocr";
+import { preprocessImage, recognizeImage, extractPdfText, renderPdfPreview } from "@/lib/ocr";
 import type { DocSource, DocType } from "@/lib/supabase/enums";
 import { useT } from "@/lib/i18n/provider";
 import { createUuid } from "@/lib/uuid";
@@ -82,7 +82,7 @@ export function DocumentUploader({
             // OCR failure shouldn't block the upload
           }
 
-          const dataUrl = isPdf ? "" : await blobToDataUrl(uploadBlob);
+          const dataUrl = isPdf ? await renderPdfPreview(file).catch(() => "") : await blobToDataUrl(uploadBlob);
           const res = await uploadDemoDocumentAction({
             clinicId,
             folder,

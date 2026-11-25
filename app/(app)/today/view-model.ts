@@ -2,7 +2,7 @@ import { daysOverdue, followUpPriority, type PatientRow } from "@/lib/snapshot";
 import { hasOverdueItems, isAtRisk, needsFollowUp } from "@/lib/followUp";
 import { trimester } from "@/lib/pregnancy";
 import { daysBetween, formatDate, formatShortDate, parseLocalDate, relativeDays } from "@/lib/format";
-import { toISODate } from "@/lib/today";
+import { toISODate, WORKLIST_DAYS } from "@/lib/today";
 import { telLink } from "@/lib/whatsapp";
 import type { Locale } from "@/lib/i18n/config";
 import { intlLocale } from "@/lib/i18n/intl";
@@ -11,8 +11,6 @@ import { flagLabel } from "@/lib/clinical";
 import { careEventName } from "@/lib/clinicalLabels";
 import { formatGALocalized } from "@/lib/pregnancy";
 import type { DayEntry, RowStatus, WorklistDay, WorklistRow } from "@/components/today/types";
-
-const WEEK_LENGTH = 7;
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -107,7 +105,7 @@ export function buildWorklist(rows: PatientRow[], today: Date, t: Translator, lo
   );
   const todayIso = toISODate(today);
 
-  const days: WorklistDay[] = Array.from({ length: WEEK_LENGTH }, (_, i) => {
+  const days: WorklistDay[] = Array.from({ length: WORKLIST_DAYS }, (_, i) => {
     const date = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
     const iso = toISODate(date);
     const isToday = i === 0;
@@ -115,13 +113,16 @@ export function buildWorklist(rows: PatientRow[], today: Date, t: Translator, lo
     const entries: DayEntry[] = [];
     for (const row of sorted) {
       const booked = row.nextVisitDate === iso;
-      const closing = row.due.filter((e) => e.dueTo === iso);
+      const closing = [...row.due, ...row.upcoming].filter((e) => e.dueTo === iso);
       const scheduled = booked || closing.length > 0;
       const attention = isToday && (needsFollowUp(row) || row.flags.some((f) => f.severity === "critical"));
       if (!scheduled && !attention) continue;
       entries.push({
         rowId: row.id,
         scheduled,
+        items: closing.map((event) => ({
+          name: shortItemName(event.name, t), status: "due", closes: formatShortDate(event.dueTo, locale),
+        })),
         reasons: [
           ...(booked ? [t("today.row.visitBooked")] : []),
           ...closing.map((event) => t("today.row.windowClosesShort", { item: shortItemName(event.name, t) })),

@@ -40,6 +40,7 @@ export interface DayEntry {
   scheduled: boolean;
   /** Booked visit and schedule items for the selected day. */
   reasons: string[];
+  items: WorklistItem[];
 }
 
 export interface WorklistDay {

@@ -138,3 +138,31 @@ test("contact history shows a date without a time for a date-only entry", async 
   });
   await expect(row.locator("time")).toHaveText(date);
 });
+
+test("a closed pregnancy does not block registering a later pregnancy", async ({ page }) => {
+  const name = `Audit return visit ${Date.now()}`;
+  const phone = String(9000000000 + Date.now() % 1000000000);
+  const date = new Date(Date.now() - 270 * 86400000).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+  async function register(lmp: string) {
+    await page.goto("/patients/new");
+    await page.locator("#name").fill(name);
+    await page.locator("#phone").fill(phone);
+    await page.locator("#lmp").fill(lmp);
+    await page.getByRole("button", { name: "Register & generate schedule" }).click();
+    await expect(page).toHaveURL(/\/patients\/p-demo-/);
+    await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
+  }
+
+  await register(date);
+  const firstRecord = page.url();
+  await page.getByText("More", { exact: true }).click();
+  await page.getByRole("button", { name: "Record delivery / close", exact: true }).click();
+  const close = page.getByRole("dialog", { name: "Record delivery outcome" });
+  await close.locator("#birth-weight").fill("3.1");
+  await close.getByRole("button", { name: "Next: confirm" }).click();
+  await close.getByRole("button", { name: "Confirm and close record" }).click();
+  await expect(page.getByRole("heading", { name: /Delivery outcome/ })).toBeVisible();
+
+  await register(new Date(Date.now() - 65 * 86400000).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }));
+  expect(page.url()).not.toBe(firstRecord);
+});

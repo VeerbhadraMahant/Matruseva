@@ -106,6 +106,8 @@ test("batch reminders are logged without increasing successful contacts", async 
   await page.getByRole("button", { name: "Log for 1 selected" }).click();
   await page.getByRole("button", { name: "Yes, Log Contacts" }).click();
   await expect(sunita.getByText("Automated reminder sent (WhatsApp)", { exact: true }).first()).toBeVisible();
+  await main.getByRole("group", { name: "Filter queue" }).getByRole("button", { name: /^Not called today/ }).click();
+  await expect(sunita).toBeVisible();
   await page.goto("/patients/p2-sunita-verma");
   await expect(main.getByText("Automated reminder sent (WhatsApp)", { exact: true }).first()).toBeVisible();
   await page.goto("/today");
@@ -139,4 +141,39 @@ test("Today counters render their final value before JavaScript and expose it on
   } finally {
     await context.close();
   }
+});
+
+test("follow-up uses the recent manual outcomes in the contact record", async ({ page }) => {
+  await page.goto("/calls");
+  const row = page.getByRole("main").locator("ol > li").filter({ hasText: "Rekha Yadav" });
+  await row.getByRole("button", { name: "Log outcome" }).click();
+  const form = row.locator("form");
+  async function log(outcome: string, label: string) {
+    await form.getByRole("combobox", { name: "Outcome" }).selectOption(outcome);
+    await form.getByRole("button", { name: "Log", exact: true }).click();
+    await expect(row.getByText(label, { exact: true }).and(row.locator("span"))).toBeVisible();
+  }
+  await log("no_answer", "No answer");
+  await log("wrong_number", "Wrong number");
+  await expect(row.getByText("Unreachable ×2")).toBeVisible();
+  await log("refused", "Refused");
+  await expect(row.getByText(/Unreachable/)).toHaveCount(0);
+});
+
+test("the week strip includes tasks that open and close on a future date", async ({ page }) => {
+  const name = `Audit week strip ${Date.now()}`;
+  const lmp = new Date(Date.now() - (28 * 7 - 3) * 86400000).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+  await page.goto("/patients/new");
+  await page.locator("#name").fill(name);
+  await page.locator("#lmp").fill(lmp);
+  await page.getByRole("button", { name: "Register & generate schedule" }).click();
+  await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
+  await expect(page.getByRole("row", { name: /Repeat CBC/ })).toContainText("Upcoming");
+  await page.goto("/today");
+  const main = page.getByRole("main");
+  await main.getByRole("group", { name: "Choose a day" }).getByRole("button").nth(3).click();
+  const patient = main.getByRole("region", { name: /^Worklist/ }).getByRole("listitem").filter({ hasText: name });
+  await expect(patient).toHaveCount(1);
+  await patient.getByRole("button", { name: new RegExp(name) }).click();
+  await expect(patient.getByText(/Repeat CBC.*by/i)).toBeVisible();
 });

@@ -52,6 +52,7 @@ export interface CallRow {
   flags: ClinicalFlag[];
   noAnswerStreak: number;
   attempts30d: number;
+  contactedToday: boolean;
   lastContact: { outcome: ContactOutcome; channel: string; daysAgo: number } | null;
   tel: string | null;
   whatsapp: string | null;
@@ -65,7 +66,7 @@ type MsgKey = Parameters<Translator>[0];
 
 const FILTERS: { id: CallFilter; labelKey: MsgKey; test: (r: CallRow) => boolean }[] = [
   { id: "all", labelKey: "calls.filter.all", test: () => true },
-  { id: "pending", labelKey: "calls.filter.pending", test: (r) => r.lastContact?.daysAgo !== 0 },
+  { id: "pending", labelKey: "calls.filter.pending", test: (r) => !r.contactedToday },
   { id: "overdue", labelKey: "calls.filter.overdue", test: (r) => hasOverdueItems(r.overdueItems.length) },
   { id: "at_risk", labelKey: "calls.filter.atRisk", test: (r) => isAtRisk(r.risk) },
   { id: "lost", labelKey: "calls.filter.lost", test: (r) => isLost(r.risk) },
@@ -650,7 +651,7 @@ const CallCard = memo(function CallCard({
 }) {
   const t = useT();
   const [showLog, setShowLog] = useState(false);
-  const calledToday = r.lastContact?.daysAgo === 0;
+  const calledToday = r.contactedToday;
 
   return (
     <li className="row-cv relative border-b border-[var(--color-border)] overflow-hidden last:border-0">

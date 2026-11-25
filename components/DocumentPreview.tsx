@@ -1,3 +1,4 @@
+import { PdfThumbnail } from "@/components/PdfThumbnail";
 import { FilePdf, FileText, ImageSquare } from "@phosphor-icons/react/dist/ssr";
 
 export function DocumentPreview({
@@ -10,8 +11,10 @@ export function DocumentPreview({
   className: string;
 }) {
   const isImage = /\.(jpe?g|png|webp)$/i.test(path);
-  const Icon = isImage ? ImageSquare : /\.pdf$/i.test(path) ? FilePdf : FileText;
-  const preview = url && isImage ? (
+  const isPdf = /\.pdf$/i.test(path);
+  const isRasterPreview = Boolean(url?.startsWith("data:image/"));
+  const Icon = isImage ? ImageSquare : isPdf ? FilePdf : FileText;
+  const preview = url && (isImage || isRasterPreview) ? (
     // eslint-disable-next-line @next/next/no-img-element -- short-lived private storage URL
     <img src={url} alt={title} loading="lazy" className={`w-full object-cover ${className}`} />
   ) : (
@@ -22,5 +25,10 @@ export function DocumentPreview({
       {text && <p className="line-clamp-3 text-[12px] text-[var(--color-charcoal)]">{text.slice(0, 200)}</p>}
     </div>
   );
-  return url ? <a href={url} target="_blank" rel="noreferrer" className="block">{preview}</a> : preview;
+  if (!url || (isPdf && isRasterPreview)) return preview;
+  return (
+    <a href={url} target="_blank" rel="noreferrer" className="block">
+      {isPdf ? <PdfThumbnail url={url} title={title} className={className}>{preview}</PdfThumbnail> : preview}
+    </a>
+  );
 }

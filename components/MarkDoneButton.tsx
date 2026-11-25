@@ -19,7 +19,7 @@ export function MarkDoneButton({
   const t = useT();
   const dialog = useRef<HTMLDialogElement>(null);
   const [error, setError] = useState<string | null>(null);
-  const [completedOn, setCompletedOn] = useState<string | null>(null);
+  const [completionToken, setCompletionToken] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   async function updateCompletion(date: string, undo: boolean) {
@@ -30,7 +30,7 @@ export function MarkDoneButton({
         setError(result.error);
         return;
       }
-      setCompletedOn(undo ? null : date);
+      setCompletionToken(result.completionToken ?? null);
       dialog.current?.close();
       if (!undo) showToast(t("patientDetail.markDone.toast"));
     } catch {
@@ -40,9 +40,9 @@ export function MarkDoneButton({
 
   return (
     <>
-      {done ? (completedOn && (
+      {done ? (completionToken && (
         <button type="button" className={actionClass} disabled={pending}
-          onClick={() => startTransition(() => updateCompletion(completedOn, true))}>
+          onClick={() => startTransition(() => updateCompletion(completionToken, true))}>
           {t("patientDetail.markDone.undo")}
         </button>
       )) : (

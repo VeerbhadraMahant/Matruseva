@@ -126,3 +126,36 @@ test("desktop navigation keeps explicit accessible link names when collapsed", a
   await expect(nav.getByRole("link", { name: "Patients", exact: true })).toBeVisible();
   await expect(nav.getByRole("link", { name: "Call queue", exact: true })).toHaveAccessibleDescription(/patients? needs? follow-up/);
 });
+
+test("image-only PDFs have distinguishable first-page previews", async ({ page }) => {
+  function pdf(fill: string) {
+    const drawing = `${fill} rg 5 5 90 90 re f`;
+    const objects = [
+      "<< /Type /Catalog /Pages 2 0 R >>",
+      "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+      "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Resources << >> /Contents 4 0 R >>",
+      `<< /Length ${drawing.length} >>\nstream\n${drawing}\nendstream`,
+    ];
+    let contents = "%PDF-1.4\n";
+    const offsets = objects.map((object, index) => {
+      const offset = contents.length;
+      contents += `${index + 1} 0 obj\n${object}\nendobj\n`;
+      return offset;
+    });
+    const xref = contents.length;
+    contents += `xref\n0 5\n0000000000 65535 f \n${offsets.map((offset) => `${String(offset).padStart(10, "0")} 00000 n \n`).join("")}`;
+    contents += `trailer\n<< /Size 5 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+    return Buffer.from(contents, "ascii");
+  }
+
+  await page.goto("/documents");
+  const main = page.getByRole("main");
+  const previews = main.locator('img[src^="data:image/jpeg"]');
+  const before = await previews.count();
+  await main.locator('input[type="file"]').setInputFiles([
+    { name: "Red scan.pdf", mimeType: "application/pdf", buffer: pdf("1 0 0") },
+    { name: "Blue scan.pdf", mimeType: "application/pdf", buffer: pdf("0 0 1") },
+  ]);
+  await expect(previews).toHaveCount(before + 2, { timeout: 15000 });
+  expect(await previews.nth(0).getAttribute("src")).not.toBe(await previews.nth(1).getAttribute("src"));
+});

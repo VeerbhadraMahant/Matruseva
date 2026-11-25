@@ -15,3 +15,7 @@ export function hasOverdueItems(count: number): boolean {
 export function needsFollowUp(patient: { risk: FollowUpRisk; overdue: readonly unknown[] }): boolean {
   return isAtRisk(patient.risk) || isLost(patient.risk) || hasOverdueItems(patient.overdue.length);
 }
+
+export function isManualContact(outcome: string): boolean {
+  return outcome !== "automated_reminder";
+}
