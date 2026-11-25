@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser, isDemoActive } from "@/lib/auth";
 import { generateSchedule, type ScheduleTemplateItem } from "@/lib/schedule";
 import { todayInClinicTimezone, toISODate } from "@/lib/today";
+import { normalizeIndianPhone } from "@/lib/whatsapp";
 import { eddFromLmp } from "@/lib/pregnancy";
 import { addDemoPatient, getDemoStore } from "@/lib/demo-data";
 import type { CareEventKind } from "@/lib/supabase/enums";
@@ -51,6 +52,15 @@ function makePatientSchema(t: Translator) {
   });
 }
 
+function normalizedName(name: string): string {
+  return name.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function normalizedPhone(phone: string | null | undefined): string {
+  if (!phone) return "";
+  return normalizeIndianPhone(phone) ?? phone.replace(/\D/g, "");
+}
+
 export async function createPatient(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
   const { t } = await getT();
   const raw = Object.fromEntries(formData.entries());
@@ -59,6 +69,10 @@ export async function createPatient(_prev: ActionResult, formData: FormData): Pr
     return { error: parsed.error.issues[0].message };
   }
   const input = parsed.data;
+  const name = normalizedName(input.name);
+  const phone = normalizedPhone(input.phone);
+  const matchesRegistration = (patient: { name: string; phone?: string | null }) =>
+    Boolean(phone && name === normalizedName(patient.name) && phone === normalizedPhone(patient.phone));
 
   const cookieStore = await cookies();
   const isDemo = isDemoActive(cookieStore);
@@ -83,6 +97,9 @@ export async function createPatient(_prev: ActionResult, formData: FormData): Pr
   }
 
   if (isDemo) {
+    if (getDemoStore().patients.some(matchesRegistration)) {
+      return { error: t("patients.error.duplicate") };
+    }
     const newId = addDemoPatient({
       name: input.name,
       clinicPatientNo: input.clinicPatientNo || null,
@@ -98,6 +115,7 @@ export async function createPatient(_prev: ActionResult, formData: FormData): Pr
       obstetricQuestionnaire: questionnaireData,
     });
 
+    revalidatePath("/(app)", "layout");
     revalidatePath("/patients");
     revalidatePath("/today");
     revalidatePath("/calls");
@@ -109,6 +127,13 @@ export async function createPatient(_prev: ActionResult, formData: FormData): Pr
   try {
     const [supabase, me] = await Promise.all([createClient(), getCurrentUser()]);
     const profile = { clinic_id: me.clinicId };
+    if (phone) {
+      const pattern = name.replace(/[\\%_*]/g, (character) => `\${character}`).replaceAll(" ", "%");
+      const { data: matches, error } = await supabase.from("patients").select("name, phone")
+        .eq("clinic_id", me.clinicId).ilike("name", `%${pattern}%`);
+      if (error) return { error: t("patients.error.dbConnection") };
+      if (matches?.some(matchesRegistration)) return { error: t("patients.error.duplicate") };
+    }
 
     const [y, m, d] = input.lmp.split("-").map(Number);
     const lmpDate = new Date(y, m - 1, d);
@@ -160,6 +185,7 @@ export async function createPatient(_prev: ActionResult, formData: FormData): Pr
   }
 
   if (createdPatientId) {
+    revalidatePath("/(app)", "layout");
     revalidatePath("/patients");
     revalidatePath("/today");
     revalidatePath("/calls");

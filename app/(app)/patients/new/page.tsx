@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { startTransition, useActionState, useMemo, useState } from "react";
 import { createPatient, type ActionResult } from "../actions";
 import { SubmitButton } from "@/components/SubmitButton";
 import { PageHeader, card, pageBody } from "@/components/ui";
@@ -46,7 +46,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export default function NewPatientPage() {
   const t = useT();
   const locale = useLocale();
-  const [state, formAction] = useActionState(createPatient, initialState);
+  const [state, formAction, pending] = useActionState(createPatient, initialState);
   const [lmp, setLmp] = useState("");
 
   const preview = useMemo(() => {
@@ -65,7 +65,15 @@ export default function NewPatientPage() {
     <>
       <PageHeader title={t("patients.new.title")} meta={t("patients.new.meta")} />
       <div className={pageBody}>
-      <form action={formAction} className="max-w-3xl space-y-5" noValidate>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          const data = new FormData(event.currentTarget);
+          startTransition(() => formAction(data));
+        }}
+        className="max-w-3xl space-y-5"
+        noValidate
+      >
         <Section title={t("patients.new.sectionIdentity")}>
           <Field id="name" label={t("patients.new.fullName")} className="col-span-2 sm:col-span-4">
             <input id="name" name="name" type="text" required autoFocus className={inputClass} />
@@ -83,35 +91,6 @@ export default function NewPatientPage() {
             <input id="address" name="address" type="text" className={inputClass} />
           </Field>
         </Section>
-
-        <Section title={t("patients.new.sectionObstetric")}>
-          <Field id="age" label={t("patients.new.age")} className="sm:col-span-1">
-            <input id="age" name="age" type="number" min={10} max={70} className={`${inputClass} num`} />
-          </Field>
-          <Field id="gravida" label={t("patients.new.gravida")} className="sm:col-span-1">
-            <input id="gravida" name="gravida" type="number" min={0} max={20} className={`${inputClass} num`} />
-          </Field>
-          <Field id="para" label={t("patients.new.para")} className="sm:col-span-1">
-            <input id="para" name="para" type="number" min={0} max={20} className={`${inputClass} num`} />
-          </Field>
-          <Field id="bloodGroup" label={t("patients.new.bloodGroup")} className="sm:col-span-1">
-            <select id="bloodGroup" name="bloodGroup" className={inputClass} defaultValue="">
-              <option value="">{t("patients.new.unknown")}</option>
-              {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((bg) => (
-                <option key={bg} value={bg}>
-                  {bg}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <label className="rounded-xl col-span-2 flex min-h-11 items-center gap-2 self-end border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 text-[14px]">
-            <input type="checkbox" name="rhNegative" className="h-4 w-4 accent-[var(--color-primary)]" />
-            {t("patients.new.rhNegative")}
-          </label>
-        </Section>
-
-        {/* 7 Essential Past Pregnancy Clinical History Questions */}
-        <ObstetricQuestionnaireFields />
 
         <Section title={t("patients.new.sectionDating")}>
           <Field id="lmp" label={t("patients.new.lmp")} className="col-span-2 sm:col-span-2">
@@ -143,6 +122,34 @@ export default function NewPatientPage() {
           </div>
         </Section>
 
+        <Section title={t("patients.new.sectionObstetric")}>
+          <Field id="age" label={t("patients.new.age")} className="sm:col-span-1">
+            <input id="age" name="age" type="number" min={10} max={70} className={`${inputClass} num`} />
+          </Field>
+          <Field id="gravida" label={t("patients.new.gravida")} className="sm:col-span-1">
+            <input id="gravida" name="gravida" type="number" min={0} max={20} className={`${inputClass} num`} />
+          </Field>
+          <Field id="para" label={t("patients.new.para")} className="sm:col-span-1">
+            <input id="para" name="para" type="number" min={0} max={20} className={`${inputClass} num`} />
+          </Field>
+          <Field id="bloodGroup" label={t("patients.new.bloodGroup")} className="sm:col-span-1">
+            <select id="bloodGroup" name="bloodGroup" className={inputClass} defaultValue="">
+              <option value="">{t("patients.new.unknown")}</option>
+              {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((bg) => (
+                <option key={bg} value={bg}>
+                  {bg}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <label className="rounded-xl col-span-2 flex min-h-11 items-center gap-2 self-end border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 text-[14px]">
+            <input type="checkbox" name="rhNegative" className="h-4 w-4 accent-[var(--color-primary)]" />
+            {t("patients.new.rhNegative")}
+          </label>
+        </Section>
+
+        <ObstetricQuestionnaireFields />
+
         {state.error && (
           <p role="alert" className="rounded-xl bg-[var(--color-overdue-surface)] px-4 py-3 text-[13px] text-[var(--color-overdue)]">
             {state.error}
@@ -150,7 +157,7 @@ export default function NewPatientPage() {
         )}
 
         <div className="max-w-xs">
-          <SubmitButton>{t("patients.new.submit")}</SubmitButton>
+          <SubmitButton pending={pending}>{t("patients.new.submit")}</SubmitButton>
         </div>
       </form>
       </div>

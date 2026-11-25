@@ -79,6 +79,7 @@ export const patients = defineArea({
     "patients.error.lmpInvalid": "Enter a valid LMP date",
     "patients.error.lmpFuture": "LMP date cannot be in the future",
     "patients.error.createFailed": "Could not create patient.",
+    "patients.error.duplicate": "A patient with this name and phone is already registered. Check the existing record in Patients.",
     "patients.error.dbConnection": "Database connection failed. Please check your Supabase configuration.",
     "patients.error.createFailedFinal": "Failed to create patient record.",
 
@@ -243,6 +244,7 @@ export const patients = defineArea({
     "patients.error.lmpInvalid": "LMP की सही तारीख़ दर्ज करें",
     "patients.error.lmpFuture": "LMP की तारीख़ भविष्य की नहीं हो सकती",
     "patients.error.createFailed": "मरीज़ को पंजीकृत नहीं किया जा सका।",
+    "patients.error.duplicate": "इस नाम और फ़ोन वाला मरीज़ पहले से पंजीकृत है। मरीज़ों की सूची में रिकॉर्ड देखें।",
     "patients.error.dbConnection": "डेटाबेस से कनेक्शन नहीं हो सका। कृपया अपनी Supabase सेटिंग जाँचें।",
     "patients.error.createFailedFinal": "मरीज़ का रिकॉर्ड नहीं बन सका।",
 
@@ -403,6 +405,7 @@ export const patients = defineArea({
     "patients.error.lmpInvalid": "LMP ची योग्य तारीख टाका",
     "patients.error.lmpFuture": "LMP ची तारीख भविष्यातील असू शकत नाही",
     "patients.error.createFailed": "रुग्णाची नोंद करता आली नाही.",
+    "patients.error.duplicate": "या नावाचा आणि फोन क्रमांकाचा रुग्ण आधीच नोंदणीकृत आहे. रुग्णांच्या यादीत नोंद पहा.",
     "patients.error.dbConnection": "डेटाबेसशी जोडणी झाली नाही. कृपया तुमची Supabase सेटिंग्ज तपासा.",
     "patients.error.createFailedFinal": "रुग्णाची नोंद तयार करता आली नाही.",
 

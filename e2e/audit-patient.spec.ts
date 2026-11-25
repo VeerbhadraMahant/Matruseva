@@ -90,3 +90,30 @@ test("care event completion is confirmed, dated and undoable", async ({ page }) 
   await expect(ogtt).toContainText(/due now/i);
   await expect(button).toBeVisible();
 });
+
+test("registration warns about a matching name and phone and retains entered values", async ({ page }) => {
+  await page.goto("/patients/new");
+  await page.locator("#name").fill(" sunita   verma ");
+  await page.locator("#phone").fill("+91 98450-12345");
+  const lmp = new Date(Date.now() - 70 * 86400000).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+  await page.locator("#lmp").fill(lmp);
+  await page.getByRole("button", { name: "Register & generate schedule" }).click();
+  await expect(page.getByRole("main").getByRole("alert")).toContainText(/already registered/i);
+  await expect(page).toHaveURL(/\/patients\/new$/);
+  await expect(page.locator("#name")).toHaveValue(" sunita   verma ");
+  await expect(page.locator("#phone")).toHaveValue("+91 98450-12345");
+  await expect(page.locator("#lmp")).toHaveValue(lmp);
+});
+
+test("registration shows LMP before an English questionnaire with consecutive numbering", async ({ page }) => {
+  await page.goto("/patients/new");
+  const questionnaire = page.getByRole("group", { name: /Obstetric & Past Pregnancy Questionnaire/ });
+  await expect(questionnaire).toBeVisible();
+  const lmp = page.locator("#lmp");
+  expect((await lmp.boundingBox())!.y).toBeLessThan((await questionnaire.boundingBox())!.y);
+  expect(await questionnaire.innerText()).not.toMatch(/[\u0900-\u097f]/);
+  const visibleNumbers = async () => [...(await questionnaire.innerText()).matchAll(/^(\d+)\. /gm)].map((match) => Number(match[1]));
+  expect(await visibleNumbers()).toEqual([1, 2, 3, 4]);
+  await questionnaire.getByRole("button", { name: /Normal Vaginal/ }).click();
+  expect(await visibleNumbers()).toEqual([1, 2, 3, 4, 5, 6, 7]);
+});
