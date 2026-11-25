@@ -2,6 +2,7 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { RECOVERY_COOKIE, verifyRecoveryProof } from "@/lib/passwordRecovery";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n/server";
 import type { Translator } from "@/lib/i18n/translate-client";
@@ -101,7 +102,7 @@ export async function requestPasswordReset(_prev: ActionResult, formData: FormDa
   const email = z.email().safeParse(formData.get("email"));
   if (!email.success) return { error: t("auth.error.email") };
   if (isDemoModeEnabled()) return { error: null, resetDemo: true };
-  if (!isSupabaseConfigured()) return { error: t("auth.reset.unavailable") };
+  if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) return { error: t("auth.reset.unavailable") };
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (await headers()).get("origin");
   if (!siteUrl) return { error: t("auth.reset.unavailable") };
@@ -119,9 +120,16 @@ export async function updatePassword(_prev: ActionResult, formData: FormData): P
   if (!password.success) return { error: t("auth.error.passwordLength") };
   if (password.data !== formData.get("confirmPassword")) return { error: t("auth.reset.passwordMismatch") };
 
+  const cookieStore = await cookies();
+  const proof = cookieStore.get(RECOVERY_COOKIE)?.value;
+  if (!proof) return { error: t("auth.reset.expired") };
   const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  if (!verifyRecoveryProof(proof, data?.claims.session_id)) return { error: t("auth.reset.expired") };
+
   const { error } = await supabase.auth.updateUser({ password: password.data });
   if (error) return { error: t("auth.reset.updateError") };
+  cookieStore.delete(RECOVERY_COOKIE);
   redirect("/today");
 }
 

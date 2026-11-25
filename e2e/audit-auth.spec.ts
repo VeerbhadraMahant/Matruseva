@@ -27,4 +27,6 @@ test("login shows and hides the password and offers a demo-safe reset", async ({
 
   await page.goto("/reset-password");
   await expect(page).toHaveURL(/\/forgot-password$/);
+  await page.goto("/auth/callback?flow=recovery");
+  await expect(page.getByRole("alert").filter({ hasText: /expired or is invalid/i })).toBeVisible();
 });

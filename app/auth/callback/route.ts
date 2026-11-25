@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createRecoveryProof, RECOVERY_COOKIE, RECOVERY_MAX_AGE } from "@/lib/passwordRecovery";
 import { getT } from "@/lib/i18n/server";
 
 export async function GET(request: NextRequest) {
@@ -12,8 +13,22 @@ export async function GET(request: NextRequest) {
     const flowId = searchParams.get("sb_flow_id");
     const { data, error } = await supabase.auth.exchangeCodeForSession(code, flowId ? { flowId } : undefined);
     if (!error) {
-      const isRecovery = recovery || ("redirectType" in data && data.redirectType === "recovery");
-      return NextResponse.redirect(`${origin}${isRecovery ? "/reset-password" : "/today"}`);
+      if ("redirectType" in data && data.redirectType === "recovery") {
+        const { data: verified } = await supabase.auth.getClaims(data.session.access_token);
+        const sessionId = verified?.claims.session_id;
+        const proof = typeof sessionId === "string" ? createRecoveryProof(sessionId) : null;
+        if (proof) {
+          const response = NextResponse.redirect(`${origin}/reset-password`);
+          response.cookies.set(RECOVERY_COOKIE, proof, {
+            httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax",
+            path: "/", maxAge: RECOVERY_MAX_AGE,
+          });
+          return response;
+        }
+      } else if (!recovery) {
+        return NextResponse.redirect(`${origin}/today`);
+      }
+      return NextResponse.redirect(`${origin}/forgot-password?expired=1`);
     }
   }
 
