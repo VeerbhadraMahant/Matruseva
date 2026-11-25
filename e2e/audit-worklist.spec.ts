@@ -68,3 +68,28 @@ test("patient history, risk, blood pressure and schedule agree across surfaces",
   await expect(callRow.getByText(/Reached/i).first()).toBeVisible();
   await expect(callRow.getByText(/[1-9]\d* attempts? in 30d/)).toBeVisible();
 });
+
+test("a booked visit and task on the same day share one patient row", async ({ page }) => {
+  const main = page.getByRole("main");
+  await page.goto("/patients/p3-kavita-patel");
+  const nextDate = new Date();
+  nextDate.setDate(nextDate.getDate() + 4);
+  const nextDateInput = nextDate.toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" });
+  await main.locator("#nextVisitDate").fill(nextDateInput);
+  const note = `Audit grouped tasks ${Date.now()}`;
+  await main.locator("#notes").fill(note);
+  await main.getByRole("button", { name: "Save visit", exact: true }).click();
+  await expect(main.getByRole("row", { name: new RegExp(note) })).toBeVisible();
+  await page.goto("/today");
+  const days = main.getByRole("group", { name: "Choose a day" });
+  const day = days.getByRole("button").nth(4);
+  const count = Number((await day.getAttribute("aria-label"))?.match(/(\d+) patients?$/)?.[1]);
+  await day.click();
+  const dayRows = main.getByRole("region", { name: /^Worklist/ }).getByRole("listitem");
+  await expect(dayRows).toHaveCount(count);
+  const kavita = dayRows.filter({ hasText: "Kavita Patel" });
+  await expect(kavita).toHaveCount(1);
+  await expect(kavita.getByRole("button", { name: /Visit booked.*NT Scan/i })).toBeVisible();
+  await kavita.getByRole("button", { name: /Kavita Patel/i }).click();
+  await expect(kavita.getByText(/NT Scan.*by/i)).toBeVisible();
+});

@@ -322,7 +322,7 @@ export function TodayWorklist({ days, rows }: { days: WorklistDay[]; rows: Workl
               <Row
                 key={row.id}
                 row={row}
-                reason={entry.reason ?? row.summary}
+                reason={entry.reasons.join(" · ") || row.summary}
                 index={i}
                 expanded={expanded === row.id}
                 onToggle={() => setExpanded((cur) => (cur === row.id ? null : row.id))}

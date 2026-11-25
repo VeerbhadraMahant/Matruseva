@@ -91,7 +91,7 @@ function toRow(row: PatientRow, today: Date, t: Translator, locale: Locale): Wor
     openItems: [
       ...row.overdue.map((e) => ({ name: shortItemName(e.name, t), status: "overdue" as const, closes: formatShortDate(e.dueTo, locale) })),
       ...row.due.map((e) => ({ name: shortItemName(e.name, t), status: "due" as const, closes: formatShortDate(e.dueTo, locale) })),
-    ].slice(0, 5),
+    ],
   };
 }
 
@@ -115,20 +115,17 @@ export function buildWorklist(rows: PatientRow[], today: Date, t: Translator, lo
     const entries: DayEntry[] = [];
     for (const row of sorted) {
       const booked = row.nextVisitDate === iso;
-      const closing = row.due.find((e) => e.dueTo === iso);
-      const scheduled = booked || Boolean(closing);
+      const closing = row.due.filter((e) => e.dueTo === iso);
+      const scheduled = booked || closing.length > 0;
       const attention = isToday && (needsFollowUp(row) || row.flags.some((f) => f.severity === "critical"));
       if (!scheduled && !attention) continue;
       entries.push({
         rowId: row.id,
         scheduled,
-        reason: isToday
-          ? null
-          : booked
-            ? t("today.row.visitBooked")
-            : closing
-              ? t("today.row.windowClosesShort", { item: shortItemName(closing.name, t) })
-              : null,
+        reasons: [
+          ...(booked ? [t("today.row.visitBooked")] : []),
+          ...closing.map((event) => t("today.row.windowClosesShort", { item: shortItemName(event.name, t) })),
+        ],
       });
     }
 
