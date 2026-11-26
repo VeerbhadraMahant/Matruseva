@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Microphone, Stop, Copy, ArrowCounterClockwise } from "@phosphor-icons/react";
+import { Microphone, Stop, Copy, Check, ArrowCounterClockwise } from "@phosphor-icons/react";
 import { useT } from "@/lib/i18n/provider";
 import { Panel, buttonPrimary, buttonSecondary } from "@/components/ui";
 import { showToast } from "@/components/Toaster";
@@ -315,27 +315,51 @@ export function ConsultationRecorder({ patientId }: { patientId: string }) {
     }
   }
 
+  const stepIdx = phase.kind === "done" ? 2 : phase.kind === "uploading" || phase.kind === "processing" ? 1 : 0;
+  const steps = (
+    <ol aria-label={t("consult.steps")} className="flex items-center gap-2 text-[13px]">
+      {(["record", "transcribe", "summary"] as const).map((k, i) => (
+        <li key={k} aria-current={i === stepIdx ? "step" : undefined} className="flex items-center gap-2">
+          <span
+            className={`num inline-flex h-6 w-6 items-center justify-center rounded-full text-[12px] font-semibold ${
+              i < stepIdx
+                ? "bg-[var(--color-on-track-surface)] text-[var(--color-on-track)]"
+                : i === stepIdx
+                  ? "bg-[var(--color-primary)] text-white"
+                  : "bg-[var(--color-surface-2)] text-[var(--color-charcoal)]"
+            }`}
+          >
+            {i < stepIdx ? <Check size={14} weight="bold" aria-hidden /> : i + 1}
+          </span>
+          <span className={i === stepIdx ? "font-semibold" : "text-[var(--color-charcoal)]"}>{t(`consult.step.${k}`)}</span>
+          {i < 2 && <span aria-hidden className="h-px w-4 bg-[var(--color-border-strong)]/50 sm:w-8" />}
+        </li>
+      ))}
+    </ol>
+  );
+
   if (phase.kind === "done") {
     const { segments, summary, summaryError } = phase.result;
     const filled = summary ? SECTIONS.filter((k) => summary[k].length) : [];
     return (
-      <div className="space-y-5">
+      <div className="space-y-4 md:space-y-5">
+        {steps}
         <Panel
           title={t("consult.summary")}
           action={
             summary && filled.length ? (
-              <button type="button" className={buttonSecondary} onClick={() => copySummary(summary)}>
+              <button type="button" className={buttonPrimary} onClick={() => copySummary(summary)}>
                 <Copy size={16} aria-hidden />
                 {t("consult.copy")}
               </button>
             ) : null
           }
         >
-          <div className="space-y-4 px-4 pb-4">
-            <p className="text-[12px] text-[var(--color-charcoal)]">{t("consult.summaryNote")}</p>
+          <div className="space-y-4 px-4 py-4">
+            <p className="text-[13px] text-[var(--color-charcoal)]">{t("consult.summaryNote")}</p>
             {summaryError ? (
               <div className="space-y-3">
-                <p role="alert" className="rounded-[var(--radius-buttons)] bg-[var(--color-due-surface)] px-3 py-2 text-[13px] text-[var(--color-foreground)]">
+                <p role="alert" className="rounded-[var(--radius-buttons)] bg-[var(--color-due-surface)] px-3 py-2 text-[14px] text-[var(--color-foreground)]">
                   {summaryError}
                 </p>
                 {segments.length > 0 && (
@@ -346,18 +370,20 @@ export function ConsultationRecorder({ patientId }: { patientId: string }) {
                 )}
               </div>
             ) : filled.length ? (
-              filled.map((k) => (
-                <section key={k}>
-                  <h3 className={`text-[13px] font-semibold ${k === "redFlags" ? "text-[var(--color-overdue)]" : "text-[var(--color-foreground)]"}`}>
-                    {t(`consult.section.${k}`)}
-                  </h3>
-                  <ul className="mt-1 list-disc space-y-0.5 pl-5 text-[14px]">
-                    {summary![k].map((item, i) => (
-                      <li key={i}>{item}</li>
-                    ))}
-                  </ul>
-                </section>
-              ))
+              <div className="max-w-prose space-y-4">
+                {filled.map((k) => (
+                  <section key={k}>
+                    <h3 className={`text-[14px] font-semibold ${k === "redFlags" ? "text-[var(--color-overdue)]" : "text-[var(--color-foreground)]"}`}>
+                      {t(`consult.section.${k}`)}
+                    </h3>
+                    <ul className="mt-1 list-disc space-y-1 pl-5 text-[15px] leading-relaxed">
+                      {summary![k].map((item, i) => (
+                        <li key={i}>{item}</li>
+                      ))}
+                    </ul>
+                  </section>
+                ))}
+              </div>
             ) : (
               <p className="text-[14px]">{t("consult.summaryEmpty")}</p>
             )}
@@ -365,9 +391,9 @@ export function ConsultationRecorder({ patientId }: { patientId: string }) {
         </Panel>
 
         <Panel title={t("consult.transcript")} count={segments.length}>
-          <div className="px-4 pb-4">
-            <p className="mb-3 text-[12px] text-[var(--color-charcoal)]">{t("consult.transcriptNote")}</p>
-            <ol className="space-y-3">
+          <div className="px-4 py-4">
+            <p className="mb-3 text-[13px] text-[var(--color-charcoal)]">{t("consult.transcriptNote")}</p>
+            <ol className="max-w-prose space-y-3">
               {segments.map((seg, i) => (
                 <li key={i} className="text-[14px] leading-relaxed">
                   <span className="num mr-2 text-[12px] font-semibold text-[var(--color-primary)]">
@@ -388,56 +414,69 @@ export function ConsultationRecorder({ patientId }: { patientId: string }) {
     );
   }
 
-  return (
-    <Panel title={t("consult.title")}>
-      <div className="space-y-4 px-4 pb-5" aria-live="polite">
-        {notice && <p className="text-[13px] text-[var(--color-charcoal)]">{notice}</p>}
-        {phase.kind === "error" && (
-          <p role="alert" className="rounded-[var(--radius-buttons)] bg-[var(--color-overdue-surface)] px-3 py-2 text-[13px] text-[var(--color-foreground)]">
-            {phase.message}
-          </p>
-        )}
-        {phase.kind === "error" && phase.retry && (
-          <button type="button" className={buttonSecondary} onClick={phase.retry.run}>
-            <ArrowCounterClockwise size={16} aria-hidden />
-            {phase.retry.label}
-          </button>
-        )}
+  const working = phase.kind === "uploading" || phase.kind === "processing";
+  const recording = phase.kind === "recording";
+  const stateLabel = recording
+    ? t("consult.recording")
+    : working
+      ? t(phase.kind === "uploading" ? "consult.uploading" : "consult.processing")
+      : t("consult.ready");
 
-        {(phase.kind === "idle" || phase.kind === "error") && (
-          <>
-            <label className="flex min-h-11 cursor-pointer items-start gap-3 text-[14px]">
-              <input type="checkbox" className="mt-1 h-4 w-4 accent-[var(--color-primary)]" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+  return (
+    <div className="space-y-4 md:space-y-5">
+      {steps}
+      <Panel title={t("consult.title")}>
+        <div className="space-y-4 px-4 py-5" aria-live="polite">
+          {notice && <p className="text-[14px] text-[var(--color-charcoal)]">{notice}</p>}
+          {phase.kind === "error" && (
+            <p role="alert" className="rounded-[var(--radius-buttons)] bg-[var(--color-overdue-surface)] px-3 py-2 text-[14px] text-[var(--color-foreground)]">
+              {phase.message}
+            </p>
+          )}
+          {phase.kind === "error" && phase.retry && (
+            <button type="button" className={buttonSecondary} onClick={phase.retry.run}>
+              <ArrowCounterClockwise size={16} aria-hidden />
+              {phase.retry.label}
+            </button>
+          )}
+
+          <div className="flex flex-col items-center gap-3 py-2 text-center">
+            {working ? (
+              <span className="h-24 w-24 animate-spin rounded-full border-4 border-[var(--color-primary)] border-t-transparent" aria-hidden />
+            ) : (
+              <button
+                type="button"
+                onClick={recording ? stop : start}
+                disabled={!recording && !consent}
+                aria-label={recording ? t("consult.stop") : t("consult.start")}
+                className={`press flex h-24 w-24 items-center justify-center rounded-full text-white shadow-[var(--shadow-overlay)] disabled:cursor-not-allowed disabled:opacity-40 ${
+                  recording ? "bg-[var(--color-overdue)] hover:opacity-90" : "bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)]"
+                }`}
+              >
+                {recording ? <Stop size={40} weight="fill" aria-hidden /> : <Microphone size={44} weight="fill" aria-hidden />}
+              </button>
+            )}
+            <p className="flex items-center gap-2 text-[18px] font-semibold" role="status">
+              {recording && <span aria-hidden className="h-3 w-3 animate-pulse rounded-full bg-[var(--color-overdue)]" />}
+              {stateLabel}
+            </p>
+            {recording && <p className="num text-[32px] font-semibold leading-none">{clock(elapsed)}</p>}
+            {recording && <p className="max-w-sm text-[13px] text-[var(--color-charcoal)]">{t("consult.keepScreenOn")}</p>}
+            {!working && (
+              <p className={`text-[15px] font-medium ${!recording && !consent ? "text-[var(--color-charcoal)]" : "text-[var(--color-primary)]"}`}>
+                {recording ? t("consult.stop") : t("consult.start")}
+              </p>
+            )}
+          </div>
+
+          {(phase.kind === "idle" || phase.kind === "error") && (
+            <label className="mx-auto flex min-h-11 max-w-sm cursor-pointer items-start gap-3 text-[14px]">
+              <input type="checkbox" className="mt-1 h-5 w-5 shrink-0" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
               <span>{t("consult.consent")}</span>
             </label>
-            <button type="button" className={`${buttonPrimary} w-full sm:w-auto`} disabled={!consent} onClick={start}>
-              <Microphone size={18} weight="fill" aria-hidden />
-              {t("consult.start")}
-            </button>
-          </>
-        )}
-
-        {phase.kind === "recording" && (
-          <>
-            <p className="flex items-center gap-2 text-[16px] font-semibold">
-              <span className="h-3 w-3 animate-pulse rounded-full bg-[var(--color-overdue)]" aria-hidden />
-              {t("consult.recording")} <span className="num">{clock(elapsed)}</span>
-            </p>
-            <p className="text-[13px] text-[var(--color-charcoal)]">{t("consult.keepScreenOn")}</p>
-            <button type="button" className={`${buttonPrimary} w-full sm:w-auto`} onClick={stop}>
-              <Stop size={18} weight="fill" aria-hidden />
-              {t("consult.stop")}
-            </button>
-          </>
-        )}
-
-        {(phase.kind === "uploading" || phase.kind === "processing") && (
-          <p className="flex items-center gap-2 text-[14px]">
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--color-primary)] border-t-transparent" aria-hidden />
-            {t(phase.kind === "uploading" ? "consult.uploading" : "consult.processing")}
-          </p>
-        )}
-      </div>
-    </Panel>
+          )}
+        </div>
+      </Panel>
+    </div>
   );
 }

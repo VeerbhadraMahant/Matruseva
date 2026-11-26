@@ -3,7 +3,8 @@
 import type { MotherCardData } from "@/components/MotherHealthCard";
 import { useState, useEffect, useRef } from "react";
 import QRCode from "qrcode";
-import { QrCode, Printer, Download, X, Heart, ShieldCheck, Calendar, Phone } from "@phosphor-icons/react";
+import { Printer, Download, Heart, ShieldCheck, Calendar, Phone } from "@phosphor-icons/react";
+import { OverlayShell } from "@/components/OverlayShell";
 import { buttonPrimary, buttonSecondary } from "@/components/ui";
 import { useT } from "@/lib/i18n/provider";
 
@@ -31,7 +32,8 @@ export function MotherHealthCardModal({
       width: 220,
       margin: 1,
       color: {
-        dark: "#1c1528",
+        // shortcut: QR lib needs literal colours (cannot read CSS vars); matches --color-pc-ink and white.
+        dark: "#221b2b",
         light: "#ffffff",
       },
       errorCorrectionLevel: "H",
@@ -53,54 +55,40 @@ export function MotherHealthCardModal({
   };
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={t("patients.card.dialogLabel")}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="relative w-full max-w-lg rounded-2xl bg-[var(--color-background)] shadow-2xl overflow-hidden border border-[var(--color-border)]">
-        {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface-1)] px-5 py-3">
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-primary)] text-white">
-              <QrCode size={16} weight="bold" />
-            </div>
-            <div>
-              <h2 className="text-[14px] font-bold text-[var(--color-foreground)]">{t("patients.card.title")}</h2>
-              <p className="text-[11px] text-[var(--color-charcoal)]">{t("patients.card.subtitle")}</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={t("patients.card.close")}
-            className="rounded-lg p-1.5 text-[var(--color-charcoal)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-foreground)] transition"
-          >
-            <X size={18} />
+    <>
+    <OverlayShell
+      title={t("patients.card.title")}
+      subtitle={t("patients.card.subtitle")}
+      closeLabel={t("patients.card.close")}
+      onClose={onClose}
+      footer={
+        <>
+          <p className="mr-auto text-[13px] text-[var(--color-charcoal)]">{t("patients.card.printHint")}</p>
+          <button type="button" onClick={handleDownload} className={buttonSecondary}>
+            <Download size={16} aria-hidden />
+            <span>{t("patients.card.saveQr")}</span>
           </button>
-        </div>
-
+          <button type="button" onClick={handlePrint} className={buttonPrimary}>
+            <Printer size={16} aria-hidden />
+            <span>{t("patients.card.print")}</span>
+          </button>
+        </>
+      }
+    >
         {/* Printable Card Area */}
-        <div className="p-6">
+        <div>
           <div
             id="mother-health-card-print"
             ref={cardRef}
-            className="relative mx-auto w-full max-w-[420px] overflow-hidden rounded-2xl border-2 border-[#baadca] bg-gradient-to-br from-[#ffffff] via-[#f8f6fb] to-[#efe9f5] p-5 shadow-lg text-[var(--color-foreground)]"
-            style={{
-              boxShadow: "0 10px 25px -5px rgba(82, 58, 108, 0.12), 0 8px 10px -6px rgba(82, 58, 108, 0.08)",
-            }}
+            className="relative mx-auto w-full max-w-[420px] overflow-hidden rounded-2xl border-2 border-[var(--color-pc-lilac-strong)] bg-[var(--color-background)] p-5 shadow-[var(--shadow-card)] text-[var(--color-foreground)]"
           >
             {/* Watermark / Background Accent */}
-            <div className="pointer-events-none absolute -right-6 -bottom-6 opacity-5 text-[#baadca]">
+            <div className="pointer-events-none absolute -right-6 -bottom-6 opacity-5 text-[var(--color-pc-lilac-strong)]">
               <Heart size={160} weight="fill" />
             </div>
 
             {/* Top Clinic Branding */}
-            <div className="flex items-center justify-between border-b border-[#e2d9ec] pb-3 mb-3.5">
+            <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-3 mb-3.5">
               <div className="flex items-center gap-2">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -109,25 +97,25 @@ export function MotherHealthCardModal({
                   height={32}
                   loading="lazy"
                   alt="MatruSetu"
-                  className="h-8 w-8 rounded-xl object-cover shadow-xs border border-[#baadca]/40"
+                  className="h-8 w-8 rounded-xl object-cover shadow-xs border border-[var(--color-pc-lilac-strong)]/40"
                 />
                 <div>
-                  <p className="text-[13px] font-bold tracking-tight text-[#1c1528] leading-tight">
+                  <p className="text-[13px] font-bold tracking-tight text-[var(--color-foreground)] leading-tight">
                     {patient.clinicName || t("patients.card.clinicFallback")}
                   </p>
-                  <p className="text-[10px] font-medium text-[#645a70]">
+                  <p className="text-[11px] font-medium text-[var(--color-charcoal)]">
                     {t("patients.card.passTitle")}
                   </p>
                 </div>
               </div>
 
               <div className="text-right">
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#ede5f4] px-2.5 py-0.5 text-[10px] font-bold text-[#523a6c] border border-[#baadca]">
+                <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-primary-surface)] px-2.5 py-0.5 text-[11px] font-bold text-[var(--color-primary)] border border-[var(--color-pc-lilac-strong)]">
                   <ShieldCheck size={12} weight="fill" />
                   {t("patients.card.verified")}
                 </span>
                 {patient.clinicPatientNo && (
-                  <p className="text-[10px] font-mono text-[#645a70] mt-0.5">#{patient.clinicPatientNo}</p>
+                  <p className="text-[11px] font-mono text-[var(--color-charcoal)] mt-0.5">#{patient.clinicPatientNo}</p>
                 )}
               </div>
             </div>
@@ -137,8 +125,8 @@ export function MotherHealthCardModal({
               {/* Left Details */}
               <div className="flex-1 min-w-0 space-y-2">
                 <div>
-                  <p className="text-[10px] font-semibold text-[#645a70]">{t("patients.card.motherName")}</p>
-                  <h3 className="truncate text-[17px] font-bold tracking-tight text-[#1c1528] leading-snug">
+                  <p className="text-[11px] font-semibold text-[var(--color-charcoal)]">{t("patients.card.motherName")}</p>
+                  <h3 className="truncate text-[17px] font-bold tracking-tight text-[var(--color-foreground)] leading-snug">
                     {patient.name}
                   </h3>
                 </div>
@@ -146,15 +134,15 @@ export function MotherHealthCardModal({
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   {patient.age && (
                     <div>
-                      <p className="text-[10px] text-[#645a70]">{t("patients.card.age")}</p>
-                      <p className="font-semibold text-[#1c1528]">{t("patients.card.ageYears", { age: patient.age })}</p>
+                      <p className="text-[11px] text-[var(--color-charcoal)]">{t("patients.card.age")}</p>
+                      <p className="font-semibold text-[var(--color-foreground)]">{t("patients.card.ageYears", { age: patient.age })}</p>
                     </div>
                   )}
 
                   {patient.bloodGroup && (
                     <div>
-                      <p className="text-[10px] text-[#645a70]">{t("patients.card.bloodGroup")}</p>
-                      <p className="font-semibold text-[#1c1528]">
+                      <p className="text-[11px] text-[var(--color-charcoal)]">{t("patients.card.bloodGroup")}</p>
+                      <p className="font-semibold text-[var(--color-foreground)]">
                         {patient.bloodGroup}
                         {patient.rhNegative ? " (Rh-)" : ""}
                       </p>
@@ -163,22 +151,22 @@ export function MotherHealthCardModal({
 
                   {patient.gaLabel && (
                     <div>
-                      <p className="text-[10px] text-[#645a70]">{t("patients.card.gestationalAge")}</p>
-                      <p className="font-semibold text-[#523a6c]">{patient.gaLabel}</p>
+                      <p className="text-[11px] text-[var(--color-charcoal)]">{t("patients.card.gestationalAge")}</p>
+                      <p className="font-semibold text-[var(--color-primary)]">{patient.gaLabel}</p>
                     </div>
                   )}
 
                   {patient.edd && (
                     <div>
-                      <p className="text-[10px] text-[#645a70]">{t("patients.card.edd")}</p>
-                      <p className="font-semibold text-[#1c1528]">{patient.edd}</p>
+                      <p className="text-[11px] text-[var(--color-charcoal)]">{t("patients.card.edd")}</p>
+                      <p className="font-semibold text-[var(--color-foreground)]">{patient.edd}</p>
                     </div>
                   )}
                 </div>
 
                 {patient.phone && (
-                  <div className="pt-1 flex items-center gap-1.5 text-[11px] text-[#645a70] font-mono">
-                    <Phone size={12} className="text-[#523a6c]" />
+                  <div className="pt-1 flex items-center gap-1.5 text-[11px] text-[var(--color-charcoal)] font-mono">
+                    <Phone size={12} className="text-[var(--color-primary)]" />
                     <span>{patient.phone}</span>
                   </div>
                 )}
@@ -186,7 +174,7 @@ export function MotherHealthCardModal({
 
               {/* Right QR Code Box */}
               <div className="flex flex-col items-center shrink-0">
-                <div className="relative rounded-xl border border-[#baadca] bg-white p-2 shadow-xs">
+                <div className="relative rounded-xl border border-[var(--color-pc-lilac-strong)] bg-white p-2 shadow-xs">
                   {qrDataUrl ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
@@ -195,44 +183,26 @@ export function MotherHealthCardModal({
                       className="h-28 w-28 object-contain"
                     />
                   ) : (
-                    <div className="h-28 w-28 animate-pulse rounded bg-[#f0ecf5]" />
+                    <div className="h-28 w-28 animate-pulse rounded bg-[var(--color-surface-2)]" />
                   )}
                 </div>
-                <span className="mt-1 text-[9px] font-bold text-[#523a6c]">
+                <span className="mt-1 text-[11px] font-bold text-[var(--color-primary)]">
                   {t("patients.card.scanAtDesk")}
                 </span>
               </div>
             </div>
 
             {/* Card Footer */}
-            <div className="mt-4 pt-2.5 border-t border-[#e2d9ec] flex items-center justify-between text-[10px] text-[#645a70]">
+            <div className="mt-4 pt-2.5 border-t border-[var(--color-border)] flex items-center justify-between text-[11px] text-[var(--color-charcoal)]">
               <span className="flex items-center gap-1">
                 <Calendar size={12} /> {t("patients.card.bringEveryVisit")}
               </span>
-              <span className="font-mono text-[9px] opacity-75">{t("patients.card.idLabel", { id: patient.id.slice(0, 8).toUpperCase() })}</span>
+              <span className="font-mono text-[11px] opacity-75">{t("patients.card.idLabel", { id: patient.id.slice(0, 8).toUpperCase() })}</span>
             </div>
           </div>
         </div>
 
-        {/* Modal Action Buttons */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--color-border)] bg-[var(--color-surface-1)] px-6 py-4">
-          <p className="text-[12px] text-[var(--color-charcoal)]">
-            {t("patients.card.printHint")}
-          </p>
-
-          <div className="flex items-center gap-2">
-            <button type="button" onClick={handleDownload} className={buttonSecondary}>
-              <Download size={14} />
-              <span>{t("patients.card.saveQr")}</span>
-            </button>
-            <button type="button" onClick={handlePrint} className={buttonPrimary}>
-              <Printer size={14} />
-              <span>{t("patients.card.print")}</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
+    </OverlayShell>
       {/* Embedded Print CSS */}
       <style jsx global>{`
         @media print {
@@ -250,7 +220,7 @@ export function MotherHealthCardModal({
             top: 20% !important;
             transform: translate(-50%, 0) !important;
             box-shadow: none !important;
-            border: 2px solid #523a6c !important;
+            border: 2px solid var(--color-primary) !important;
             width: 400px !important;
             max-width: 90% !important;
             background: white !important;
@@ -259,6 +229,6 @@ export function MotherHealthCardModal({
           }
         }
       `}</style>
-    </div>
+    </>
   );
 }
