@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { ClinicDetailsForm } from "@/components/settings/ClinicDetailsForm";
+import { DoctorProfessionalDetailsForm } from "@/components/settings/DoctorProfessionalDetailsForm";
 import { RiskThresholdsForm } from "@/components/settings/RiskThresholdsForm";
 import { ScheduleItemRow } from "@/components/settings/ScheduleItemRow";
 import { StaffInviteForm } from "@/components/settings/StaffInviteForm";
@@ -9,20 +10,21 @@ import { RemoveStaffButton } from "@/components/settings/RemoveStaffButton";
 import { MessageTemplatesForm } from "@/components/settings/MessageTemplatesForm";
 import { ClinicalProtocolSignOff } from "@/components/settings/ClinicalProtocolSignOff";
 import Link from "next/link";
-import { GearSix } from "@phosphor-icons/react/dist/ssr";
+import { GearSix, UserCircle } from "@phosphor-icons/react/dist/ssr";
 import { PageHeader, Panel, Tag, buttonSecondary, card, pageBody } from "@/components/ui";
 import type { MessageTemplates } from "@/lib/whatsapp";
 import { getT } from "@/lib/i18n/server";
+import { intlLocale } from "@/lib/i18n/intl";
 import { DEMO_SCHEDULE_ITEMS } from "@/lib/demo-data";
 import { CLINICAL_RISK_THRESHOLDS } from "@/lib/clinicalProtocols";
 import { careEventName } from "@/lib/clinicalLabels";
 
 export default async function SettingsPage() {
-  const [me, { t }] = await Promise.all([getCurrentUser(), getT()]);
+  const [me, { t, locale }] = await Promise.all([getCurrentUser(), getT()]);
   if (me.role !== "doctor") redirect("/today");
 
   const supabase = me.isDemo ? null : await createClient();
-  const [{ data: clinic }, { data: staff }, { data: template }] = supabase
+  const [{ data: clinic }, { data: staff }, { data: template }, { data: professionalDetails }] = supabase
     ? await Promise.all([
         supabase.from("clinics").select("*").eq("id", me.clinicId).single(),
         supabase.from("profiles").select("id, full_name, role").eq("clinic_id", me.clinicId).order("full_name"),
@@ -32,30 +34,11 @@ export default async function SettingsPage() {
           .eq("clinic_id", me.clinicId)
           .eq("is_default", true)
           .maybeSingle(),
+        supabase.from("profiles").select("degree, years_of_experience").eq("id", me.userId).maybeSingle(),
       ])
-    : [{ data: null }, { data: null }, { data: null }];
-  if (!clinic && !me.isDemo) {
-    return (
-      <>
-        <PageHeader title={t("settings.title")} />
-        <div className={pageBody}>
-          <div className={`mx-auto max-w-lg space-y-3 p-8 text-center ${card}`}>
-            <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--color-primary-surface)] text-[var(--color-primary)]">
-              <GearSix size={28} aria-hidden />
-            </span>
-            <h2 className="text-[18px] font-semibold">{t("settings.demo.title")}</h2>
-            <p className="text-[14px] text-[var(--color-charcoal)]">
-              {t("settings.demo.body")}
-            </p>
-            <Link href="/today" className={`${buttonSecondary} mt-2`}>
-              {t("settings.demo.back")}
-            </Link>
-          </div>
-        </div>
-      </>
-    );
-  }
-
+    : [{ data: null }, { data: null }, { data: null }, { data: null }];
+  const degree = me.isDemo ? "MBBS, MD" : professionalDetails?.degree ?? null;
+  const yearsOfExperience = me.isDemo ? 12 : professionalDetails?.years_of_experience ?? null;
   const items = me.isDemo ? DEMO_SCHEDULE_ITEMS : [...(template?.schedule_template_items ?? [])]
     .sort((a, b) => a.sort_order - b.sort_order)
     .map((item) => ({
@@ -63,11 +46,26 @@ export default async function SettingsPage() {
       windowEndWeek: item.window_end_week, isCritical: item.is_critical,
     }));
   const clinicName = clinic?.name ?? me.clinicName;
+  const joined = me.profileCreatedAt ? new Intl.DateTimeFormat(intlLocale(locale), {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "Asia/Kolkata",
+  }).format(new Date(me.profileCreatedAt)) : null;
 
-  return (
-    <>
-      <PageHeader title={t("settings.title")} meta={me.isDemo ? t("settings.demo.readOnly") : clinicName} />
-      <div className={`${pageBody} grid grid-cols-[minmax(0,1fr)] gap-5 space-y-0 xl:grid-cols-2`}>
+  const settingsContent = !clinic && !me.isDemo ? (
+    <div className={`mx-auto max-w-lg space-y-3 p-8 text-center ${card}`}>
+      <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--color-primary-surface)] text-[var(--color-primary)]">
+        <GearSix size={28} aria-hidden />
+      </span>
+      <h3 className="text-[18px] font-semibold">{t("settings.demo.title")}</h3>
+      <p className="text-[14px] text-[var(--color-charcoal)]">{t("settings.demo.body")}</p>
+      <Link href="/today" className={`${buttonSecondary} mt-2`}>
+        {t("settings.demo.back")}
+      </Link>
+    </div>
+  ) : (
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-5 xl:grid-cols-2">
         <div className="space-y-5">
           <Panel title={t("settings.panel.clinic")}>
             <fieldset disabled={me.isDemo} className="p-4 pt-1">
@@ -132,6 +130,71 @@ export default async function SettingsPage() {
             </div>
           </Panel>
         </div>
+      </div>
+  );
+
+  return (
+    <>
+      <PageHeader title={t("settings.profile.title")} />
+      <div className={pageBody}>
+        <section aria-labelledby="doctor-profile-name" className={`${card} p-4 sm:p-5`}>
+          <div className="flex items-center gap-3">
+            <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-surface)] text-[var(--color-primary)]">
+              <UserCircle size={27} aria-hidden />
+            </span>
+            <div className="min-w-0 wrap-anywhere">
+              <h2 id="doctor-profile-name" className="text-lg font-semibold">{me.fullName}</h2>
+              <div className="flex flex-wrap items-center gap-2 text-sm text-[var(--color-charcoal)]">
+                <span>{t("settings.role.doctor")}</span>
+                {me.isDemo && <Tag tone="neutral">{t("settings.profile.demo")}</Tag>}
+              </div>
+            </div>
+          </div>
+          <dl className="mt-4 grid gap-4 border-t border-[var(--color-border)] pt-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
+            <div className="min-w-0 wrap-anywhere">
+              <dt className="text-[var(--color-charcoal)]">{t("settings.profile.clinic")}</dt>
+              <dd className="mt-1 font-medium">{clinicName}</dd>
+            </div>
+            <div className="min-w-0 wrap-anywhere">
+              <dt className="text-[var(--color-charcoal)]">{t("settings.profile.degree")}</dt>
+              <dd className="mt-1 font-medium">{degree ?? "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-[var(--color-charcoal)]">{t("settings.profile.experience")}</dt>
+              <dd className="mt-1 font-medium">
+                {yearsOfExperience === null ? "—" : new Intl.NumberFormat(intlLocale(locale)).format(yearsOfExperience)}
+              </dd>
+            </div>
+            {me.email && (
+              <div className="min-w-0 wrap-anywhere">
+                <dt className="text-[var(--color-charcoal)]">{t("settings.profile.email")}</dt>
+                <dd className="mt-1 font-medium">{me.email}</dd>
+              </div>
+            )}
+            {joined && (
+              <div>
+                <dt className="text-[var(--color-charcoal)]">{t("settings.profile.joined")}</dt>
+                <dd className="mt-1 font-medium">{joined}</dd>
+              </div>
+            )}
+          </dl>
+          {!me.isDemo && (
+            <details className="mt-4 border-t border-[var(--color-border)] pt-4">
+              <summary className="w-fit cursor-pointer rounded-sm text-sm font-semibold text-[var(--color-primary)] hover:underline">
+                {t("settings.profile.edit")}
+              </summary>
+              <DoctorProfessionalDetailsForm degree={degree} yearsOfExperience={yearsOfExperience} />
+            </details>
+          )}
+        </section>
+
+        <section aria-labelledby="application-settings" className="space-y-4">
+          <div>
+            <h2 id="application-settings" className="text-xl font-semibold">{t("settings.title")}</h2>
+            {me.isDemo && <p className="mt-1 text-sm text-[var(--color-charcoal)]">{t("settings.demo.readOnly")}</p>}
+          </div>
+          {settingsContent}
+        </section>
       </div>
     </>
   );

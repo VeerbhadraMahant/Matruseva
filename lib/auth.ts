@@ -11,6 +11,8 @@ export interface CurrentUser {
   clinicId: string;
   clinicName: string;
   fullName: string;
+  email?: string;
+  profileCreatedAt?: string;
   role: "doctor" | "staff";
   isDemo?: boolean;
 }
@@ -37,12 +39,12 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
   }
 
   const supabase = await createClient();
-  const { userId } = await getClaimsBounded(supabase);
+  const { userId, email } = await getClaimsBounded(supabase);
   if (!userId) redirect("/login");
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("clinic_id, full_name, role, clinics(name)")
+    .select("clinic_id, full_name, role, created_at, clinics(name)")
     .eq("id", userId)
     .maybeSingle();
   if (!profile) redirect("/onboarding");
@@ -52,6 +54,8 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
     clinicId: profile.clinic_id,
     clinicName: (profile.clinics as { name: string } | null)?.name ?? "",
     fullName: profile.full_name,
+    email,
+    profileCreatedAt: profile.created_at,
     role: profile.role as CurrentUser["role"],
   };
 });

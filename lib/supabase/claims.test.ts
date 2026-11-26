@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { getClaimsBounded, isSupabaseAuthCookie } from "./claims";
 
-const client = (p: () => Promise<{ data: { claims: { sub: string } } | null; error: unknown }>) => ({
+const client = (p: () => Promise<{ data: { claims: { sub: string; email?: string } } | null; error: unknown }>) => ({
   auth: { getClaims: p },
 });
 
@@ -9,6 +9,12 @@ describe("getClaimsBounded", () => {
   it("returns the user id on success", async () => {
     const r = await getClaimsBounded(client(async () => ({ data: { claims: { sub: "u1" } }, error: null })));
     expect(r).toEqual({ userId: "u1", failed: false });
+  });
+
+  it("returns the sign-in email from verified claims when present", async () => {
+    const claims = { sub: "u1", email: "doctor@example.com" };
+    const r = await getClaimsBounded(client(async () => ({ data: { claims }, error: null })));
+    expect(r).toEqual({ userId: "u1", email: claims.email, failed: false });
   });
 
   it("is signed out but not failed when there is no session", async () => {

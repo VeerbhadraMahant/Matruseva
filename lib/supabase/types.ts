@@ -427,23 +427,29 @@ export type Database = {
         Row: {
           clinic_id: string
           created_at: string
+          degree: string | null
           full_name: string
           id: string
           role: string
+          years_of_experience: number | null
         }
         Insert: {
           clinic_id: string
           created_at?: string
+          degree?: string | null
           full_name: string
           id: string
           role: string
+          years_of_experience?: number | null
         }
         Update: {
           clinic_id?: string
           created_at?: string
+          degree?: string | null
           full_name?: string
           id?: string
           role?: string
+          years_of_experience?: number | null
         }
         Relationships: [
           {
