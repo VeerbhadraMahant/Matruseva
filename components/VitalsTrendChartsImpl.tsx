@@ -191,7 +191,7 @@ export function VitalsTrendCharts({ visits, lmp, patientName }: VitalsTrendChart
       </div>
 
       {/* KPI Overview Tabs */}
-      <div className="grid grid-cols-2 gap-2 px-4 pb-3 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 px-4 pb-3 2xl:grid-cols-4">
         {/* Tab 1: Blood Pressure */}
         <button
           type="button"
@@ -749,7 +749,7 @@ function WeightFhrChart({
   return (
     <div className="space-y-3">
       {/* Two small charts, one scale each (never a dual-axis chart). */}
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 2xl:grid-cols-2">
         <section aria-label={t("reports.charts.weightSection")}>
           <h3 className="mb-2 flex flex-wrap items-baseline justify-between gap-2 text-[13px] font-semibold">
             {t("reports.charts.weightSection")}

@@ -27,7 +27,7 @@ import { ClosePregnancyForm } from "@/components/ClosePregnancyForm";
 import { EditPatientButton } from "@/components/EditPatientModal";
 import { VitalsTrendCharts } from "@/components/VitalsTrendCharts";
 import { PatientDetailInteractive } from "@/components/PatientDetailInteractive";
-import { Panel, Tag, Empty, SEVERITY_TONE, buttonPrimary, buttonSecondary, card, pageBody, th, td, type Tone } from "@/components/ui";
+import { Panel, Tag, Empty, IdentityStrip, ActionBar, SEVERITY_TONE, buttonPrimary, buttonSecondary, card, pageBody, th, td, type Tone } from "@/components/ui";
 import type { CareEventStatus, ContactOutcome, FollowUpRisk } from "@/lib/supabase/enums";
 import { getDemoPatientDetail } from "@/lib/demo-data";
 
@@ -44,15 +44,6 @@ const RISK_TONE: Record<FollowUpRisk, Tone> = {
   at_risk: "warning",
   lost: "critical",
 };
-
-function Fact({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="min-w-0 px-4 py-3">
-      <p className="text-[12px] font-medium text-[var(--color-charcoal)]">{label}</p>
-      <div className="num mt-1 text-[15px] font-semibold">{children}</div>
-    </div>
-  );
-}
 
 function Abn({ abnormal, children }: { abnormal: boolean; children: React.ReactNode }) {
   return <span className={abnormal ? "font-semibold text-[var(--color-overdue)]" : ""}>{children}</span>;
@@ -251,55 +242,156 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
     />
   );
 
+  const lastVisitFact = latest ? (
+    <>
+      {formatShortDate(latest.visit_date, locale)}{" "}
+      <span className="text-[12px] font-normal text-[var(--color-charcoal)]">{relativeDays(latest.visit_date, today, locale)}</span>
+    </>
+  ) : (
+    "—"
+  );
+  const lastVitalsFact =
+    latest && (latest.bp_sys || latest.hb) ? (
+      <>
+        {latest.bp_sys && latest.bp_dia ? (
+          <Abn abnormal={bpFlag(latest.bp_sys, latest.bp_dia) !== null}>
+            {latest.bp_sys}/{latest.bp_dia}
+          </Abn>
+        ) : (
+          "—"
+        )}
+        {" · "}
+        {latest.hb ? <Abn abnormal={hbFlag(latest.hb) !== null}>{latest.hb}</Abn> : "—"}
+      </>
+    ) : (
+      "—"
+    );
+
+  const stripFacts = [
+    {
+      label: t("patientDetail.fact.ga"),
+      value: isClosed ? (
+        <span className="text-[var(--color-on-track)]">{t("patientDetail.fact.delivered")}</span>
+      ) : ga ? (
+        <>
+          {formatGALocalized(ga, t)} <span className="text-[12px] font-normal text-[var(--color-charcoal)]">{t("clinical.trimester.short", { n: trimester(ga) })}</span>
+        </>
+      ) : (
+        "—"
+      ),
+    },
+    {
+      label: t("patientDetail.fact.edd"),
+      value: (
+        <>
+          {formatDate(eddIso, locale)}
+          {eddIso && <span className="ml-1.5 text-[12px] font-normal text-[var(--color-charcoal)]">{relativeDays(eddIso, today, locale)}</span>}
+        </>
+      ),
+    },
+    { label: t("patientDetail.fact.lastVisit"), value: lastVisitFact },
+    { label: t("patientDetail.fact.lastVitals"), value: lastVitalsFact },
+    {
+      label: t("patientDetail.fact.nextVisit"),
+      value: isClosed ? (
+        <span className="text-[var(--color-charcoal)]">{t("patientDetail.fact.concluded")}</span>
+      ) : nextVisit ? (
+        <>
+          {formatShortDate(nextVisit, locale)}{" "}
+          <span
+            className={`text-[12px] font-normal ${
+              daysBetween(today, parseLocalDate(nextVisit)) < 0 ? "text-[var(--color-overdue)]" : "text-[var(--color-charcoal)]"
+            }`}
+          >
+            {relativeDays(nextVisit, today, locale)}
+          </span>
+        </>
+      ) : (
+        t("patientDetail.fact.notBooked")
+      ),
+    },
+  ];
+
+  // Overdue and due first; done and skipped are quieter and listed last.
+  const RANK: Record<CareEventStatus, number> = { overdue: 0, due: 1, upcoming: 2, done: 3, skipped: 3 };
+  const sortedEvents = [...events].sort((a, b) => RANK[a.status] - RANK[b.status]);
+  const activeEvents = sortedEvents.filter((e) => RANK[e.status] < 3);
+  const finishedEvents = sortedEvents.filter((e) => RANK[e.status] === 3);
+  const renderEvent = (e: (typeof events)[number]) => (
+    <li
+      key={e.id}
+      className={`flex min-h-14 flex-wrap items-center gap-x-3 gap-y-2 border-t border-[var(--color-border)]/70 px-4 py-3 first:border-t-0 ${
+        RANK[e.status] === 3 ? "text-[var(--color-charcoal)]" : ""
+      }`}
+    >
+      <div className="min-w-0 flex-1 basis-48">
+        <p className={RANK[e.status] === 3 ? "text-[14px]" : "text-[14px] font-semibold"}>{careEventName(e.name, t)}</p>
+        <p className="num text-[12px] text-[var(--color-charcoal)]">
+          {careEventKind(e.kind, t)} · {formatShortDate(e.dueFrom, locale)} – {formatShortDate(e.dueTo, locale)}
+        </p>
+      </div>
+      <div className="flex items-center gap-2">
+        <Tag tone={STATUS_TONE[e.status]}>{careStatusLabel(e.status, t)}</Tag>
+        {e.status === "done" && e.completedAt && (
+          <span className="num text-[12px]">{formatShortDate(e.completedAt, locale)}</span>
+        )}
+      </div>
+      {(e.status === "due" || e.status === "overdue" || e.status === "done") && (
+        <MarkDoneButton careEventId={e.id} patientId={id} todayIso={toISODate(today)} done={e.status === "done"} />
+      )}
+    </li>
+  );
+
   return (
     <>
-      <header className="mx-auto w-full max-w-6xl px-4 pt-6 md:px-8 md:pt-8">
+      <header className="mx-auto w-full max-w-6xl px-4 pt-5 md:px-8 md:pt-7">
         <nav aria-label={t("patientDetail.breadcrumb.aria")} className="mb-3 text-[13px] text-[var(--color-charcoal)]">
-          <Link href="/patients" className="font-medium text-[var(--color-primary)] hover:underline">
+          <Link href="/patients" className="inline-flex min-h-8 items-center font-medium text-[var(--color-primary)] hover:underline">
             {t("patientDetail.breadcrumb.patients")}
           </Link>
           {patient.clinic_patient_no ? <span className="num"> / #{patient.clinic_patient_no}</span> : null}
         </nav>
-        <div className={`relative ${card}`}>
-        <div className="flex flex-wrap items-start justify-between gap-4 rounded-t-[var(--radius-cards)] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--color-pc-lilac)_70%,transparent)_0%,transparent_55%)] p-5">
-          <div className="flex min-w-0 items-center gap-4">
-            <span
-              aria-hidden
-              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[var(--color-primary)] text-[18px] font-semibold text-white"
-            >
-              {patient.name
-                .split(/\s+/)
-                .map((p) => p[0])
-                .slice(0, 2)
-                .join("")
-                .toUpperCase()}
-            </span>
-            <div className="min-w-0">
-            <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em]">{patient.name}</h1>
-            <p className="num mt-0.5 text-[13px] text-[var(--color-charcoal)]">
-              {[
-                patient.age ? t("patientDetail.header.ageYears", { age: patient.age }) : null,
-                formatGravidaPara(patient.gravida, patient.para),
-                patient.blood_group,
-                patient.phone,
-                patient.address,
-              ]
-                .filter(Boolean)
-                .join("  ·  ")}
-            </p>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {!isClosed && (
-              <a href="#record-visit" className={`${buttonPrimary} min-h-11`}>
-                {t("patientDetail.header.recordVisit")}
-              </a>
-            )}
-            <details className="md:relative">
-              <summary className={`${buttonSecondary} min-h-11 cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
-                <DotsThree size={17} weight="bold" aria-hidden /> {t("patientDetail.header.more")}
-              </summary>
-              <div className={`absolute right-4 z-20 mt-2 md:right-0 flex w-max max-w-[min(20rem,calc(100vw-2rem))] flex-col items-stretch gap-2 p-2 ${card}`}>
+        <div className="relative">
+          <IdentityStrip
+            name={patient.name}
+            status={
+              isClosed ? (
+                <Tag tone="ok">{t("patientDetail.fact.delivered")}</Tag>
+              ) : (
+                <Tag tone={RISK_TONE[followUpRisk]}>{followUpRiskLabel(followUpRisk, t)}</Tag>
+              )
+            }
+            subtitle={
+              <span className="num">
+                {[
+                  patient.age ? t("patientDetail.header.ageYears", { age: patient.age }) : null,
+                  formatGravidaPara(patient.gravida, patient.para),
+                  patient.blood_group,
+                  patient.phone,
+                  patient.address,
+                ]
+                  .filter(Boolean)
+                  .join("  ·  ")}
+              </span>
+            }
+            facts={stripFacts}
+            actions={
+              <>
+                {!isClosed && (
+                  <a href="#record-visit" className={`${buttonPrimary} max-md:hidden`}>
+                    {t("patientDetail.header.recordVisit")}
+                  </a>
+                )}
+                {tel && (
+                  <a href={tel} className={buttonSecondary}>
+                    <Phone size={15} weight="fill" aria-hidden /> {t("patientDetail.header.call")}
+                  </a>
+                )}
+                <details className="md:relative">
+                  <summary className={`${buttonSecondary} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
+                    <DotsThree size={17} weight="bold" aria-hidden /> {t("patientDetail.header.more")}
+                  </summary>
+                  <div className={`absolute right-4 z-20 mt-2 flex w-max max-w-[min(20rem,calc(100vw-2rem))] flex-col items-stretch gap-2 p-2 md:right-0 ${card}`}>
                 <Link
                   href={`/patients/${patient.id}/report`}
                   className={buttonSecondary}
@@ -375,80 +467,40 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
                     clinicName: me.clinicName,
                   }}
                 />
-                {tel && (
-                  <a href={tel} className={buttonSecondary}>
-                    <Phone size={15} weight="fill" aria-hidden /> {t("patientDetail.header.call")}
-                  </a>
-                )}
                 {visitWorkspace}
-                {!isClosed && (
-                  <ClosePregnancyForm
-                    patient={{
-                      id: patient.id,
-                      name: patient.name,
-                      clinicPatientNo: patient.clinic_patient_no,
-                      lmp: patient.lmp,
-                      edd: eddIso,
-                    }}
-                    todayIso={toISODate(today)}
-                  />
-                )}
-              </div>
-            </details>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 divide-[var(--color-border)] border-t border-[var(--color-border)] sm:grid-cols-3 lg:grid-cols-6 lg:divide-x">
-          <Fact label={t("patientDetail.fact.ga")}>
-            {isClosed ? (
-              <span className="font-semibold text-[var(--color-on-track)]">{t("patientDetail.fact.delivered")}</span>
-            ) : ga ? (
-              <>
-                {formatGALocalized(ga, t)} <span className="text-[12px] text-[var(--color-charcoal)]">{t("clinical.trimester.short", { n: trimester(ga) })}</span>
+                    {!isClosed && (
+                      <div className="mt-1 border-t border-[var(--color-border)] pt-3">
+                        <ClosePregnancyForm
+                          patient={{
+                            id: patient.id,
+                            name: patient.name,
+                            clinicPatientNo: patient.clinic_patient_no,
+                            lmp: patient.lmp,
+                            edd: eddIso,
+                          }}
+                          todayIso={toISODate(today)}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </details>
               </>
-            ) : (
-              "—"
-            )}
-          </Fact>
-          <Fact label={t("patientDetail.fact.edd")}>
-            {formatDate(eddIso, locale)}
-            {eddIso && <span className="ml-1.5 text-[12px] text-[var(--color-charcoal)]">{relativeDays(eddIso, today, locale)}</span>}
-          </Fact>
-          <Fact label={t("patientDetail.fact.lmp")}>{formatDate(patient.lmp, locale)}</Fact>
-          <Fact label={t("patientDetail.fact.nextVisit")}>
-            {isClosed ? (
-              <span className="text-[var(--color-charcoal)]">{t("patientDetail.fact.concluded")}</span>
-            ) : nextVisit ? (
-              <>
-                {formatShortDate(nextVisit, locale)}{" "}
-                <span
-                  className={`text-[12px] ${
-                    daysBetween(today, parseLocalDate(nextVisit)) < 0 ? "text-[var(--color-overdue)]" : "text-[var(--color-charcoal)]"
-                  }`}
-                >
-                  {relativeDays(nextVisit, today, locale)}
-                </span>
-              </>
-            ) : (
-              t("patientDetail.fact.notBooked")
-            )}
-          </Fact>
-          <Fact label={t("patientDetail.fact.followUp")}>
-            {isClosed ? (
-              <Tag tone="ok">{t("patientDetail.fact.delivered")}</Tag>
-            ) : (
-              <Tag tone={RISK_TONE[followUpRisk]}>{followUpRiskLabel(followUpRisk, t)}</Tag>
-            )}
-          </Fact>
-          <Fact label={t("patientDetail.fact.schedule")}>
-            {t("patientDetail.fact.scheduleDone", { done: events.filter((e) => e.status === "done").length, total: events.length })}
-            {openCount > 0 && <span className="ml-1.5 text-[12px] text-[var(--color-overdue)]">{t("patientDetail.fact.scheduleOverdue", { count: openCount })}</span>}
-          </Fact>
-        </div>
+            }
+          />
         </div>
       </header>
 
-      <div className={`${pageBody} max-md:pb-20`}>
+      <div className={`${pageBody} max-md:pb-28`}>
+        {flags.length > 0 && (
+          <section aria-label={t("patientDetail.alerts.title")} className={`flex flex-wrap items-center gap-2 px-4 py-3 ${card}`}>
+            <h2 className="mr-1 text-[13px] font-semibold text-[var(--color-foreground)]">{t("patientDetail.alerts.title")}</h2>
+            {alertFlags.map((f) => (
+              <Tag key={f.code} tone={SEVERITY_TONE[f.severity]}>
+                {f.label}
+              </Tag>
+            ))}
+          </section>
+        )}
         {isClosed && (
           <div className="rounded-[var(--radius-cards)] border border-[var(--color-on-track)]/40 bg-[var(--color-on-track-surface)] p-5 text-[var(--color-foreground)]">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--color-on-track)]/30 pb-2.5">
@@ -457,9 +509,9 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
                   <Baby size={16} weight="bold" />
                 </div>
                 <div>
-                  <h3 className="text-[15px] font-semibold text-[var(--color-on-track)]">
+                  <h2 className="text-[15px] font-semibold text-[var(--color-on-track)]">
                     {t("patientDetail.closed.title")}
-                  </h3>
+                  </h2>
                   <p className="text-[12px] text-[var(--color-charcoal)]">
                     {patient.closed_at || patient.delivery_date
                       ? t("patientDetail.closed.closedOn", { date: formatShortDate(patient.closed_at ?? patient.delivery_date, locale) })
@@ -490,84 +542,46 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
             </div>
           </div>
         )}
-        {flags.length > 0 && (
-          <div className={`flex flex-wrap items-center gap-2 px-4 py-3 ${card}`}>
-            <span className="mr-1 text-[13px] font-semibold text-[var(--color-foreground)]">{t("patientDetail.alerts.title")}</span>
-            {alertFlags.map((f) => (
-              <Tag key={f.code} tone={SEVERITY_TONE[f.severity]}>
-                {f.label}
-              </Tag>
-            ))}
-          </div>
-        )}
-
-        <div id="record-visit" className="scroll-mt-20" tabIndex={-1}>
-          <Panel title={t("patientDetail.panel.recordVisit")}>
-            <div className="p-4 pt-1">
-              <VisitForm patientId={id} />
-            </div>
-          </Panel>
-        </div>
-
-        {lmp && ga && (
-          <Panel title={t("patientDetail.panel.timeline")}>
-            <PregnancyTimeline lmp={patient.lmp!} gaDays={ga.days} events={events} />
-          </Panel>
-        )}
-
-        <VitalsTrendCharts
-          visits={visitList}
-          lmp={patient.lmp}
-          edd={eddIso}
-          patientName={patient.name}
-        />
-
-        <div className="grid grid-cols-[minmax(0,1fr)] gap-5 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-          <div className="space-y-5">
-            <Panel title={t("patientDetail.panel.schedule")} count={events.length}>
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+          <div className="min-w-0 space-y-5">
+            <Panel
+              title={t("patientDetail.panel.schedule")}
+              count={events.length}
+              action={
+                openCount > 0 ? <Tag tone="critical">{t("patientDetail.fact.scheduleOverdue", { count: openCount })}</Tag> : undefined
+              }
+            >
               {events.length === 0 ? (
                 <Empty>{t("patientDetail.schedule.empty")}</Empty>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-[14px]">
-                    <thead>
-                      <tr>
-                        <th className={th}>{t("patientDetail.schedule.item")}</th>
-                        <th className={th}>{t("patientDetail.schedule.window")}</th>
-                        <th className={th}>{t("common.status")}</th>
-                        <th className={th}>
-                          <span className="sr-only">{t("patientDetail.schedule.action")}</span>
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {events.map((e) => (
-                        <tr key={e.id} className={e.status === "done" || e.status === "skipped" ? "text-[var(--color-charcoal)]" : ""}>
-                          <td className={td}>
-                            <p className={e.status === "done" ? "" : "font-medium"}>{careEventName(e.name, t)}</p>
-                            <p className="text-[12px] capitalize text-[var(--color-charcoal)]">{careEventKind(e.kind, t)}</p>
-                          </td>
-                          <td className={`${td} num whitespace-nowrap text-[13px]`}>
-                            {formatShortDate(e.dueFrom, locale)} – {formatShortDate(e.dueTo, locale)}
-                          </td>
-                          <td className={td}>
-                            <Tag tone={STATUS_TONE[e.status]}>{careStatusLabel(e.status, t)}</Tag>
-                            {e.status === "done" && e.completedAt && (
-                              <span className="num ml-1.5 text-[12px]">{formatShortDate(e.completedAt, locale)}</span>
-                            )}
-                          </td>
-                          <td className={`${td} text-right`}>
-                            {(e.status === "due" || e.status === "overdue" || e.status === "done") && (
-                              <MarkDoneButton careEventId={e.id} patientId={id} todayIso={toISODate(today)} done={e.status === "done"} />
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <>
+                  {activeEvents.length > 0 && <ul>{activeEvents.map(renderEvent)}</ul>}
+                  {finishedEvents.length > 0 && (
+                    <div className="border-t border-[var(--color-border)] bg-[var(--color-surface-1)]">
+                      <h3 className="px-4 pt-3 text-[12px] font-semibold text-[var(--color-charcoal)]">
+                        {t("patientDetail.schedule.completed")}
+                      </h3>
+                      <ul>{finishedEvents.map(renderEvent)}</ul>
+                    </div>
+                  )}
+                </>
               )}
             </Panel>
+
+            <section id="record-visit" tabIndex={-1} className={`scroll-mt-20 ${card}`}>
+              <div className="flex min-h-12 items-center border-b border-[var(--color-border)]/70 px-4">
+                <h2 className="text-[15px] font-semibold">{t("patientDetail.panel.recordVisit")}</h2>
+              </div>
+              <div className="p-4">
+                <VisitForm patientId={id} />
+              </div>
+            </section>
+
+            {lmp && ga && (
+              <Panel title={t("patientDetail.panel.timeline")}>
+                <PregnancyTimeline lmp={patient.lmp!} gaDays={ga.days} events={events} />
+              </Panel>
+            )}
 
             <Panel title={t("patientDetail.panel.visits")} count={visitList.length}>
               {visitList.length === 0 ? (
@@ -628,7 +642,10 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
             </Panel>
           </div>
 
-          <div className="space-y-5">
+          <div className="grid min-w-0 content-start gap-5 md:grid-cols-2 lg:grid-cols-1">
+            <div className="min-w-0 md:col-span-2 lg:col-span-1">
+              <VitalsTrendCharts visits={visitList} lmp={patient.lmp} edd={eddIso} patientName={patient.name} />
+            </div>
             <Panel title={t("patientDetail.panel.contacts")} count={(contacts ?? []).length}>
               {(contacts ?? []).length === 0 ? (
                 <Empty>{t("patientDetail.contacts.empty")}</Empty>
@@ -692,6 +709,16 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
           </div>
         </div>
       </div>
+
+      {!isClosed && (
+        <div className="md:hidden">
+          <ActionBar>
+            <a href="#record-visit" className={buttonPrimary}>
+              {t("patientDetail.header.recordVisit")}
+            </a>
+          </ActionBar>
+        </div>
+      )}
     </>
   );
 }

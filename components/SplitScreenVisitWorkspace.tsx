@@ -23,6 +23,7 @@ import { formatShortDate } from "@/lib/format";
 import { useLocale, useT } from "@/lib/i18n/provider";
 import { flagLabel } from "@/lib/clinical";
 import type { MessageKey } from "@/lib/i18n/messages";
+import { buttonSecondary, inputClass as baseInput, labelClass } from "@/components/ui";
 
 export interface PatientDocument {
   id: string;
@@ -45,9 +46,9 @@ interface SplitScreenVisitWorkspaceProps {
 }
 
 const initialState: ActionResult = { error: null };
-const inputClass =
-  "num min-h-9 w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2 py-1 text-[14px] focus:border-[var(--color-primary)]";
-const labelClass = "mb-1 block text-[12px] font-medium text-[var(--color-charcoal)]";
+const inputClass = `num ${baseInput}`;
+const invalidClass = "!border-[var(--color-overdue)] font-semibold";
+const groupTitle = "text-[13px] font-semibold text-[var(--color-foreground)]";
 
 const DOC_TYPE_KEYS: Record<string, MessageKey> = {
   report: "clinical.docTypeLong.report",
@@ -143,7 +144,7 @@ export function SplitScreenVisitWorkspace({
 
         {/* Right Header Actions */}
         <div className="flex items-center gap-3">
-          <span className="hidden sm:inline text-[11px] text-[var(--color-rail-text)]">
+          <span className="hidden sm:inline text-[12px] text-[var(--color-rail-text)]">
             {t("visits.split.hint")}
           </span>
           <button
@@ -204,7 +205,7 @@ export function SplitScreenVisitWorkspace({
                     >
                       <MagnifyingGlassMinus size={15} />
                     </button>
-                    <span className="num px-1.5 text-[11px] text-[var(--color-charcoal)]">
+                    <span className="num px-1.5 text-[12px] text-[var(--color-charcoal)]">
                       {Math.round(zoom * 100)}%
                     </span>
                     <button
@@ -219,7 +220,7 @@ export function SplitScreenVisitWorkspace({
                     <button
                       type="button"
                       onClick={() => setZoom(1)}
-                      className="rounded-xl h-8 px-2 border border-[var(--color-border)] bg-[var(--color-background)] hover:bg-[var(--color-surface-1)] text-[11px] text-[var(--color-charcoal)]"
+                      className="rounded-xl h-8 px-2 border border-[var(--color-border)] bg-[var(--color-background)] hover:bg-[var(--color-surface-1)] text-[12px] text-[var(--color-charcoal)]"
                       title={t("visits.split.zoomReset")}
                     >
                       {t("visits.split.reset")}
@@ -231,7 +232,7 @@ export function SplitScreenVisitWorkspace({
                   <button
                     type="button"
                     onClick={() => setShowOcr((s) => !s)}
-                    className={`h-8 px-2.5 border text-[11px] font-medium flex items-center gap-1.5 ${
+                    className={`h-8 px-2.5 border text-[12px] font-medium flex items-center gap-1.5 ${
                       showOcr
                         ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white"
                         : "border-[var(--color-border)] bg-[var(--color-background)] hover:bg-[var(--color-surface-1)] text-[var(--color-foreground)]"
@@ -296,7 +297,7 @@ export function SplitScreenVisitWorkspace({
                     <button
                       type="button"
                       onClick={handleCopyOcrToNotes}
-                      className="inline-flex items-center gap-1 text-[11px] bg-[var(--color-primary)] text-white px-2 py-0.5 font-medium hover:bg-[var(--color-primary-hover)]"
+                      className="inline-flex items-center gap-1 text-[12px] bg-[var(--color-primary)] text-white px-2 py-0.5 font-medium hover:bg-[var(--color-primary-hover)]"
                     >
                       {copiedOcr ? <Check size={12} /> : <ClipboardText size={12} />}
                       {copiedOcr ? t("visits.split.ocrCopied") : t("visits.split.ocrInsert")}
@@ -311,7 +312,7 @@ export function SplitScreenVisitWorkspace({
                     </button>
                   </div>
                 </div>
-                <pre className="flex-1 overflow-auto font-mono text-[11px] leading-relaxed text-[var(--color-charcoal)] whitespace-pre-wrap bg-[var(--color-surface-1)] p-2">
+                <pre className="flex-1 overflow-auto font-mono text-[12px] leading-relaxed text-[var(--color-charcoal)] whitespace-pre-wrap bg-[var(--color-surface-1)] p-2">
                   {currentDoc.ocr_text}
                 </pre>
               </div>
@@ -347,118 +348,63 @@ export function SplitScreenVisitWorkspace({
             </div>
           )}
 
-          <form action={formAction} className="space-y-4" noValidate>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <div>
-                <label htmlFor="splitVisitDate" className={labelClass}>
-                  {t("visits.form.visitDate")}
-                </label>
-                <input
-                  id="splitVisitDate"
-                  name="visitDate"
-                  type="text"
-                  placeholder="DD/MM/YYYY"
-                  defaultValue={formatVisitDate(toISODate(todayInClinicTimezone()))}
-                  className={inputClass}
-                />
+          <form action={formAction} className="space-y-5" noValidate>
+            <fieldset className="space-y-3">
+              <legend className={groupTitle}>{t("visits.form.group.vitals")}</legend>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <div>
+                  <label htmlFor="splitBpSys" className={labelClass}>{t("visits.form.bpSys")}</label>
+                  <input id="splitBpSys" name="bpSys" type="number" inputMode="numeric" value={bpSys}
+                    aria-invalid={currentBpAlert ? true : undefined}
+                    onChange={(e) => setBpSys(e.target.value)}
+                    className={`${inputClass} ${currentBpAlert ? invalidClass : ""}`} />
+                </div>
+                <div>
+                  <label htmlFor="splitBpDia" className={labelClass}>{t("visits.form.bpDia")}</label>
+                  <input id="splitBpDia" name="bpDia" type="number" inputMode="numeric" value={bpDia}
+                    aria-invalid={currentBpAlert ? true : undefined}
+                    onChange={(e) => setBpDia(e.target.value)}
+                    className={`${inputClass} ${currentBpAlert ? invalidClass : ""}`} />
+                </div>
+                <div>
+                  <label htmlFor="splitWeight" className={labelClass}>{t("visits.form.weight")}</label>
+                  <input id="splitWeight" name="weight" type="number" inputMode="decimal" step="0.1" className={inputClass} />
+                </div>
+                <div>
+                  <label htmlFor="splitHb" className={labelClass}>{t("visits.form.hb")}</label>
+                  <input id="splitHb" name="hb" type="number" inputMode="decimal" step="0.1" value={hb}
+                    aria-invalid={currentHbAlert ? true : undefined}
+                    onChange={(e) => setHb(e.target.value)}
+                    className={`${inputClass} ${currentHbAlert ? invalidClass : ""}`} />
+                </div>
+                <div>
+                  <label htmlFor="splitFhr" className={labelClass}>{t("visits.form.fhr")}</label>
+                  <input id="splitFhr" name="fhr" type="number" inputMode="numeric" value={fhr}
+                    aria-invalid={currentFhrAlert ? true : undefined}
+                    onChange={(e) => setFhr(e.target.value)}
+                    className={`${inputClass} ${currentFhrAlert ? invalidClass : ""}`} />
+                </div>
+                <div>
+                  <label htmlFor="splitFundalHeight" className={labelClass}>{t("visits.form.fundalHeight")}</label>
+                  <input id="splitFundalHeight" name="fundalHeight" type="number" inputMode="decimal" step="0.1" className={inputClass} />
+                </div>
               </div>
+            </fieldset>
 
-              <div>
-                <label htmlFor="splitBpSys" className={labelClass}>
-                  {t("visits.form.bpSys")}
-                </label>
-                <input
-                  id="splitBpSys"
-                  name="bpSys"
-                  type="number"
-                  value={bpSys}
-                  onChange={(e) => setBpSys(e.target.value)}
-                  className={`${inputClass} ${currentBpAlert ? "border-[var(--color-overdue)] font-semibold" : ""}`}
-                />
+            <fieldset className="space-y-3 border-t border-[var(--color-border)]/70 pt-4">
+              <legend className={groupTitle}>{t("visits.form.group.visit")}</legend>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="splitVisitDate" className={labelClass}>{t("visits.form.visitDate")}</label>
+                  <input id="splitVisitDate" name="visitDate" type="text" placeholder="DD/MM/YYYY"
+                    defaultValue={formatVisitDate(toISODate(todayInClinicTimezone()))} className={inputClass} />
+                </div>
+                <div>
+                  <label htmlFor="splitNextVisitDate" className={labelClass}>{t("visits.form.nextVisit")}</label>
+                  <input id="splitNextVisitDate" name="nextVisitDate" type="text" placeholder="DD/MM/YYYY" className={inputClass} />
+                </div>
               </div>
-
-              <div>
-                <label htmlFor="splitBpDia" className={labelClass}>
-                  {t("visits.form.bpDia")}
-                </label>
-                <input
-                  id="splitBpDia"
-                  name="bpDia"
-                  type="number"
-                  value={bpDia}
-                  onChange={(e) => setBpDia(e.target.value)}
-                  className={`${inputClass} ${currentBpAlert ? "border-[var(--color-overdue)] font-semibold" : ""}`}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="splitWeight" className={labelClass}>
-                  {t("visits.form.weight")}
-                </label>
-                <input
-                  id="splitWeight"
-                  name="weight"
-                  type="number"
-                  step="0.1"
-                  className={inputClass}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="splitHb" className={labelClass}>
-                  {t("visits.form.hb")}
-                </label>
-                <input
-                  id="splitHb"
-                  name="hb"
-                  type="number"
-                  step="0.1"
-                  value={hb}
-                  onChange={(e) => setHb(e.target.value)}
-                  className={`${inputClass} ${currentHbAlert ? "border-[var(--color-overdue)] font-semibold" : ""}`}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="splitFhr" className={labelClass}>
-                  {t("visits.form.fhr")}
-                </label>
-                <input
-                  id="splitFhr"
-                  name="fhr"
-                  type="number"
-                  value={fhr}
-                  onChange={(e) => setFhr(e.target.value)}
-                  className={`${inputClass} ${currentFhrAlert ? "border-[var(--color-overdue)] font-semibold" : ""}`}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="splitFundalHeight" className={labelClass}>
-                  {t("visits.form.fundalHeight")}
-                </label>
-                <input
-                  id="splitFundalHeight"
-                  name="fundalHeight"
-                  type="number"
-                  step="0.1"
-                  className={inputClass}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="splitNextVisitDate" className={labelClass}>
-                  {t("visits.form.nextVisit")}
-                </label>
-                <input
-                  id="splitNextVisitDate"
-                  name="nextVisitDate"
-                  type="text"
-                  placeholder="DD/MM/YYYY"
-                  className={inputClass}
-                />
-              </div>
-            </div>
+            </fieldset>
 
             {/* Notes Section with Quick Measurement Insertion */}
             <div>
@@ -473,7 +419,7 @@ export function SplitScreenVisitWorkspace({
                       const prefix = t("visits.split.tagText", { docType: docLabel(currentDoc.doc_type), date: formatShortDate(currentDoc.doc_date ?? currentDoc.created_at, locale) });
                       setNotes((prev) => (prev ? `${prev}\n${prefix}` : prefix));
                     }}
-                    className="text-[11px] text-[var(--color-primary)] hover:underline"
+                    className="min-h-8 text-[12px] font-medium text-[var(--color-primary)] hover:underline"
                   >
                     {t("visits.split.tagDoc")}
                   </button>
@@ -486,7 +432,7 @@ export function SplitScreenVisitWorkspace({
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder={t("visits.split.notesPlaceholder")}
-                className="rounded-xl w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] p-2 text-[13px] font-sans focus:border-[var(--color-primary)] outline-none"
+                className={`${baseInput} py-2`}
               />
             </div>
 
@@ -496,15 +442,13 @@ export function SplitScreenVisitWorkspace({
               </p>
             )}
 
-            <div className="flex items-center justify-between pt-2 border-t border-[var(--color-border)]">
-              <button
-                type="button"
-                onClick={onClose}
-                className="rounded-xl px-3 py-2 border border-[var(--color-border-strong)] text-[13px] font-medium hover:bg-[var(--color-surface-1)]"
-              >
+            <div className="sticky bottom-0 -mx-4 -mb-4 flex items-center justify-between gap-3 border-t border-[var(--color-border)] bg-[var(--color-background)] px-4 py-3 sm:-mx-6 sm:-mb-6 sm:px-6">
+              <button type="button" onClick={onClose} className={buttonSecondary}>
                 {t("common.cancel")}
               </button>
-              <SubmitButton>{t("visits.split.save")}</SubmitButton>
+              <div className="min-w-40">
+                <SubmitButton>{t("visits.split.save")}</SubmitButton>
+              </div>
             </div>
           </form>
         </div>

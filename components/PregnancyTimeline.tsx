@@ -51,7 +51,7 @@ export async function PregnancyTimeline({ lmp, gaDays, events }: { lmp: string; 
   const LANE_H = 16;
 
   return (
-    <div className="overflow-x-auto px-4 pt-1 pb-4">
+    <div className="overflow-x-auto px-4 pb-4 pt-3" role="group" aria-label={t("patientDetail.panel.timeline")}>
       <div className="relative min-w-[640px]">
         <div className="relative flex h-6 text-[12px] font-medium text-[var(--color-charcoal)]">
           <div className="border-l border-[var(--color-border-strong)] pl-1" style={{ width: pct(13 * 7) }}>
@@ -67,6 +67,7 @@ export async function PregnancyTimeline({ lmp, gaDays, events }: { lmp: string; 
         </div>
 
         <div className="relative rounded-xl bg-[var(--color-surface-1)]" style={{ height: laneCount * LANE_H + 8 }}>
+          <div className="absolute inset-y-0 rounded-r-xl bg-[var(--color-surface-2)]" style={{ left: pct(13 * 7), width: `calc(${pct(27 * 7)} - ${pct(13 * 7)})` }} aria-hidden />
           {[13, 27, 40].map((w) => (
             <div key={w} className="absolute inset-y-0 w-px bg-[var(--color-border-strong)]" style={{ left: pct(w * 7) }} aria-hidden />
           ))}
@@ -79,7 +80,7 @@ export async function PregnancyTimeline({ lmp, gaDays, events }: { lmp: string; 
                 to: Math.floor(s.end / 7),
                 status: careStatusLabel(s.status, t),
               })}
-              className={`absolute h-[10px] rounded-full ${BAR[s.status]}`}
+              className={`absolute h-[10px] rounded-full ${BAR[s.status]} ${s.status === "upcoming" ? "opacity-60" : ""} ${s.status === "overdue" ? "ring-2 ring-[var(--color-overdue)]/30" : ""}`}
               style={{
                 left: pct(s.start),
                 width: `calc(${pct(s.end)} - ${pct(s.start)})`,
@@ -87,10 +88,10 @@ export async function PregnancyTimeline({ lmp, gaDays, events }: { lmp: string; 
               }}
             />
           ))}
-          <div className="absolute -top-1 -bottom-1 w-[2px] rounded-full bg-[var(--color-primary)]" style={{ left: pct(gaDays) }} aria-hidden />
+          <div className="absolute -top-1 -bottom-1 w-[3px] -translate-x-1/2 rounded-full bg-[var(--color-primary)] ring-2 ring-[var(--color-background)]" style={{ left: pct(gaDays) }} aria-hidden />
         </div>
 
-        <div className="num relative h-5 text-[11px] text-[var(--color-charcoal)]">
+        <div className="num relative h-5 text-[12px] text-[var(--color-charcoal)]">
           {[0, 8, 13, 20, 27, 32, 36, 40].map((w) => (
             <span key={w} className="absolute -translate-x-1/2" style={{ left: pct(w * 7) }}>
               {t("clinical.ga.weeksShort", { weeks: w })}
@@ -103,6 +104,14 @@ export async function PregnancyTimeline({ lmp, gaDays, events }: { lmp: string; 
             {t("patientDetail.timeline.today", { ga: formatGALocalized({ days: gaDays, weeks: Math.floor(gaDays / 7), daysRemainder: gaDays % 7 }, t) })}
           </span>
         </div>
+
+        <ul className="sr-only">
+          {spans.map((s) => (
+            <li key={s.id}>
+              {t("patientDetail.timeline.barTitle", { name: careEventName(s.name, t), from: Math.floor(s.start / 7), to: Math.floor(s.end / 7), status: careStatusLabel(s.status, t) })}
+            </li>
+          ))}
+        </ul>
 
         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-[var(--color-charcoal)]">
           {(["done", "due", "overdue", "upcoming"] as const).map((s) => (
