@@ -3,7 +3,7 @@
 import type { EditPatientData } from "@/components/EditPatientModal";
 import { useState, useMemo, useEffect, useRef, useActionState } from "react";
 import { NotePencil, X, Calendar, Sparkle, WarningCircle } from "@phosphor-icons/react";
-import { buttonSecondary } from "@/components/ui";
+import { buttonSecondary, iconButton, inputClass, labelClass } from "@/components/ui";
 import { updatePatient, type ActionResult } from "@/app/(app)/patients/[id]/actions";
 import { eddFromLmp, formatGALocalized, gestationalAge, trimester } from "@/lib/pregnancy";
 import { useT } from "@/lib/i18n/provider";
@@ -13,9 +13,6 @@ import { withSuccessToast } from "@/components/Toaster";
 
 const initialState: ActionResult = { error: null };
 
-const inputClass =
-  "min-h-9 w-full rounded-[var(--radius-buttons)] border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2.5 text-[13px] text-[var(--color-foreground)] focus:border-[var(--color-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]";
-const labelClass = "mb-1 block text-[12px] font-medium text-[var(--color-charcoal)]";
 
 function parseLocalDate(isoDate: string): Date | null {
   if (!isoDate) return null;
@@ -103,21 +100,21 @@ export function EditPatientModal({
       role="dialog"
       aria-modal="true"
       aria-label={t("patients.edit.dialogLabel")}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-[var(--color-foreground)]/50 md:items-center md:p-6"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative my-8 w-full max-w-2xl rounded-2xl bg-[var(--color-background)] shadow-2xl overflow-hidden border border-[var(--color-border)]">
+      <div className="relative flex max-h-[100dvh] w-full max-w-2xl animate-[pc-sheet_260ms_var(--ease-out)_both] flex-col overflow-hidden rounded-t-[var(--radius-cards)] border border-[var(--color-border)] bg-[var(--color-background)] shadow-[var(--shadow-overlay)] motion-reduce:animate-none md:max-h-[90dvh] md:animate-[pc-pop_var(--dur)_var(--ease-out)_both] md:rounded-[var(--radius-cards)]">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface-1)] px-5 py-3.5">
+        <div className="flex shrink-0 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface-1)] px-4 py-3 md:px-5">
           <div className="flex items-center gap-2">
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-primary)] text-white">
               <NotePencil size={16} weight="bold" />
             </div>
             <div>
-              <h2 className="text-[14px] font-bold text-[var(--color-foreground)]">{t("patients.edit.title")}</h2>
-              <p className="text-[11px] text-[var(--color-charcoal)]">
+              <h2 className="text-[16px] font-semibold text-[var(--color-foreground)]">{t("patients.edit.title")}</h2>
+              <p className="text-[12px] text-[var(--color-charcoal)]">
                 {t("patients.edit.subtitle")}
               </p>
             </div>
@@ -126,33 +123,31 @@ export function EditPatientModal({
             type="button"
             onClick={onClose}
             aria-label={t("patients.edit.close")}
-            className="rounded-lg p-1.5 text-[var(--color-charcoal)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-foreground)] transition"
+            className={iconButton}
           >
-            <X size={18} />
+            <X size={18} aria-hidden />
           </button>
         </div>
 
         {/* Form Body */}
-        <form
-          action={formAction}
-          className="p-5 space-y-4 max-h-[80vh] overflow-y-auto"
-        >
+        <form action={formAction} className="flex min-h-0 flex-1 flex-col">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 md:p-5">
           {state.error && (
-            <div className="flex items-start gap-2 rounded-lg bg-[var(--color-overdue-surface)] border border-[var(--color-overdue)] p-2.5 text-xs text-[var(--color-overdue)]">
-              <WarningCircle size={16} className="shrink-0 mt-0.5" />
+            <div className="flex items-start gap-2 rounded-[var(--radius-buttons)] border border-[var(--color-overdue)] bg-[var(--color-overdue-surface)] p-3 text-[13px] font-medium text-[var(--color-overdue)]">
+              <WarningCircle size={16} className="mt-0.5 shrink-0" aria-hidden />
               <span>{state.error}</span>
             </div>
           )}
 
           {/* Section 1: Dating & Schedule Recalculation */}
-          <div className="rounded-xl border-2 border-[var(--color-primary)]/20 bg-[var(--color-surface-1)] p-4 space-y-3">
+          <div className="rounded-[var(--radius-buttons)] border border-[var(--color-primary)]/30 bg-[var(--color-surface-1)] p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-[12px] font-bold text-[var(--color-primary)] flex items-center gap-1.5">
+              <span className="flex items-center gap-1.5 text-[14px] font-semibold text-[var(--color-primary)]">
                 <Calendar size={15} weight="bold" />
                 {t("patients.edit.sectionDating")}
               </span>
               {datingPreview && (
-                <span className="text-[11px] font-mono bg-white px-2 py-0.5 rounded-full border border-[var(--color-border)] text-[var(--color-foreground)]">
+                <span className="num rounded-full border border-[var(--color-border)] bg-[var(--color-background)] px-2 py-0.5 text-[12px] text-[var(--color-foreground)]">
                   {t("patients.edit.gaPreview", { ga: datingPreview.ga, trimester: t("patients.trimesterShort", { trimester: datingPreview.trimester }) })}
                 </span>
               )}
@@ -208,8 +203,8 @@ export function EditPatientModal({
             </div>
 
             {(lmpChanged || rhChanged) && (
-              <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-300 p-2 text-xs text-amber-900">
-                <Sparkle size={15} className="shrink-0 mt-0.5 text-amber-700" />
+              <div className="flex items-start gap-2 rounded-[var(--radius-buttons)] border border-[var(--color-due)]/40 bg-[var(--color-due-surface)] p-2.5 text-[13px] text-[var(--color-due)]">
+                <Sparkle size={15} className="mt-0.5 shrink-0" aria-hidden />
                 <div>
                   <strong>{t("patients.edit.autoAdjustTitle")}</strong> {t("patients.edit.autoAdjustBody")}
                 </div>
@@ -218,8 +213,8 @@ export function EditPatientModal({
           </div>
 
           {/* Section 2: Patient Identity */}
-          <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-4 space-y-3">
-            <span className="text-[11px] font-bold text-[var(--color-charcoal)] block border-b border-[var(--color-border)] pb-1.5">
+          <div className="rounded-[var(--radius-buttons)] border border-[var(--color-border)] bg-[var(--color-background)] p-4 space-y-3">
+            <span className="block border-b border-[var(--color-border)] pb-1.5 text-[13px] font-semibold text-[var(--color-foreground)]">
               {t("patients.edit.sectionDemographics")}
             </span>
 
@@ -306,8 +301,8 @@ export function EditPatientModal({
           </div>
 
           {/* Section 3: Obstetric History & Blood Group */}
-          <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-4 space-y-3">
-            <span className="text-[11px] font-bold text-[var(--color-charcoal)] block border-b border-[var(--color-border)] pb-1.5">
+          <div className="rounded-[var(--radius-buttons)] border border-[var(--color-border)] bg-[var(--color-background)] p-4 space-y-3">
+            <span className="block border-b border-[var(--color-border)] pb-1.5 text-[13px] font-semibold text-[var(--color-foreground)]">
               {t("patients.edit.sectionObstetric")}
             </span>
 
@@ -356,14 +351,14 @@ export function EditPatientModal({
                 </select>
               </div>
 
-              <div className="flex min-h-9 items-center gap-2 rounded-[var(--radius-buttons)] border border-[var(--color-border-strong)] px-2.5 text-[13px]">
+              <div className="flex min-h-11 items-center gap-2 rounded-[var(--radius-buttons)] border border-[var(--color-border-strong)] px-3 text-[14px] md:min-h-10">
                 <input
                   id="rhNegative"
                   type="checkbox"
                   name="rhNegative"
                   checked={rhNegative}
                   onChange={(e) => setRhNegative(e.target.checked)}
-                  className="h-4 w-4 accent-[var(--color-primary)]"
+                  className="h-5 w-5 accent-[var(--color-primary)]"
                 />
                 <label htmlFor="rhNegative" className="cursor-pointer font-medium text-[var(--color-foreground)] select-none">
                   {t("patients.edit.rhNegative")}
@@ -372,20 +367,22 @@ export function EditPatientModal({
             </div>
 
             {rhNegative && (
-              <p className="text-[11px] text-[var(--color-primary)] bg-[var(--color-surface-1)] p-2 rounded-lg border border-[var(--color-border)]">
-                ℹ️ <strong>{t("patients.edit.rhProtocolTitle")}</strong> {t("patients.edit.rhProtocolBody")}
+              <p className="rounded-[var(--radius-buttons)] border border-[var(--color-border)] bg-[var(--color-surface-1)] p-2.5 text-[13px] text-[var(--color-primary)]">
+                <strong>{t("patients.edit.rhProtocolTitle")}</strong> {t("patients.edit.rhProtocolBody")}
               </p>
             )}
           </div>
 
-          {/* Form Actions */}
-          <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-[var(--color-border)]">
+          </div>
+
+          {/* Sticky footer: always reachable while the body scrolls */}
+          <div className="flex shrink-0 items-center justify-end gap-2 border-t border-[var(--color-border)] bg-[var(--color-background)] px-4 py-3 md:px-5 max-md:[&>*]:flex-1">
             <button type="button" onClick={onClose} className={buttonSecondary}>
               {t("patients.edit.cancel")}
             </button>
-            <SubmitButton>
-              {t("patients.edit.save")}
-            </SubmitButton>
+            <div className="md:w-40">
+              <SubmitButton>{t("patients.edit.save")}</SubmitButton>
+            </div>
           </div>
         </form>
       </div>

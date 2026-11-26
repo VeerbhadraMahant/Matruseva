@@ -4,7 +4,7 @@ import { getClinicSnapshot } from "@/lib/snapshot";
 import { formatGALocalized, trimester } from "@/lib/pregnancy";
 import { getT } from "@/lib/i18n/server";
 import { daysBetween, formatDate, formatGravidaPara, parseLocalDate, relativeDays } from "@/lib/format";
-import { PageHeader, buttonPrimary, pageBody } from "@/components/ui";
+import { ActionBar, PageHeader, buttonPrimary, pageBody } from "@/components/ui";
 import { PatientTable, type PatientFilter, type PatientListRow } from "@/components/PatientTable";
 import { ScanQRCardButton } from "@/components/QRScannerModal";
 
@@ -43,14 +43,21 @@ export default async function PatientsPage({ searchParams }: { searchParams: Pro
         actions={
           <div className="flex items-center gap-2">
             <ScanQRCardButton />
-            <Link href="/patients/new" className={buttonPrimary}>
+            <Link href="/patients/new" className={`${buttonPrimary} hidden md:inline-flex`}>
               <Plus size={15} weight="bold" aria-hidden /> {t("patients.newPatient")}
             </Link>
           </div>
         }
       />
-      <div className={pageBody}>
+      <div className={`${pageBody} pb-24 md:pb-12`}>
         <PatientTable key={initialFilter} rows={list} initialFilter={initialFilter} />
+      </div>
+      <div className="md:hidden">
+        <ActionBar>
+          <Link href="/patients/new" className={buttonPrimary}>
+            <Plus size={15} weight="bold" aria-hidden /> {t("patients.newPatient")}
+          </Link>
+        </ActionBar>
       </div>
     </>
   );
