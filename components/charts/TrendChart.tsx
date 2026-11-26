@@ -173,6 +173,14 @@ export function TrendChart({
         ? Math.max(8, sx(activeX) - 14 - TOOLTIP_W)
         : Math.min(sx(activeX) + 14, width - TOOLTIP_W - 8);
 
+  if (series.every((s) => s.points.length < 2)) {
+    return (
+      <p className="rounded-[var(--radius-buttons)] bg-[var(--color-surface-1)] px-4 py-8 text-center text-[13px] text-[var(--color-charcoal)]">
+        {t("reports.charts.needTwoPoints")}
+      </p>
+    );
+  }
+
   return (
     <div className="space-y-3">
       {(series.length > 1 || bands.length > 0 || corridor || refLines.length > 0) && (
