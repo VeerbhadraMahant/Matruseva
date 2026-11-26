@@ -17,7 +17,7 @@ import {
   UsersThree,
   Warning,
 } from "@phosphor-icons/react";
-import { Tag, SEVERITY_TONE, type Tone, buttonPrimary, buttonSecondary, card, chipClass, chipCountClass } from "@/components/ui";
+import { Tag, StatusDot, SEVERITY_TONE, type Tone, buttonPrimary, buttonSecondary, buttonGhost, card, chipClass, chipCountClass } from "@/components/ui";
 import { ContactLogForm } from "@/components/ContactLogForm";
 import { logBatchContacts } from "@/app/(app)/calls/actions";
 import { submitQuickContact } from "@/components/offlineActions";
@@ -163,12 +163,11 @@ export function CallQueue({
   }, [setSelection]);
 
   const triggerCall = useCallback((r: CallRow) => {
-    if (r.tel) window.location.href = r.tel;
+    // The tel: link on the row places the call; here we only open the outcome sheet.
     setQuickLogTarget({ patientId: r.id, name: r.name, phone: r.phone, channel: "call" });
   }, []);
 
   const triggerWhatsApp = useCallback((r: CallRow, waLink: string | null) => {
-    if (waLink) window.open(waLink, "_blank");
     setQuickLogTarget({
       patientId: r.id,
       name: r.name,
@@ -224,7 +223,7 @@ export function CallQueue({
         {/* Filter and Language Toolbar */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-border)] p-4">
           {/* Worklist Filter Tabs */}
-          <div className="flex flex-wrap gap-2" role="group" aria-label={t("calls.filter.aria")}>
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 md:flex-wrap md:overflow-visible md:pb-0" role="group" aria-label={t("calls.filter.aria")}>
             {FILTERS.map((f) => (
               <button
                 key={f.id}
@@ -245,7 +244,7 @@ export function CallQueue({
                 type="button"
                 disabled={visible.length === 0}
                 onClick={() => setSimulatorPatientId(visible[0].id)}
-                className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-background)] px-3.5 text-[13px] font-medium text-[var(--color-foreground)] transition-colors enabled:hover:border-[var(--color-primary)] enabled:hover:text-[var(--color-primary)] disabled:opacity-50"
+                className="press inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-background)] px-3.5 text-[13px] font-medium text-[var(--color-foreground)] enabled:hover:border-[var(--color-primary)] enabled:hover:text-[var(--color-primary)] disabled:opacity-50 md:min-h-9"
                 title={t("calls.toolbar.botTitle")}
               >
                 <Robot size={15} weight="bold" />
@@ -301,9 +300,9 @@ export function CallQueue({
               type="button"
               onClick={() => setBatchToast(null)}
               aria-label={t("common.close")}
-              className="text-xs opacity-75 hover:opacity-100 cursor-pointer"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-[var(--radius-buttons)] opacity-75 hover:opacity-100"
             >
-              ✕
+              <X size={16} aria-hidden />
             </button>
           </div>
         )}
@@ -354,7 +353,7 @@ export function CallQueue({
             <button
               type="button"
               onClick={() => setLimit((current) => nextLimit(current, visible.length))}
-              className="min-h-10 rounded-full border border-[var(--color-border)] bg-[var(--color-background)] px-4 text-[13px] font-medium hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
+              className={buttonSecondary}
             >
               {t("calls.list.showMore", { count: remaining })}
             </button>
@@ -376,15 +375,15 @@ export function CallQueue({
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4 backdrop-blur-xs"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-[var(--color-pc-ink)]/50 p-0 sm:items-center sm:p-4"
         >
-          <div className="rounded-2xl w-full max-w-lg border border-[var(--color-border-strong)] bg-[var(--color-background)] p-4 shadow-2xl animate-in slide-in-from-bottom duration-150">
+          <div className="max-sm:pc-sheet sm:pc-pop w-full max-w-lg rounded-t-[var(--radius-sections)] border border-[var(--color-border)] bg-[var(--color-background)] p-4 pb-6 shadow-[var(--shadow-overlay)] sm:rounded-[var(--radius-sections)] sm:pb-4">
             <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-3">
               <div className="flex items-center gap-2">
                 {quickLogTarget.channel === "call" ? (
                   <PhoneCall size={20} className="text-[var(--color-primary)]" weight="fill" />
                 ) : (
-                  <WhatsappLogo size={20} className="text-[#25D366]" weight="fill" />
+                  <WhatsappLogo size={20} className="text-[var(--color-on-track)]" weight="fill" />
                 )}
                 <div>
                   <h3 className="text-[15px] font-semibold text-[var(--color-foreground)]">
@@ -400,7 +399,7 @@ export function CallQueue({
               <button
                 type="button"
                 onClick={() => setQuickLogTarget(null)}
-                className="flex h-8 w-8 items-center justify-center text-[var(--color-charcoal)] hover:text-[var(--color-foreground)]"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-[var(--radius-buttons)] text-[var(--color-charcoal)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-foreground)]"
                 aria-label={t("common.close")}
               >
                 <X size={18} />
@@ -409,7 +408,7 @@ export function CallQueue({
 
             {/* If WhatsApp, show language used and message preview */}
             {quickLogTarget.channel === "whatsapp" && quickLogTarget.messagesByLang && (
-              <div className="rounded-xl my-3 p-2.5 bg-[var(--color-surface-1)] border border-[var(--color-border)] text-[12px]">
+              <div className="my-3 rounded-[var(--radius-buttons)] p-2.5 bg-[var(--color-surface-1)] border border-[var(--color-border)] text-[12px]">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-[11px] font-medium text-[var(--color-charcoal)]">
                     {t("calls.quick.preview")}
@@ -420,10 +419,10 @@ export function CallQueue({
                         key={l.code}
                         type="button"
                         onClick={() => setSelectedLang(l.code)}
-                        className={`px-1.5 py-0.5 text-[10px] font-medium border ${
+                        className={`min-h-9 rounded-full px-2.5 text-[12px] font-medium border ${
                           selectedLang === l.code
                             ? "bg-[var(--color-primary)] text-white border-[var(--color-primary)]"
-                            : "bg-white text-[var(--color-charcoal)] border-[var(--color-border)] hover:border-black"
+                            : "bg-[var(--color-background)] text-[var(--color-charcoal)] border-[var(--color-border)] hover:border-[var(--color-primary)]"
                         }`}
                       >
                         {l.nativeLabel}
@@ -452,7 +451,7 @@ export function CallQueue({
                     type="button"
                     disabled={isPending}
                     onClick={() => handleQuickSubmit("will_visit", "Patient confirmed visit")}
-                    className="rounded-xl flex items-center justify-between gap-2 p-2.5 text-left border border-[var(--color-on-track)] bg-[var(--color-on-track-surface)] text-[var(--color-on-track)] hover:opacity-90 font-medium text-[13px]"
+                    className="press flex min-h-14 items-center justify-between gap-2 rounded-[var(--radius-buttons)] px-3 text-left border border-[var(--color-on-track)] bg-[var(--color-on-track-surface)] text-[var(--color-on-track)] hover:opacity-90 font-medium text-[13px]"
                   >
                     <span>{t("calls.quick.willVisit")}</span>
                     <span className="text-[11px] opacity-75">{t("calls.quick.willVisitHint")}</span>
@@ -462,7 +461,7 @@ export function CallQueue({
                     type="button"
                     disabled={isPending}
                     onClick={() => handleQuickSubmit("reached", "Spoke with patient")}
-                    className="rounded-xl flex items-center justify-between gap-2 p-2.5 text-left border border-[var(--color-border-strong)] bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-2)] text-[var(--color-foreground)] font-medium text-[13px]"
+                    className="press flex min-h-14 items-center justify-between gap-2 rounded-[var(--radius-buttons)] px-3 text-left border border-[var(--color-border-strong)] bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-2)] text-[var(--color-foreground)] font-medium text-[13px]"
                   >
                     <span>{t("calls.quick.reached")}</span>
                     <span className="text-[11px] text-[var(--color-charcoal)]">{t("calls.quick.reachedHint")}</span>
@@ -472,7 +471,7 @@ export function CallQueue({
                     type="button"
                     disabled={isPending}
                     onClick={() => handleQuickSubmit("no_answer", "Ringing, no response")}
-                    className="rounded-xl flex items-center justify-between gap-2 p-2.5 text-left border border-[var(--color-due)] bg-[var(--color-due-surface)] text-[var(--color-due)] hover:opacity-90 font-medium text-[13px]"
+                    className="press flex min-h-14 items-center justify-between gap-2 rounded-[var(--radius-buttons)] px-3 text-left border border-[var(--color-due)] bg-[var(--color-due-surface)] text-[var(--color-due)] hover:opacity-90 font-medium text-[13px]"
                   >
                     <span>{t("calls.quick.noAnswer")}</span>
                     <span className="text-[11px] opacity-75">{t("calls.quick.noAnswerHint")}</span>
@@ -482,7 +481,7 @@ export function CallQueue({
                     type="button"
                     disabled={isPending}
                     onClick={() => handleQuickSubmit("wrong_number", "Wrong number or switched off")}
-                    className="rounded-xl flex items-center justify-between gap-2 p-2.5 text-left border border-[var(--color-overdue)] bg-[var(--color-overdue-surface)] text-[var(--color-overdue)] hover:opacity-90 font-medium text-[13px]"
+                    className="press flex min-h-14 items-center justify-between gap-2 rounded-[var(--radius-buttons)] px-3 text-left border border-[var(--color-overdue)] bg-[var(--color-overdue-surface)] text-[var(--color-overdue)] hover:opacity-90 font-medium text-[13px]"
                   >
                     <span>{t("calls.quick.wrongNumber")}</span>
                     <span className="text-[11px] opacity-75">{t("calls.quick.wrongNumberHint")}</span>
@@ -492,7 +491,7 @@ export function CallQueue({
                     type="button"
                     disabled={isPending}
                     onClick={() => handleQuickSubmit("refused", "Patient declined follow-up")}
-                    className="rounded-xl sm:col-span-2 flex items-center justify-between gap-2 p-2 text-left border border-[var(--color-border)] text-[var(--color-charcoal)] hover:bg-[var(--color-surface-1)] text-[12px]"
+                    className="press flex min-h-12 items-center justify-between gap-2 rounded-[var(--radius-buttons)] px-3 text-left sm:col-span-2 border border-[var(--color-border)] text-[var(--color-charcoal)] hover:bg-[var(--color-surface-1)] text-[12px]"
                   >
                     <span>{t("calls.quick.refused")}</span>
                     <span className="text-[11px]">{t("calls.quick.refusedHint")}</span>
@@ -523,18 +522,18 @@ export function CallQueue({
         <div
           role="region"
           aria-label={t("calls.batch.regionAria")}
-          className="sticky bottom-[var(--mobile-nav-height)] md:bottom-0 z-20 border-t-2 border-[var(--color-primary)] bg-[var(--color-background)] p-3 shadow-2xl animate-in slide-in-from-bottom duration-200"
+          className="sticky bottom-[var(--mobile-nav-height)] md:bottom-0 z-20 border-t border-[var(--color-border)] bg-[var(--color-background)] p-3 shadow-[var(--shadow-overlay)]"
         >
           <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1.5 bg-[var(--color-primary)] text-white text-xs font-bold px-2.5 py-1">
+              <div className="flex items-center gap-1.5 rounded-full bg-[var(--color-primary)] px-3 py-1 text-[12px] font-semibold text-white">
                 <UsersThree size={16} weight="bold" />
                 <span>{t("calls.select.count", { count: selectedIds.length })}</span>
               </div>
               <button
                 type="button"
                 onClick={() => setSelection(new Set())}
-                className="text-xs text-[var(--color-charcoal)] hover:text-[var(--color-foreground)] underline cursor-pointer"
+                className="min-h-11 px-1 text-[13px] text-[var(--color-charcoal)] underline hover:text-[var(--color-foreground)] md:min-h-9"
               >
                 {t("calls.batch.clear")}
               </button>
@@ -542,14 +541,14 @@ export function CallQueue({
 
             <div className="flex flex-wrap items-center gap-2 flex-1 justify-end">
               <div className="flex items-center gap-1.5">
-                <label htmlFor="batch-outcome" className="text-xs font-semibold text-[var(--color-charcoal)]">
+                <label htmlFor="batch-outcome" className="text-[13px] font-medium text-[var(--color-charcoal)]">
                   {t("calls.batch.outcome")}
                 </label>
                 <select
                   id="batch-outcome"
                   value={batchOutcome}
                   onChange={(e) => setBatchOutcome(e.target.value as ContactOutcome)}
-                  className="rounded-xl min-h-9 border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2.5 py-1 text-xs font-medium focus:ring-1 focus:ring-[var(--color-primary)]"
+                  className="min-h-11 rounded-[var(--radius-buttons)] border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2.5 text-[16px] font-medium md:min-h-10 md:text-[13px]"
                 >
                   <option value="no_answer">{t("calls.batch.opt.noAnswer")}</option>
                   <option value="reached">{t("calls.batch.opt.reached")}</option>
@@ -566,7 +565,7 @@ export function CallQueue({
                 onChange={(e) => setBatchNotes(e.target.value)}
                 placeholder={t("calls.batch.notes")}
                 aria-label={t("calls.batch.notes")}
-                className="rounded-xl min-h-9 border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2.5 text-xs max-w-xs focus:ring-1 focus:ring-[var(--color-primary)]"
+                className="min-h-11 max-w-xs rounded-[var(--radius-buttons)] border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2.5 text-[16px] md:min-h-10 md:text-[13px]"
               />
 
               <button
@@ -588,9 +587,9 @@ export function CallQueue({
           role="dialog"
           aria-modal="true"
           aria-labelledby="batch-confirm-title"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-pc-ink)]/50 p-4"
         >
-          <div className="rounded-2xl w-full max-w-md border border-[var(--color-border-strong)] bg-[var(--color-background)] p-5 shadow-2xl space-y-3">
+          <div className="pc-pop w-full max-w-md space-y-3 rounded-[var(--radius-sections)] border border-[var(--color-border)] bg-[var(--color-background)] p-5 shadow-[var(--shadow-overlay)]">
             <h3 id="batch-confirm-title" className="text-[15px] font-bold text-[var(--color-foreground)]">
               {t("calls.batch.confirmTitle")}
             </h3>
@@ -627,8 +626,16 @@ export function CallQueue({
 }
 
 /* =========================================================================
-   Call card
+   Call row: one patient in the queue
    ========================================================================= */
+
+const REASON_TONE: Record<ReminderReason, Tone> = { overdue: "critical", lost: "critical", at_risk: "warning", due_soon: "warning" };
+const REASON_KEY: Record<ReminderReason, MsgKey> = {
+  overdue: "calls.reason.overdue",
+  lost: "calls.reason.lost",
+  at_risk: "calls.reason.at_risk",
+  due_soon: "calls.reason.due_soon",
+};
 
 const CallCard = memo(function CallCard({
   row: r,
@@ -652,39 +659,47 @@ const CallCard = memo(function CallCard({
   const t = useT();
   const [showLog, setShowLog] = useState(false);
   const calledToday = r.contactedToday;
+  const due =
+    r.overdueItems.length > 0
+      ? t("calls.card.overdueItem", { days: r.overdueDays, item: careEventName(r.overdueItems[0].split("(")[0].trim(), t) }) +
+        (r.overdueItems.length > 1 ? ` +${r.overdueItems.length - 1}` : "")
+      : r.gaLabel;
 
   return (
-    <li className="row-cv relative border-b border-[var(--color-border)] overflow-hidden last:border-0">
+    <li className="row-cv border-b border-[var(--color-border)] last:border-0">
       <div
-        className={`relative z-1 bg-[var(--color-background)] grid gap-3 px-4 py-4 grid-cols-[auto_minmax(0,1fr)] lg:grid-cols-[1.5rem_2rem_minmax(0,1.3fr)_minmax(0,1fr)_auto] lg:items-center ${
-          calledToday ? "bg-[var(--color-surface-1)]" : ""
-        } ${isSelected ? "ring-1 ring-[var(--color-primary)] bg-[var(--color-surface-1)]" : ""}`}
+        className={`flex flex-wrap items-start gap-x-3 gap-y-2 px-4 py-3 md:flex-nowrap md:items-center ${
+          isSelected ? "bg-[var(--color-primary-surface)]/50" : calledToday ? "bg-[var(--color-surface-1)]" : ""
+        }`}
       >
-        <label className="-mx-2 inline-flex min-h-11 min-w-10 cursor-pointer items-center justify-center justify-self-start">
+        <label className="-ml-2 inline-flex min-h-11 min-w-10 cursor-pointer items-center justify-center">
           <input
             type="checkbox"
             id={`chk-${r.id}`}
             checked={isSelected}
             onChange={() => onToggleSelect(r.id)}
-            className="h-4 w-4 rounded border-[var(--color-border-strong)] accent-[var(--color-primary)] cursor-pointer"
+            className="h-4 w-4 cursor-pointer rounded border-[var(--color-border-strong)] accent-[var(--color-primary)]"
             aria-label={t("calls.select.rowAria", { name: r.name })}
           />
         </label>
 
-        <span className="num hidden text-[12px] text-[var(--color-charcoal)] lg:block">
-          {String(i + 1).padStart(2, "0")}
-        </span>
-
-        <div className="min-w-0 space-y-1">
-          <div className="flex flex-wrap items-baseline gap-x-2">
-            <Link href={`/patients/${r.id}`} className="inline-flex min-h-11 min-w-11 items-center font-semibold hover:underline">
+        <div className="min-w-0 flex-1 basis-[12rem] space-y-1">
+          <div className="flex flex-wrap items-center gap-x-2">
+            <span className="num w-5 shrink-0 text-[12px] text-[var(--color-charcoal)]">{i + 1}</span>
+            <StatusDot tone={REASON_TONE[r.reason]} />
+            <Link href={`/patients/${r.id}`} className="inline-flex min-h-11 items-center text-[15px] font-semibold hover:underline md:min-h-8">
               {r.name}
             </Link>
-            <span className="num text-[12px] text-[var(--color-charcoal)]">
-              {[r.gaLabel, r.phone].filter(Boolean).join(" · ") || t("calls.card.noPhone")}
-            </span>
+            <span className="text-[12px] font-semibold text-[var(--color-charcoal)]">{t(REASON_KEY[r.reason])}</span>
           </div>
-          <div className="flex flex-wrap gap-1">
+          <p className="num text-[13px] text-[var(--color-foreground)]">
+            {due}
+            <span className="text-[var(--color-charcoal)]">
+              {due ? " · " : ""}
+              {r.phone ?? t("calls.card.noPhone")}
+            </span>
+          </p>
+          <div className="flex flex-wrap items-center gap-1.5">
             {isLost(r.risk) && <Tag tone="critical">{t("calls.card.lostToFollowUp")}</Tag>}
             {isAtRisk(r.risk) && (
               <Tag tone="warning">{r.noAnswerStreak >= 2 ? t("calls.card.unreachable", { count: r.noAnswerStreak }) : t("calls.card.atRisk")}</Tag>
@@ -694,68 +709,51 @@ const CallCard = memo(function CallCard({
                 {flagLabel(f, t)}
               </Tag>
             ))}
-            {r.overdueItems.length > 0 && (
-              <Tag tone="warning">
-                {t("calls.card.overdueItem", { days: r.overdueDays, item: careEventName(r.overdueItems[0].split("(")[0].trim(), t) })}
-                {r.overdueItems.length > 1 ? ` +${r.overdueItems.length - 1}` : ""}
-              </Tag>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-[var(--color-charcoal)]">
+            {calledToday && <Tag tone="ok">{t("calls.card.contactedToday")}</Tag>}
+            {r.lastContact ? (
+              <>
+                <span>{t("calls.card.lastLabel")}:</span>
+                <Tag tone={OUTCOME[r.lastContact.outcome].tone}>{t(OUTCOME[r.lastContact.outcome].labelKey)}</Tag>
+                <span>
+                  {r.lastContact.channel === "whatsapp" ? t("calls.channel.whatsapp") : t("calls.channel.call")} · {ago(t, r.lastContact.daysAgo)}
+                </span>
+              </>
+            ) : (
+              <span>{t("calls.card.neverContacted")}</span>
             )}
+            <span className="num">· {t("calls.card.attempts", { count: r.attempts30d })}</span>
           </div>
         </div>
 
-        <div className="col-start-2 text-[13px] lg:col-start-auto">
-          {r.lastContact ? (
-            <div className="flex flex-wrap items-center gap-1.5">
-              {calledToday && (
-                <CheckCircle size={15} weight="fill" className="text-[var(--color-on-track)]" aria-hidden />
-              )}
-              <Tag tone={OUTCOME[r.lastContact.outcome].tone}>{t(OUTCOME[r.lastContact.outcome].labelKey)}</Tag>
-              <span className="text-[var(--color-charcoal)]">
-                {r.lastContact.channel === "whatsapp" ? t("calls.channel.whatsapp") : t("calls.channel.call")} · {ago(t, r.lastContact.daysAgo)}
-              </span>
-            </div>
-          ) : (
-            <span className="text-[var(--color-charcoal)]">{t("calls.card.neverContacted")}</span>
-          )}
-          <p className="num mt-0.5 text-[12px] text-[var(--color-charcoal)]">
-            {t("calls.card.attempts", { count: r.attempts30d })}
-          </p>
-        </div>
-
-        <div className="col-start-2 flex flex-wrap items-center gap-2 lg:col-start-auto">
+        <div className="flex w-full flex-wrap items-center gap-2 pl-8 md:w-auto md:pl-0">
           {r.tel && (
-            <button
-              type="button"
-              onClick={() => onTriggerCall(r)}
-              className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-[var(--color-primary)] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[var(--color-primary-hover)] cursor-pointer"
-            >
-              <Phone size={15} weight="fill" aria-hidden /> {t("calls.card.call")}
-            </button>
+            <a href={r.tel} onClick={() => onTriggerCall(r)} className={buttonPrimary}>
+              <Phone size={16} weight="fill" aria-hidden /> {t("calls.card.call")}
+            </a>
           )}
           {waLink && (
-            <button
-              type="button"
+            <a
+              href={waLink}
+              target="_blank"
+              rel="noreferrer"
               onClick={() => onTriggerWhatsApp(r, waLink)}
-              className="rounded-xl inline-flex min-h-10 items-center gap-1.5 border border-[var(--color-border)] bg-[var(--color-background)] px-3 text-[13px] font-medium transition-colors hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] cursor-pointer"
+              className={buttonSecondary}
               title={t("calls.card.whatsappTitle", { lang: SUPPORTED_LANGUAGES.find((l) => l.code === selectedLang)?.nativeLabel ?? "" })}
             >
-              <WhatsappLogo size={15} aria-hidden />
+              <WhatsappLogo size={16} aria-hidden />
               <span>{t("calls.channel.whatsapp")}</span>
-            </button>
+            </a>
           )}
-          <button
-            type="button"
-            onClick={() => setShowLog((v) => !v)}
-            aria-expanded={showLog}
-            className="inline-flex min-h-10 items-center gap-1 rounded-xl px-2.5 text-[13px] font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary-surface)]"
-          >
+          <button type="button" onClick={() => setShowLog((v) => !v)} aria-expanded={showLog} className={buttonGhost}>
             {t("calls.card.logOutcome")}
-            <CaretDown size={13} aria-hidden className={`transition-transform ${showLog ? "rotate-180" : ""}`} />
+            <CaretDown size={14} aria-hidden className={`transition-transform ${showLog ? "rotate-180" : ""}`} />
           </button>
         </div>
       </div>
       {showLog && (
-        <div className="relative z-1 flex justify-end border-t border-dashed border-[var(--color-border)] bg-[var(--color-surface-1)] px-4 py-3">
+        <div className="border-t border-[var(--color-border)] bg-[var(--color-surface-1)] px-4 py-3 md:pl-12">
           <ContactLogForm patientId={r.id} />
         </div>
       )}

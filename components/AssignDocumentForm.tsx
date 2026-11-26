@@ -6,10 +6,9 @@ import { assignDocument, searchPatientsForAssign, getOpenCareEvents, type Action
 import { withSuccessToast } from "@/components/Toaster";
 import { useT } from "@/lib/i18n/provider";
 import { careEventName } from "@/lib/clinicalLabels";
+import { buttonPrimary, inputClass } from "@/components/ui";
 
 const initialState: ActionResult = { error: null };
-const inputClass =
-  "min-h-10 rounded-[var(--radius-buttons)] border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2 py-1.5 text-sm focus:border-[var(--color-primary)]";
 
 function SaveButton() {
   const { pending } = useFormStatus();
@@ -18,7 +17,7 @@ function SaveButton() {
     <button
       type="submit"
       disabled={pending}
-      className="min-h-10 rounded-[var(--radius-buttons)] bg-[var(--color-primary)] px-3 py-1.5 text-sm font-medium text-[var(--color-primary-foreground)] hover:bg-[var(--color-primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+      className={`${buttonPrimary} w-full`}
     >
       {pending ? "…" : t("documents.assign.submit")}
     </button>
@@ -60,7 +59,7 @@ export function AssignDocumentForm({ documentId }: { documentId: string }) {
   }
 
   return (
-    <form action={formAction} className="space-y-2 border-t border-[var(--color-border)] pt-3">
+    <form action={formAction} className="space-y-2.5 border-t border-[var(--color-border)] pt-3">
       <div className="relative">
         <input
           type="text"
@@ -68,16 +67,16 @@ export function AssignDocumentForm({ documentId }: { documentId: string }) {
           aria-label={t("documents.assign.search")}
           value={query}
           onChange={(e) => onSearchChange(e.target.value)}
-          className={`${inputClass} w-full`}
+          className={inputClass}
         />
         {results.length > 0 && (
-          <ul className="absolute z-10 mt-1 w-full rounded-[var(--radius-cards)] border border-[var(--color-border)] bg-[var(--color-background)] shadow-none">
+          <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-[var(--radius-cards)] border border-[var(--color-border)] bg-[var(--color-background)] shadow-[var(--shadow-overlay)]">
             {results.map((p) => (
               <li key={p.id}>
                 <button
                   type="button"
                   onClick={() => selectPatient(p)}
-                  className="block min-h-10 w-full px-3 py-2 text-left text-sm hover:bg-[var(--color-surface-1)]"
+                  className="block min-h-11 w-full px-3 py-2 text-left text-[14px] hover:bg-[var(--color-surface-1)]"
                 >
                   {p.name} {p.phone ? `· ${p.phone}` : ""}
                 </button>
@@ -88,7 +87,7 @@ export function AssignDocumentForm({ documentId }: { documentId: string }) {
         <input type="hidden" name="patientId" value={selected?.id ?? ""} />
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 [&>*]:flex-1 [&>*]:basis-36">
         <select name="docType" defaultValue="other" className={inputClass} aria-label={t("documents.assign.typeAria")}>
           <option value="report">{t("documents.type.report")}</option>
           <option value="scan">{t("documents.type.scan")}</option>
@@ -110,7 +109,7 @@ export function AssignDocumentForm({ documentId }: { documentId: string }) {
         )}
       </div>
 
-      {state.error && <p className="text-sm text-[var(--color-overdue)]">{state.error}</p>}
+      {state.error && <p role="alert" className="text-[13px] font-medium text-[var(--color-overdue)]">{state.error}</p>}
 
       <SaveButton />
     </form>

@@ -188,13 +188,13 @@ export function WhatsAppBotSimulator({
       ref={dialogRef}
       aria-label={t("calls.bot.title")}
       onCancel={onClose}
-      className="fixed inset-0 m-auto w-[calc(100%-1.5rem)] max-w-2xl border-0 bg-transparent p-0 text-[var(--color-foreground)] backdrop:bg-black/60 backdrop:backdrop-blur-sm"
+      className="fixed inset-0 m-auto w-[calc(100%-1.5rem)] max-w-sm border-0 bg-transparent p-0 text-[var(--color-foreground)] backdrop:bg-black/60 backdrop:backdrop-blur-sm"
     >
-      <div className="flex h-[92dvh] w-full max-w-2xl flex-col border border-[var(--color-border-strong)] bg-[var(--color-background)] shadow-2xl">
+      <div className="flex h-[92dvh] max-h-[760px] w-full flex-col overflow-hidden rounded-[28px] border-[6px] border-[var(--color-pc-ink)] bg-[var(--color-background)] shadow-[var(--shadow-overlay)]">
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-[var(--color-border-strong)] bg-[var(--color-surface-2)] px-4 py-3">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center bg-[#25D366] text-white">
+            <div className="flex h-8 w-8 items-center justify-center bg-[var(--color-on-track)] text-white rounded-full">
               <WhatsappLogo size={20} weight="fill" />
             </div>
             <div>
@@ -202,7 +202,7 @@ export function WhatsAppBotSimulator({
                 <h3 className="text-[14px] font-semibold text-[var(--color-foreground)]">
                   {t("calls.bot.title")}
                 </h3>
-                <span className="flex items-center gap-1 bg-[#E7F8EE] px-1.5 py-0.5 text-[10px] font-bold text-[#128C7E]">
+                <span className="flex items-center gap-1 bg-[var(--color-on-track-surface)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-on-track)] rounded-full">
                   <ShieldCheck size={12} weight="bold" />
                   {t("calls.bot.badge")}
                 </span>
@@ -279,16 +279,16 @@ export function WhatsAppBotSimulator({
 
         {/* Real-time DB Sync Status Banner */}
         {dbUpdateNotice && (
-          <div className="flex items-center gap-2 border-b border-[var(--color-border)] bg-[#F0FDF4] px-4 py-1.5 text-[11px] font-medium text-[#166534]">
-            <CheckCircle size={14} weight="fill" className="shrink-0 text-[#16a34a]" />
+          <div className="flex items-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-on-track-surface)] px-4 py-1.5 text-[11px] font-medium text-[var(--color-on-track)]">
+            <CheckCircle size={14} weight="fill" className="shrink-0 text-[var(--color-on-track)]" />
             <span className="truncate">{dbUpdateNotice}</span>
           </div>
         )}
 
         {/* Phone Chat Simulator Workspace */}
-        <div className="flex flex-1 flex-col overflow-hidden bg-[#ECE5DD] relative">
+        <div className="flex flex-1 flex-col overflow-hidden bg-[var(--color-surface-2)] relative">
           {/* Chat WhatsApp Header */}
-          <div className="flex items-center justify-between bg-[#075E54] px-3.5 py-2 text-white shadow-sm">
+          <div className="flex items-center justify-between bg-[var(--color-primary)] px-3.5 py-2 text-white shadow-sm">
             <div className="flex items-center gap-2.5">
               <div className="flex h-8 w-8 items-center justify-center bg-white/20 text-white font-bold text-[12px] rounded-full">
                 {currentPatient ? currentPatient.name.charAt(0) : "P"}
@@ -320,7 +320,7 @@ export function WhatsAppBotSimulator({
           {/* Messages Feed */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             <div className="flex justify-center my-1">
-              <span className="rounded bg-white/80 px-2.5 py-0.5 text-[10px] font-semibold text-gray-600 shadow-xs">
+              <span className="rounded bg-[var(--color-background)]/80 px-2.5 py-0.5 text-[10px] font-semibold text-[var(--color-charcoal)] shadow-xs">
                 {t("calls.bot.encrypted")}
               </span>
             </div>
@@ -335,21 +335,21 @@ export function WhatsAppBotSimulator({
                   <div
                     className={`max-w-[85%] rounded-lg p-3 text-[13px] leading-relaxed shadow-sm relative ${
                       isBot
-                        ? "bg-white text-gray-900 border border-black/5"
-                        : "bg-[#DCF8C6] text-gray-900"
+                        ? "bg-[var(--color-background)] text-[var(--color-foreground)] border border-[var(--color-border)]"
+                        : "bg-[var(--color-primary-surface)] text-[var(--color-foreground)]"
                     }`}
                   >
                     {isBot && (
-                      <div className="flex items-center gap-1 text-[10px] font-semibold text-[#075E54] mb-1">
+                      <div className="flex items-center gap-1 text-[10px] font-semibold text-[var(--color-primary)] mb-1">
                         <Robot size={12} weight="bold" />
                         <span>{t("calls.bot.name")}</span>
                       </div>
                     )}
                     <div className="whitespace-pre-wrap">{m.text}</div>
-                    <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-gray-500">
+                    <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-[var(--color-charcoal)]">
                       <span>{m.time}</span>
                       {isBot && m.status === "read" && (
-                        <span className="text-[#34B7F1] font-bold">✓✓</span>
+                        <span className="text-[var(--color-info)] font-bold">✓✓</span>
                       )}
                     </div>
                   </div>
@@ -360,8 +360,8 @@ export function WhatsAppBotSimulator({
           </div>
 
           {/* Quick Simulated Response Chips */}
-          <div className="border-t border-[#d1d7db] bg-[#f0f2f5] p-2">
-            <div className="mb-1 text-[10px] font-bold text-gray-500">
+          <div className="border-t border-[var(--color-border)] bg-[var(--color-surface-1)] p-2">
+            <div className="mb-1 text-[10px] font-bold text-[var(--color-charcoal)]">
               {t("calls.bot.quickTitle")}
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -371,7 +371,7 @@ export function WhatsAppBotSimulator({
                   type="button"
                   disabled={isPending}
                   onClick={() => handleSendPatientReply(chip.text)}
-                  className="rounded-full border border-gray-300 bg-white px-2.5 py-1 text-[11px] font-medium text-gray-800 shadow-2xs hover:bg-[#E7F8EE] hover:border-[#128C7E] hover:text-[#128C7E] transition-all disabled:opacity-50"
+                  className="rounded-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2.5 py-1 text-[11px] font-medium text-[var(--color-foreground)] hover:bg-[var(--color-on-track-surface)] hover:border-[var(--color-on-track)] hover:text-[var(--color-on-track)] transition-all disabled:opacity-50"
                 >
                   {chip.label}
                 </button>
@@ -385,7 +385,7 @@ export function WhatsAppBotSimulator({
               e.preventDefault();
               handleSendPatientReply();
             }}
-            className="flex items-center gap-2 border-t border-[#d1d7db] bg-[#f0f2f5] px-3 py-2"
+            className="flex items-center gap-2 border-t border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2"
           >
             <input
               type="text"
@@ -398,12 +398,12 @@ export function WhatsAppBotSimulator({
                   ? "हिंदी में उत्तर लिखें (उदा. 1 या 'मैं आऊंगी')..."
                   : "Type simulated reply in English (or 1, 2, 3)..."
               }
-              className="flex-1 rounded-full border border-gray-300 bg-white px-4 py-2 text-[13px] outline-none focus:border-[#128C7E]"
+              className="flex-1 rounded-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-4 py-2 text-[16px] md:text-[13px] focus:border-[var(--color-primary)]"
             />
             <button
               type="submit"
               disabled={!inputText.trim() || isPending}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-[#128C7E] text-white shadow-sm hover:bg-[#075E54] disabled:opacity-40 transition-colors"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)] disabled:opacity-40 transition-colors"
               title={t("calls.bot.send")}
               aria-label={t("calls.bot.send")}
             >

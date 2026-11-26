@@ -38,9 +38,11 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
   if (query) query = searching ? query.textSearch("search", q!, { type: "websearch", config: "simple" }) : query.is("patient_id", null).neq("doc_type", "register_page");
 
   const { data: documents } = query ? await query : { data: null };
-  const docs = me.isDemo
+  const allDocs = me.isDemo
     ? getDemoDocuments(undefined, q).filter((doc) => searching || (!doc.patient_id && doc.doc_type !== "register_page"))
     : (documents ?? []);
+  // Unassigned first (search results can mix); stable sort keeps newest-first within each group.
+  const docs = [...allDocs].sort((a, b) => Number(Boolean(a.patient_id)) - Number(Boolean(b.patient_id)));
   const { data: signed } = supabase && docs.length
     ? await supabase.storage.from("documents").createSignedUrls(docs.map((d) => d.storage_path), 300)
     : { data: [] };
@@ -52,7 +54,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
 
       <div className={pageBody}>
         <Panel title={t("documents.upload.panel")}>
-          <div className="p-4 pt-1">
+          <div className="p-4">
             <DocumentUploader clinicId={me.clinicId} isDemo={me.isDemo} />
           </div>
         </Panel>
@@ -61,7 +63,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
           title={searching ? t("documents.results", { query: q ?? "" }) : t("documents.inbox")}
           count={docs.length}
           action={
-            <form action="/documents" className="flex items-center rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-background)] focus-within:border-[var(--color-primary)]">
+            <form action="/documents" className="flex items-center rounded-[var(--radius-buttons)] border border-[var(--color-border-strong)] bg-[var(--color-background)] focus-within:border-[var(--color-primary)]">
               <MagnifyingGlass size={15} className="ml-2 text-[var(--color-charcoal)]" aria-hidden />
               <input
                 type="search"
@@ -69,7 +71,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
                 defaultValue={q ?? ""}
                 placeholder={t("documents.search.placeholder")}
                 aria-label={t("documents.search.aria")}
-                className="min-h-9 w-56 border-0 bg-transparent px-2 text-[13px] shadow-none outline-none focus:shadow-none"
+                className="min-h-11 w-44 border-0 bg-transparent px-2 text-[16px] md:min-h-9 md:w-56 md:text-[13px] shadow-none outline-none focus:shadow-none"
               />
             </form>
           }
@@ -86,7 +88,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
                 const sourceKey = SOURCE_KEY[doc.source as keyof typeof SOURCE_KEY];
                 const patientName = (doc.patients as { name: string } | null)?.name;
                 return (
-                  <li key={doc.id} className="flex flex-col overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-background)]">
+                  <li key={doc.id} className="flex flex-col overflow-hidden rounded-[var(--radius-cards)] border border-[var(--color-border)] bg-[var(--color-background)]">
 <DocumentPreview
   url={url} path={doc.storage_path} title={documentTypeLabel(doc.doc_type, t)}
   text={doc.ocr_text} className="h-44"
@@ -97,6 +99,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
                         <span className="text-[var(--color-charcoal)]">· {sourceKey ? t(sourceKey) : doc.source}</span>
                         <Tag tone={status.tone}>{t(status.labelKey)}</Tag>
                         {patientName && <Tag tone="info">{patientName}</Tag>}
+                        {!doc.patient_id && <Tag tone="warning">{t("documents.needsPatient")}</Tag>}
                       </div>
                       {!doc.patient_id && <AssignDocumentForm documentId={doc.id} />}
                     </div>
