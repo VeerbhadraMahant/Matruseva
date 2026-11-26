@@ -1,12 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import {
-  ClipboardText,
-  CaretDown,
-  CaretUp,
-} from "@phosphor-icons/react";
-import { card } from "@/components/ui";
+import { CaretDown, Check } from "@phosphor-icons/react";
+import { card, helpClass, inputClass, labelClass } from "@/components/ui";
+import { useT } from "@/lib/i18n/provider";
 
 export interface ObstetricQuestionnaireFieldsProps {
   defaultValues?: {
@@ -21,41 +18,61 @@ export interface ObstetricQuestionnaireFieldsProps {
   };
 }
 
-export function ObstetricQuestionnaireFields({
-  defaultValues,
-}: ObstetricQuestionnaireFieldsProps) {
-  const [isOpen, setIsOpen] = useState(true);
+interface Option {
+  id: string;
+  label: string;
+  desc?: string;
+  alert?: boolean;
+}
 
-  const [deliveryMode, setDeliveryMode] = useState(
-    defaultValues?.previousDeliveryMode || "Primi"
-  );
-  const [complications, setComplications] = useState<string[]>(
-    defaultValues?.priorComplications || ["none"]
-  );
-  const [pregnancyLoss, setPregnancyLoss] = useState(
-    defaultValues?.pastPregnancyLoss || "0"
-  );
-  const [birthWeight, setBirthWeight] = useState(
-    defaultValues?.pastBirthWeight || "na"
-  );
-  const [interval, setInterval] = useState(
-    defaultValues?.interpregnancyInterval || "na"
-  );
-  const [familyComp, setFamilyComp] = useState<string[]>(
-    defaultValues?.familyComplications || ["none"]
-  );
-  const [chronic, setChronic] = useState<string[]>(
-    defaultValues?.chronicConditions || ["none"]
-  );
-  const [doctorNotes, setDoctorNotes] = useState(
-    defaultValues?.doctorNotes || ""
-  );
+const optionClass = (selected: boolean, alert?: boolean) =>
+  `press flex min-h-11 w-full cursor-pointer items-start gap-2 rounded-[var(--radius-buttons)] border px-3 py-2 text-left text-[13px] transition-colors md:min-h-10 ${
+    selected
+      ? alert
+        ? "border-[var(--color-overdue)] bg-[var(--color-overdue-surface)] font-semibold text-[var(--color-overdue)]"
+        : "border-[var(--color-primary)] bg-[var(--color-primary-surface)] font-semibold text-[var(--color-primary)]"
+      : "border-[var(--color-border)] bg-[var(--color-background)] text-[var(--color-foreground)] hover:border-[var(--color-primary)]"
+  }`;
 
-  const toggleMultiSelect = (
-    currentList: string[],
-    setFn: (val: string[]) => void,
-    item: string
-  ) => {
+function Mark({ selected }: { selected: boolean }) {
+  return (
+    <span aria-hidden className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center">
+      {selected && <Check size={14} weight="bold" />}
+    </span>
+  );
+}
+
+/** One question: a fieldset so the group name is announced with each option. */
+function Question({ legend, cols, children }: { legend: string; cols: string; children: React.ReactNode }) {
+  return (
+    <fieldset className="min-w-0">
+      <legend className="mb-2 text-[14px] font-semibold text-[var(--color-foreground)]">{legend}</legend>
+      <div className={`grid gap-2 ${cols}`}>{children}</div>
+    </fieldset>
+  );
+}
+
+function Group({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-5">
+      <h3 className="border-b border-[var(--color-border)]/70 pb-2 text-[15px] font-semibold text-[var(--color-foreground)]">{title}</h3>
+      {children}
+    </div>
+  );
+}
+
+export function ObstetricQuestionnaireFields({ defaultValues }: ObstetricQuestionnaireFieldsProps) {
+  const t = useT();
+  const [deliveryMode, setDeliveryMode] = useState(defaultValues?.previousDeliveryMode || "Primi");
+  const [complications, setComplications] = useState<string[]>(defaultValues?.priorComplications || ["none"]);
+  const [pregnancyLoss, setPregnancyLoss] = useState(defaultValues?.pastPregnancyLoss || "0");
+  const [birthWeight, setBirthWeight] = useState(defaultValues?.pastBirthWeight || "na");
+  const [interval, setInterval] = useState(defaultValues?.interpregnancyInterval || "na");
+  const [familyComp, setFamilyComp] = useState<string[]>(defaultValues?.familyComplications || ["none"]);
+  const [chronic, setChronic] = useState<string[]>(defaultValues?.chronicConditions || ["none"]);
+  const [doctorNotes, setDoctorNotes] = useState(defaultValues?.doctorNotes || "");
+
+  const toggleMultiSelect = (currentList: string[], setFn: (val: string[]) => void, item: string) => {
     if (item === "none") {
       setFn(["none"]);
       return;
@@ -71,36 +88,38 @@ export function ObstetricQuestionnaireFields({
 
   const isPrimi = deliveryMode === "Primi";
 
-  return (
-    <fieldset className={`${card} overflow-hidden transition-all border-indigo-200/60`}>
-      <legend className="sr-only">Obstetric & Past Pregnancy Questionnaire</legend>
-
-      {/* Header bar with toggle */}
-      <button
-        type="button"
-        aria-expanded={isOpen}
-        onClick={() => setIsOpen((open) => !open)}
-        className="flex w-full items-center justify-between text-left p-4 sm:p-5 bg-[linear-gradient(135deg,color-mix(in_srgb,var(--color-pc-lilac)_80%,transparent)_0%,transparent_100%)] cursor-pointer select-none"
-      >
-        <span className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-primary)] text-white shadow-xs">
-            <ClipboardText size={18} weight="bold" />
-          </span>
-          <span>
-            <span className="text-[15px] font-bold text-[var(--color-foreground)] flex items-center gap-2">
-              <span>Past Pregnancy History & Clinical Questionnaire</span>
-              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                Feeds 1-Page Report
-              </span>
-            </span>
-            <span className="block text-[12px] text-[var(--color-charcoal)]">
-              {isPrimi ? 4 : 7} clinical questions for the 1-page obstetric report
-            </span>
-          </span>
+  const single = (opts: Option[], value: string, onPick: (id: string) => void) =>
+    opts.map((o) => (
+      <button key={o.id} type="button" aria-pressed={value === o.id} onClick={() => onPick(o.id)} className={optionClass(value === o.id, o.alert)}>
+        <Mark selected={value === o.id} />
+        <span>
+          {o.label}
+          {o.desc && <span className="block text-[12px] font-normal opacity-80">{o.desc}</span>}
         </span>
-
-        {isOpen ? <CaretUp size={18} aria-hidden /> : <CaretDown size={18} aria-hidden />}
       </button>
+    ));
+
+  const multi = (opts: Option[], list: string[], setFn: (val: string[]) => void) =>
+    opts.map((o) => {
+      const selected = list.includes(o.id);
+      return (
+        <label key={o.id} className={`${optionClass(selected, o.alert)} focus-within:outline focus-within:outline-2 focus-within:outline-[var(--color-primary)]`}>
+          <input type="checkbox" checked={selected} onChange={() => toggleMultiSelect(list, setFn, o.id)} className="sr-only" />
+          <Mark selected={selected} />
+          <span>{o.label}</span>
+        </label>
+      );
+    });
+
+  return (
+    <details open className={`${card} group overflow-hidden`}>
+      <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 md:px-5 [&::-webkit-details-marker]:hidden">
+        <span className="min-w-0">
+          <span className="block text-[16px] font-semibold text-[var(--color-foreground)]">{t("patients.new.questionnaireTitle")}</span>
+          <span className="block text-[13px] text-[var(--color-charcoal)]">{t("patients.new.questionnaireHelp")}</span>
+        </span>
+        <CaretDown size={18} aria-hidden className="shrink-0 text-[var(--color-charcoal)] transition-transform duration-200 group-open:rotate-180" />
+      </summary>
 
       {/* Hidden inputs to feed formData cleanly */}
       <input type="hidden" name="q_previousDeliveryMode" value={deliveryMode} />
@@ -111,275 +130,138 @@ export function ObstetricQuestionnaireFields({
       <input type="hidden" name="q_familyComplications" value={JSON.stringify(familyComp)} />
       <input type="hidden" name="q_chronicConditions" value={JSON.stringify(chronic)} />
 
-      {isOpen && (
-        <div className="p-5 space-y-5 border-t border-[var(--color-border)] bg-[var(--color-background)]">
-          {/* Question 1: Delivery Mode */}
-          <div className="space-y-2">
-            <label className="block text-[13px] font-bold text-[var(--color-foreground)]">
-              1. Previous Delivery Mode & Type
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {[
+      <div className="space-y-8 border-t border-[var(--color-border)] px-4 py-5 md:px-5">
+        <Group title={t("patients.new.sectionPast")}>
+          <Question legend="1. Previous Delivery Mode & Type" cols="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+            {single(
+              [
                 { id: "Primi", label: "First Pregnancy (Primi)", desc: "No prior deliveries" },
                 { id: "NVD", label: "Normal Vaginal (NVD)", desc: "Spontaneous vaginal" },
                 { id: "LSCS", label: "Previous C-Section (LSCS)", desc: "Scarred uterus", alert: true },
                 { id: "Instrumental", label: "Instrumental", desc: "Vacuum / Forceps" },
-              ].map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => {
-                    setDeliveryMode(m.id);
-                    if (m.id === "Primi") {
-                      setBirthWeight("na");
-                      setInterval("na");
-                    } else if (birthWeight === "na") {
-                      setBirthWeight("normal");
-                      setInterval("18m-5y");
-                    }
-                  }}
-                  className={`p-2.5 text-left rounded-xl border text-xs transition-all cursor-pointer ${
-                    deliveryMode === m.id
-                      ? m.alert
-                        ? "border-red-400 bg-red-50/80 text-red-950 font-semibold ring-1 ring-red-400"
-                        : "border-[var(--color-primary)] bg-[var(--color-primary-surface)]/70 text-[var(--color-foreground)] font-semibold ring-1 ring-[var(--color-primary)]"
-                      : "border-[var(--color-border)] bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-2)] text-[var(--color-charcoal)]"
-                  }`}
-                >
-                  <span className="block">{m.label}</span>
-                  <span className="block text-[10px] opacity-75 mt-0.5">{m.desc}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+              ],
+              deliveryMode,
+              (id) => {
+                setDeliveryMode(id);
+                if (id === "Primi") {
+                  setBirthWeight("na");
+                  setInterval("na");
+                } else if (birthWeight === "na") {
+                  setBirthWeight("normal");
+                  setInterval("18m-5y");
+                }
+              }
+            )}
+          </Question>
 
-          {/* Question 2: Prior Complications */}
           {!isPrimi && (
-            <div className="space-y-2">
-              <label className="block text-[13px] font-bold text-[var(--color-foreground)]">
-                2. Prior Obstetric Complications
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {[
+            <Question legend="2. Prior Obstetric Complications" cols="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+              {multi(
+                [
                   { id: "none", label: "None / Uneventful" },
                   { id: "preeclampsia", label: "Preeclampsia / High BP", alert: true },
                   { id: "gdm", label: "Gestational Diabetes (GDM)", alert: true },
                   { id: "pph", label: "Severe Bleeding (PPH)", alert: true },
                   { id: "preterm", label: "Preterm Delivery (<37w)", alert: true },
-                ].map((c) => {
-                  const selected = complications.includes(c.id);
-                  return (
-                    <label
-                      key={c.id}
-                      className={`p-2 text-left rounded-xl border text-xs transition-all cursor-pointer ${
-                        selected
-                          ? c.alert
-                            ? "border-amber-400 bg-amber-50/90 text-amber-950 font-semibold ring-1 ring-amber-400"
-                            : "border-[var(--color-primary)] bg-[var(--color-primary-surface)]/70 text-[var(--color-foreground)] font-semibold"
-                          : "border-[var(--color-border)] bg-[var(--color-surface-1)] text-[var(--color-charcoal)]"
-                      }`}
-                    >
-                      <span className="flex items-center gap-1.5">
-                        <input
-                          type="checkbox"
-                          checked={selected}
-                          onChange={() => toggleMultiSelect(complications, setComplications, c.id)}
-                          className="h-3.5 w-3.5 accent-[var(--color-primary)] cursor-pointer"
-                        />
-                        <span>{c.label}</span>
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
+                ],
+                complications,
+                setComplications
+              )}
+            </Question>
           )}
 
-          {/* Question 3: Past Pregnancy Loss */}
-          <div className="space-y-2">
-            <label className="block text-[13px] font-bold text-[var(--color-foreground)]">
-              {isPrimi ? 2 : 3}. Past Pregnancy Loss
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {[
+          <Question legend={`${isPrimi ? 2 : 3}. Past Pregnancy Loss`} cols="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+            {single(
+              [
                 { id: "0", label: "0 (None)" },
                 { id: "1", label: "1 Miscarriage / Abortion" },
                 { id: "2+", label: "2+ Miscarriages (BOH)", alert: true },
                 { id: "stillbirth", label: "Prior Stillbirth / IUFD", alert: true },
-              ].map((loss) => (
-                <button
-                  key={loss.id}
-                  type="button"
-                  onClick={() => setPregnancyLoss(loss.id)}
-                  className={`p-2.5 text-left rounded-xl border text-xs transition cursor-pointer ${
-                    pregnancyLoss === loss.id
-                      ? loss.alert
-                        ? "border-red-400 bg-red-50 text-red-950 font-semibold ring-1 ring-red-400"
-                        : "border-[var(--color-primary)] bg-[var(--color-primary-surface)] text-[var(--color-foreground)] font-semibold ring-1 ring-[var(--color-primary)]"
-                      : "border-[var(--color-border)] bg-[var(--color-surface-1)] text-[var(--color-charcoal)]"
-                  }`}
-                >
-                  {loss.label}
-                </button>
-              ))}
-            </div>
-          </div>
+              ],
+              pregnancyLoss,
+              setPregnancyLoss
+            )}
+          </Question>
 
-          {/* Question 4: Prior Baby Birth Weight */}
           {!isPrimi && (
-            <div className="space-y-2">
-              <label className="block text-[13px] font-bold text-[var(--color-foreground)]">
-                4. Previous Baby Birth Weight
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                {[
+            <Question legend="4. Previous Baby Birth Weight" cols="grid-cols-1 sm:grid-cols-3">
+              {single(
+                [
                   { id: "normal", label: "Normal (2.5 – 3.5 kg)" },
                   { id: "low", label: "Low Birth Weight (< 2.5 kg)", alert: true },
                   { id: "high", label: "Large Baby (> 3.5 kg / Macrosomia)", alert: true },
-                ].map((w) => (
-                  <button
-                    key={w.id}
-                    type="button"
-                    onClick={() => setBirthWeight(w.id)}
-                    className={`p-2 text-left rounded-xl border text-xs transition cursor-pointer ${
-                      birthWeight === w.id
-                        ? "border-[var(--color-primary)] bg-[var(--color-primary-surface)] text-[var(--color-foreground)] font-semibold ring-1 ring-[var(--color-primary)]"
-                        : "border-[var(--color-border)] bg-[var(--color-surface-1)] text-[var(--color-charcoal)]"
-                    }`}
-                  >
-                    {w.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+                ],
+                birthWeight,
+                setBirthWeight
+              )}
+            </Question>
           )}
 
-          {/* Question 5: Interpregnancy Spacing */}
           {!isPrimi && (
-            <div className="space-y-2">
-              <label className="block text-[13px] font-bold text-[var(--color-foreground)]">
-                5. Interpregnancy Interval
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                {[
+            <Question legend="5. Interpregnancy Interval" cols="grid-cols-1 sm:grid-cols-3">
+              {single(
+                [
                   { id: "<18m", label: "Short (< 18 Months)", alert: deliveryMode === "LSCS" },
                   { id: "18m-5y", label: "Optimal (18m – 5 Years)" },
                   { id: ">5y", label: "Long (> 5 Years)" },
-                ].map((int) => (
-                  <button
-                    key={int.id}
-                    type="button"
-                    onClick={() => setInterval(int.id)}
-                    className={`p-2 text-left rounded-xl border text-xs transition cursor-pointer ${
-                      interval === int.id
-                        ? int.alert
-                          ? "border-red-400 bg-red-50 text-red-950 font-semibold ring-1 ring-red-400"
-                          : "border-[var(--color-primary)] bg-[var(--color-primary-surface)] text-[var(--color-foreground)] font-semibold ring-1 ring-[var(--color-primary)]"
-                        : "border-[var(--color-border)] bg-[var(--color-surface-1)] text-[var(--color-charcoal)]"
-                    }`}
-                  >
-                    {int.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+                ],
+                interval,
+                setInterval
+              )}
+            </Question>
           )}
+        </Group>
 
-          {/* Question 6: Family History */}
-          <div className="space-y-2">
-            <label className="block text-[13px] font-bold text-[var(--color-foreground)]">
-              {isPrimi ? 3 : 6}. Family Pregnancy & Genetic History
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {[
+        <Group title={t("patients.new.sectionRisk")}>
+          <Question legend={`${isPrimi ? 3 : 6}. Family Pregnancy & Genetic History`} cols="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            {multi(
+              [
                 { id: "none", label: "None / No Family Risk" },
                 { id: "preeclampsia", label: "Familial Preeclampsia (High BP)" },
                 { id: "diabetes", label: "Family Diabetes / GDM" },
                 { id: "twins", label: "Family Twins / Multiple Gestation" },
                 { id: "anemia", label: "Hereditary Anemia / Thalassemia" },
-              ].map((fam) => {
-                const selected = familyComp.includes(fam.id);
-                return (
-                  <label
-                    key={fam.id}
-                    className={`p-2 text-left rounded-xl border text-xs transition cursor-pointer ${
-                      selected
-                        ? "border-[var(--color-primary)] bg-[var(--color-primary-surface)] text-[var(--color-foreground)] font-semibold ring-1 ring-[var(--color-primary)]"
-                        : "border-[var(--color-border)] bg-[var(--color-surface-1)] text-[var(--color-charcoal)]"
-                    }`}
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <input
-                        type="checkbox"
-                        checked={selected}
-                        onChange={() => toggleMultiSelect(familyComp, setFamilyComp, fam.id)}
-                        className="h-3.5 w-3.5 accent-[var(--color-primary)] cursor-pointer"
-                      />
-                      <span>{fam.label}</span>
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-          </div>
+              ],
+              familyComp,
+              setFamilyComp
+            )}
+          </Question>
 
-          {/* Question 7: Pre-Existing Chronic Conditions */}
-          <div className="space-y-2">
-            <label className="block text-[13px] font-bold text-[var(--color-foreground)]">
-              {isPrimi ? 4 : 7}. Pre-existing Chronic Medical Conditions
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {[
+          <Question legend={`${isPrimi ? 4 : 7}. Pre-existing Chronic Medical Conditions`} cols="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            {multi(
+              [
                 { id: "none", label: "None / Healthy" },
                 { id: "hypertension", label: "Chronic Hypertension (Pre-pregnancy)", alert: true },
                 { id: "thyroid", label: "Thyroid Disorder (Hypo/Hyper)" },
                 { id: "cardiac", label: "Cardiac / Heart Disease", alert: true },
                 { id: "asthma_epilepsy", label: "Asthma / Epilepsy" },
-              ].map((chr) => {
-                const selected = chronic.includes(chr.id);
-                return (
-                  <label
-                    key={chr.id}
-                    className={`p-2 text-left rounded-xl border text-xs transition cursor-pointer ${
-                      selected
-                        ? chr.alert
-                          ? "border-red-400 bg-red-50 text-red-950 font-semibold ring-1 ring-red-400"
-                          : "border-[var(--color-primary)] bg-[var(--color-primary-surface)] text-[var(--color-foreground)] font-semibold ring-1 ring-[var(--color-primary)]"
-                        : "border-[var(--color-border)] bg-[var(--color-surface-1)] text-[var(--color-charcoal)]"
-                    }`}
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <input
-                        type="checkbox"
-                        checked={selected}
-                        onChange={() => toggleMultiSelect(chronic, setChronic, chr.id)}
-                        className="h-3.5 w-3.5 accent-[var(--color-primary)] cursor-pointer"
-                      />
-                      <span>{chr.label}</span>
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-          </div>
+              ],
+              chronic,
+              setChronic
+            )}
+          </Question>
+        </Group>
 
-          {/* Additional Clinician Notes */}
-          <div className="space-y-1">
-            <label htmlFor="q_doctorNotes" className="block text-[12px] font-medium text-[var(--color-charcoal)]">
-              Clinician High-Risk Observations / Notes (Optional):
+        <Group title={t("patients.new.sectionNotes")}>
+          <div>
+            <label htmlFor="q_doctorNotes" className={labelClass}>
+              Clinician High-Risk Observations / Notes (Optional)
             </label>
             <input
               id="q_doctorNotes"
               name="q_doctorNotes"
               type="text"
-              placeholder="e.g. Scar tenderness checked, advised aspirin 75mg prophylaxis..."
+              aria-describedby="q_doctorNotes-help"
               value={doctorNotes}
               onChange={(e) => setDoctorNotes(e.target.value)}
-              className="min-h-9 w-full rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 text-xs focus:border-[var(--color-primary)] focus:outline-none"
+              className={inputClass}
             />
+            <p id="q_doctorNotes-help" className={helpClass}>
+              e.g. Scar tenderness checked, advised aspirin 75mg prophylaxis
+            </p>
           </div>
-        </div>
-      )}
-    </fieldset>
+        </Group>
+      </div>
+    </details>
   );
 }

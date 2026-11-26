@@ -5,7 +5,7 @@ import { resolvePatientCard } from "@/app/(app)/patients/actions";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Camera, X, WarningCircle, Image as ImageIcon, ArrowRight, CheckCircle } from "@phosphor-icons/react";
-import { buttonPrimary, buttonSecondary } from "@/components/ui";
+import { buttonPrimary, buttonSecondary, iconButton, inputClass } from "@/components/ui";
 import { useT } from "@/lib/i18n/provider";
 
 function playBeep() {
@@ -155,70 +155,72 @@ export function QRScannerModal({ onClose }: { onClose: () => void }) {
       role="dialog"
       aria-modal="true"
       aria-label={t("patients.qr.dialogLabel")}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-xs"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-[var(--color-foreground)]/50 md:items-center md:p-6"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative w-full max-w-md rounded-2xl bg-[var(--color-background)] shadow-2xl overflow-hidden border border-[var(--color-border)]">
+      <div className="relative flex max-h-[100dvh] w-full max-w-md animate-[pc-sheet_260ms_var(--ease-out)_both] flex-col overflow-hidden rounded-t-[var(--radius-cards)] border border-[var(--color-border)] bg-[var(--color-background)] shadow-[var(--shadow-overlay)] motion-reduce:animate-none md:animate-[pc-pop_var(--dur)_var(--ease-out)_both] md:rounded-[var(--radius-cards)]">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface-1)] px-5 py-3.5">
+        <div className="flex shrink-0 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface-1)] px-4 py-3 md:px-5">
           <div className="flex items-center gap-2">
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-primary)] text-white">
               <Camera size={16} weight="bold" />
             </div>
             <div>
-              <h2 className="text-[14px] font-bold text-[var(--color-foreground)]">{t("patients.qr.title")}</h2>
-              <p className="text-[11px] text-[var(--color-charcoal)]">{t("patients.qr.subtitle")}</p>
+              <h2 className="text-[16px] font-semibold text-[var(--color-foreground)]">{t("patients.qr.title")}</h2>
+              <p className="text-[12px] text-[var(--color-charcoal)]">{t("patients.qr.subtitle")}</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label={t("patients.qr.close")}
-            className="rounded-lg p-1.5 text-[var(--color-charcoal)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-foreground)] transition"
+            className={iconButton}
           >
-            <X size={18} />
+            <X size={18} aria-hidden />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-5 space-y-4">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 md:p-5">
           {scannedId ? (
             <div className="flex flex-col items-center justify-center py-8 text-center space-y-3">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 animate-bounce">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-on-track-surface)] text-[var(--color-on-track)]">
                 <CheckCircle size={36} weight="fill" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-[var(--color-foreground)]">{t("patients.qr.detected")}</h3>
-                <p className="text-xs text-[var(--color-charcoal)] font-mono mt-0.5">{t("patients.qr.opening")}</p>
+                <h3 className="text-[16px] font-semibold text-[var(--color-foreground)]">{t("patients.qr.detected")}</h3>
+                <p className="mt-0.5 text-[13px] text-[var(--color-charcoal)]">{t("patients.qr.opening")}</p>
               </div>
             </div>
           ) : (
             <>
               {/* Camera Scanner Viewport */}
-              <div className="relative mx-auto w-full aspect-square max-w-[280px] overflow-hidden rounded-xl border-2 border-dashed border-[#baadca] bg-[#1c1528] flex items-center justify-center">
+              <div className="relative mx-auto flex aspect-square w-full max-w-[280px] items-center justify-center overflow-hidden rounded-[var(--radius-cards)] bg-[var(--color-pc-ink)]">
                 <div id="reader" className="w-full h-full" />
                 <div id="reader-temp-file" className="hidden" />
 
-                {/* Animated viewfinder guide */}
-                <div className="pointer-events-none absolute inset-6 rounded-lg border-2 border-[#baadca] opacity-70">
-                  <div className="absolute top-0 left-0 h-4 w-4 border-t-2 border-l-2 border-white" />
-                  <div className="absolute top-0 right-0 h-4 w-4 border-t-2 border-r-2 border-white" />
-                  <div className="absolute bottom-0 left-0 h-4 w-4 border-b-2 border-l-2 border-white" />
-                  <div className="absolute bottom-0 right-0 h-4 w-4 border-b-2 border-r-2 border-white" />
+                {/* Viewfinder guide: corner brackets mark where the code should sit */}
+                <div className="pointer-events-none absolute inset-6 rounded-lg border border-[var(--color-pc-lilac-strong)]/50">
+                  <div className="absolute top-0 left-0 h-4 w-4 border-t-2 border-l-2 border-[var(--color-pc-card)]" />
+                  <div className="absolute top-0 right-0 h-4 w-4 border-t-2 border-r-2 border-[var(--color-pc-card)]" />
+                  <div className="absolute bottom-0 left-0 h-4 w-4 border-b-2 border-l-2 border-[var(--color-pc-card)]" />
+                  <div className="absolute bottom-0 right-0 h-4 w-4 border-b-2 border-r-2 border-[var(--color-pc-card)]" />
                 </div>
               </div>
 
+              <p className="text-center text-[13px] text-[var(--color-charcoal)]">{t("patients.qr.frameHint")}</p>
+
               {error && (
-                <div role="alert" className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 p-2.5 text-xs text-amber-800">
-                  <WarningCircle size={16} className="shrink-0 mt-0.5" />
+                <div role="alert" className="flex items-start gap-2 rounded-[var(--radius-buttons)] border border-[var(--color-due)]/40 bg-[var(--color-due-surface)] p-3 text-[13px] font-medium text-[var(--color-due)]">
+                  <WarningCircle size={16} className="mt-0.5 shrink-0" aria-hidden />
                   <div>{error}</div>
                 </div>
               )}
 
               {/* Upload QR Image Fallback */}
-              <div className="flex items-center justify-between gap-2 pt-1 border-t border-[var(--color-border)]">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--color-border)] pt-3">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -229,13 +231,13 @@ export function QRScannerModal({ onClose }: { onClose: () => void }) {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-[var(--color-primary)] hover:underline"
+                  className="flex min-h-11 items-center gap-1.5 text-[13px] font-semibold text-[var(--color-primary)] hover:underline md:min-h-10"
                 >
-                  <ImageIcon size={15} />
+                  <ImageIcon size={16} aria-hidden />
                   <span>{t("patients.qr.upload")}</span>
                 </button>
 
-                <span className="text-[11px] text-[var(--color-charcoal)]">{t("patients.qr.orEnterId")}</span>
+                <span className="text-[12px] text-[var(--color-charcoal)]">{t("patients.qr.orEnterId")}</span>
               </div>
 
               {/* Manual Input Fallback */}
@@ -246,11 +248,11 @@ export function QRScannerModal({ onClose }: { onClose: () => void }) {
                   aria-label={t("patients.qr.idPlaceholder")}
                   value={manualInput}
                   onChange={(e) => setManualInput(e.target.value)}
-                  className="min-h-9 flex-1 rounded-[var(--radius-buttons)] border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                  className={`${inputClass} flex-1`}
                 />
                 <button type="submit" className={buttonPrimary} disabled={isProcessing}>
                   <span>{t("patients.qr.go")}</span>
-                  <ArrowRight size={13} />
+                  <ArrowRight size={14} aria-hidden />
                 </button>
               </form>
             </>

@@ -19,33 +19,45 @@ export default async function ScanPage() {
       />
 
       <div className={pageBody}>
-        <div className={`mx-auto max-w-xl space-y-5 p-8 text-center ${card}`}>
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--color-primary-surface)] text-[var(--color-primary)]">
-            <Camera size={32} weight="bold" />
-          </div>
+        <div className="mx-auto grid max-w-3xl gap-4 md:grid-cols-2">
+          <section className={`flex flex-col items-center gap-4 p-6 text-center ${card}`}>
+            <div className="relative flex h-28 w-28 items-center justify-center rounded-[var(--radius-cards)] bg-[var(--color-pc-ink)] text-[var(--color-pc-card)]">
+              <span aria-hidden className="absolute left-2 top-2 h-4 w-4 border-l-2 border-t-2 border-[var(--color-pc-card)]" />
+              <span aria-hidden className="absolute right-2 top-2 h-4 w-4 border-r-2 border-t-2 border-[var(--color-pc-card)]" />
+              <span aria-hidden className="absolute bottom-2 left-2 h-4 w-4 border-b-2 border-l-2 border-[var(--color-pc-card)]" />
+              <span aria-hidden className="absolute bottom-2 right-2 h-4 w-4 border-b-2 border-r-2 border-[var(--color-pc-card)]" />
+              <QrCode size={44} aria-hidden />
+            </div>
+            <div>
+              <h2 className="text-[18px] font-semibold text-[var(--color-foreground)]">{t("patients.scan.heading")}</h2>
+              <p className="mx-auto mt-1.5 max-w-sm text-[14px] text-[var(--color-charcoal)]">{t("patients.scan.body")}</p>
+            </div>
+            <ScanQRCardButton primary className="min-h-12 w-full px-6 md:w-auto" />
+          </section>
 
-          <div>
-            <h2 className="text-[18px] font-semibold text-[var(--color-foreground)]">{t("patients.scan.heading")}</h2>
-            <p className="text-[13px] text-[var(--color-charcoal)] max-w-sm mx-auto mt-1.5">
-              {t("patients.scan.body")}
-            </p>
-          </div>
-
-          <div className="pt-2">
-            <ScanQRCardButton primary className="mx-auto min-h-12 px-6" />
-          </div>
-
-          <div className="pt-4 border-t border-[var(--color-border)] flex flex-wrap items-center justify-center gap-4 text-[12px] text-[var(--color-charcoal)]">
-            <span className="flex items-center gap-1.5">
-              <ShieldCheck size={16} className="text-[var(--color-on-track)]" />
-              <span>{t("patients.scan.perkMatch")}</span>
-            </span>
-            <span>•</span>
-            <span className="flex items-center gap-1.5">
-              <QrCode size={16} className="text-[var(--color-primary)]" />
-              <span>{t("patients.scan.perkNoType")}</span>
-            </span>
-          </div>
+          <section className={`p-6 ${card}`}>
+            <h2 className="text-[15px] font-semibold text-[var(--color-foreground)]">{t("patients.scan.stepsTitle")}</h2>
+            <ol className="mt-3 space-y-3">
+              {(["patients.scan.step1", "patients.scan.step2", "patients.scan.step3"] as const).map((k, i) => (
+                <li key={k} className="flex items-start gap-3 text-[14px]">
+                  <span className="num flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-surface)] text-[12px] font-semibold text-[var(--color-primary)]">
+                    {i + 1}
+                  </span>
+                  <span>{t(k)}</span>
+                </li>
+              ))}
+            </ol>
+            <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 border-t border-[var(--color-border)]/70 pt-3 text-[12px] text-[var(--color-charcoal)]">
+              <span className="flex items-center gap-1.5">
+                <ShieldCheck size={16} className="text-[var(--color-on-track)]" aria-hidden />
+                {t("patients.scan.perkMatch")}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Camera size={16} className="text-[var(--color-primary)]" aria-hidden />
+                {t("patients.scan.perkNoType")}
+              </span>
+            </div>
+          </section>
         </div>
       </div>
     </>
