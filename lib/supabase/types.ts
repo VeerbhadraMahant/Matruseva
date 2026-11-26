@@ -338,6 +338,7 @@ export type Database = {
           name: string
           obstetric_questionnaire: Json | null
           para: number | null
+          person_id: string
           phone: string | null
           pregnancy_status: string
           rh_negative: boolean
@@ -367,6 +368,7 @@ export type Database = {
           name: string
           obstetric_questionnaire?: Json | null
           para?: number | null
+          person_id?: string
           phone?: string | null
           pregnancy_status?: string
           rh_negative?: boolean
@@ -396,6 +398,7 @@ export type Database = {
           name?: string
           obstetric_questionnaire?: Json | null
           para?: number | null
+          person_id?: string
           phone?: string | null
           pregnancy_status?: string
           rh_negative?: boolean
@@ -752,6 +755,17 @@ export type Database = {
           },
         ]
       }
+      patient_contact_summary: {
+        Row: {
+          attempts_30d: number | null
+          clinic_id: string | null
+          last_channel: string | null
+          last_contact_at: string | null
+          last_outcome: string | null
+          patient_id: string | null
+        }
+        Relationships: []
+      }
       patient_followup_risk: {
         Row: {
           clinic_id: string | null
@@ -775,6 +789,10 @@ export type Database = {
     Functions: {
       create_clinic_and_profile: {
         Args: { clinic_name: string; doctor_full_name: string }
+        Returns: string
+      }
+      create_patient_with_schedule: {
+        Args: { p_patient: Json; p_care_events: Json }
         Returns: string
       }
     }
