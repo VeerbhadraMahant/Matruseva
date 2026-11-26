@@ -4,10 +4,11 @@ import { useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Camera } from "@phosphor-icons/react";
 import { createClient } from "@/lib/supabase/client";
-import { preprocessImage, recognizeImage, extractPdfText } from "@/lib/ocr";
+import { preprocessImage, recognizeImage, extractPdfText, renderPdfPreview } from "@/lib/ocr";
 import type { DocSource, DocType } from "@/lib/supabase/enums";
 import { useT } from "@/lib/i18n/provider";
 import { createUuid } from "@/lib/uuid";
+import { todayInClinicTimezone, toISODate } from "@/lib/today";
 import { uploadDemoDocumentAction } from "@/app/(app)/documents/actions";
 
 interface UploadItem {
@@ -54,12 +55,12 @@ export function DocumentUploader({
   const fileInputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [source, setSource] = useState<DocSource>("camera");
-  const [docDate, setDocDate] = useState("");
+  const [docDate, setDocDate] = useState(() => showDateInput ? toISODate(todayInClinicTimezone()) : "");
   const [items, setItems] = useState<UploadItem[]>([]);
 
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
-    const supabase = createClient();
+    const supabase = isDemo ? null : createClient();
     const fileArray = Array.from(files);
     setItems(fileArray.map((f) => ({ fileName: f.name, status: "uploading" })));
 
@@ -81,7 +82,7 @@ export function DocumentUploader({
             // OCR failure shouldn't block the upload
           }
 
-          const dataUrl = isPdf ? "" : await blobToDataUrl(uploadBlob);
+          const dataUrl = isPdf ? await renderPdfPreview(file).catch(() => "") : await blobToDataUrl(uploadBlob);
           const res = await uploadDemoDocumentAction({
             clinicId,
             folder,
@@ -100,6 +101,7 @@ export function DocumentUploader({
 
         const path = `${clinicId}/${folder}/${createUuid()}.${extOf(file)}`;
 
+        if (!supabase) return;
         const { error: uploadError } = await supabase.storage.from("documents").upload(path, uploadBlob, {
           contentType: isPdf ? "application/pdf" : "image/jpeg",
         });
@@ -196,7 +198,7 @@ export function DocumentUploader({
         <Camera size={20} weight="regular" aria-hidden /> {t("documents.uploader.button")}
       </label>
       <p className="mt-2 text-xs text-[var(--color-charcoal)]">
-        {t("documents.uploader.hint")}
+        {t(fixedDocType === "register_page" ? "opd.capture.hint" : "documents.uploader.hint")}
       </p>
 
       {items.length > 0 && (

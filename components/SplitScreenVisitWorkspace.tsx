@@ -1,5 +1,7 @@
 "use client";
 
+import { formatVisitDate } from "@/lib/visitDate";
+
 import { useState, useActionState, useEffect } from "react";
 import { toISODate, todayInClinicTimezone } from "@/lib/today";
 import {
@@ -354,8 +356,9 @@ export function SplitScreenVisitWorkspace({
                 <input
                   id="splitVisitDate"
                   name="visitDate"
-                  type="date"
-                  defaultValue={toISODate(todayInClinicTimezone())}
+                  type="text"
+                  placeholder="DD/MM/YYYY"
+                  defaultValue={formatVisitDate(toISODate(todayInClinicTimezone()))}
                   className={inputClass}
                 />
               </div>
@@ -368,7 +371,6 @@ export function SplitScreenVisitWorkspace({
                   id="splitBpSys"
                   name="bpSys"
                   type="number"
-                  placeholder="120"
                   value={bpSys}
                   onChange={(e) => setBpSys(e.target.value)}
                   className={`${inputClass} ${currentBpAlert ? "border-[var(--color-overdue)] font-semibold" : ""}`}
@@ -383,7 +385,6 @@ export function SplitScreenVisitWorkspace({
                   id="splitBpDia"
                   name="bpDia"
                   type="number"
-                  placeholder="80"
                   value={bpDia}
                   onChange={(e) => setBpDia(e.target.value)}
                   className={`${inputClass} ${currentBpAlert ? "border-[var(--color-overdue)] font-semibold" : ""}`}
@@ -399,7 +400,6 @@ export function SplitScreenVisitWorkspace({
                   name="weight"
                   type="number"
                   step="0.1"
-                  placeholder="55.0"
                   className={inputClass}
                 />
               </div>
@@ -413,7 +413,6 @@ export function SplitScreenVisitWorkspace({
                   name="hb"
                   type="number"
                   step="0.1"
-                  placeholder="11.0"
                   value={hb}
                   onChange={(e) => setHb(e.target.value)}
                   className={`${inputClass} ${currentHbAlert ? "border-[var(--color-overdue)] font-semibold" : ""}`}
@@ -428,7 +427,6 @@ export function SplitScreenVisitWorkspace({
                   id="splitFhr"
                   name="fhr"
                   type="number"
-                  placeholder="140"
                   value={fhr}
                   onChange={(e) => setFhr(e.target.value)}
                   className={`${inputClass} ${currentFhrAlert ? "border-[var(--color-overdue)] font-semibold" : ""}`}
@@ -444,7 +442,6 @@ export function SplitScreenVisitWorkspace({
                   name="fundalHeight"
                   type="number"
                   step="0.1"
-                  placeholder="24.0"
                   className={inputClass}
                 />
               </div>
@@ -456,7 +453,8 @@ export function SplitScreenVisitWorkspace({
                 <input
                   id="splitNextVisitDate"
                   name="nextVisitDate"
-                  type="date"
+                  type="text"
+                  placeholder="DD/MM/YYYY"
                   className={inputClass}
                 />
               </div>

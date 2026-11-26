@@ -3,7 +3,7 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { gestationalAge, type GestationalAge } from "@/lib/pregnancy";
-import { todayInClinicTimezone, toISODate } from "@/lib/today";
+import { todayInClinicTimezone, toISODate, WORKLIST_DAYS } from "@/lib/today";
 import { parseLocalDate, daysBetween } from "@/lib/format";
 import { patientFlags, vitalsFlags, sortFlags, type ClinicalFlag } from "@/lib/clinical";
 import type { CareEventStatus, FollowUpRisk } from "@/lib/supabase/enums";
@@ -16,7 +16,7 @@ export interface OpenEvent {
   kind: string;
   dueFrom: string;
   dueTo: string;
-  status: Extract<CareEventStatus, "due" | "overdue">;
+  status: Extract<CareEventStatus, "due" | "overdue" | "upcoming">;
 }
 
 export interface LatestVisit {
@@ -46,6 +46,7 @@ export interface PatientRow {
   latestVisit: LatestVisit | null;
   overdue: OpenEvent[];
   due: OpenEvent[];
+  upcoming: OpenEvent[];
   flags: ClinicalFlag[];
   createdAt: string | null;
 }
@@ -69,6 +70,7 @@ export const getClinicSnapshot = cache(async () => {
 
   const supabase = await createClient();
   const today = todayInClinicTimezone();
+  const weekEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + WORKLIST_DAYS - 1);
 
   const [{ data: patients }, { data: events }, { data: risks }, { data: visits }] = await Promise.all([
     supabase
@@ -79,7 +81,7 @@ export const getClinicSnapshot = cache(async () => {
     supabase
       .from("care_event_status")
       .select("id, patient_id, name, kind, due_from, due_to, status")
-      .in("status", ["due", "overdue"])
+      .or(`status.in.(due,overdue),and(status.eq.upcoming,due_to.lte.${toISODate(weekEnd)})`)
       .order("due_to"),
     supabase.from("patient_followup_risk").select("patient_id, risk, next_visit_date, no_answer_streak"),
     // One row per patient (latest visit), resolved in the DB; RLS-scoped.
@@ -137,6 +139,7 @@ export const getClinicSnapshot = cache(async () => {
       latestVisit,
       overdue: open.filter((e) => e.status === "overdue"),
       due: open.filter((e) => e.status === "due"),
+      upcoming: open.filter((e) => e.status === "upcoming"),
       createdAt: p.created_at ?? null,
       flags: sortFlags([
         ...(latestVisit ? vitalsFlags(latestVisit) : []),
@@ -152,10 +155,6 @@ export const getClinicSnapshot = cache(async () => {
 export function daysOverdue(row: PatientRow, today: Date): number {
   if (row.overdue.length === 0) return 0;
   return Math.max(...row.overdue.map((e) => daysBetween(parseLocalDate(e.dueTo), today)));
-}
-
-export function needsFollowUp(row: PatientRow): boolean {
-  return row.risk !== "on_track" || row.overdue.length > 0;
 }
 
 /** Lower sorts first: lost, then critical clinical flags, then most overdue, then at-risk. */

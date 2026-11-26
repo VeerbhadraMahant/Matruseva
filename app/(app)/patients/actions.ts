@@ -8,8 +8,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser, isDemoActive } from "@/lib/auth";
 import { generateSchedule, type ScheduleTemplateItem } from "@/lib/schedule";
 import { todayInClinicTimezone, toISODate } from "@/lib/today";
+import { normalizeIndianPhone } from "@/lib/whatsapp";
 import { eddFromLmp } from "@/lib/pregnancy";
-import { addDemoPatient } from "@/lib/demo-data";
+import { addDemoPatient, getDemoStore } from "@/lib/demo-data";
 import type { CareEventKind } from "@/lib/supabase/enums";
 import { getT } from "@/lib/i18n/server";
 import type { Translator } from "@/lib/i18n/translate-client";
@@ -51,6 +52,19 @@ function makePatientSchema(t: Translator) {
   });
 }
 
+function escapeSearchPattern(value: string): string {
+  return value.replace(/[\\%_*]/g, (character) => "\\" + character);
+}
+
+function normalizedName(name: string): string {
+  return name.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function normalizedPhone(phone: string | null | undefined): string {
+  if (!phone) return "";
+  return normalizeIndianPhone(phone) ?? phone.replace(/\D/g, "");
+}
+
 export async function createPatient(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
   const { t } = await getT();
   const raw = Object.fromEntries(formData.entries());
@@ -59,6 +73,10 @@ export async function createPatient(_prev: ActionResult, formData: FormData): Pr
     return { error: parsed.error.issues[0].message };
   }
   const input = parsed.data;
+  const name = normalizedName(input.name);
+  const phone = normalizedPhone(input.phone);
+  const matchesRegistration = (patient: { name: string; phone?: string | null }) =>
+    Boolean(phone && name === normalizedName(patient.name) && phone === normalizedPhone(patient.phone));
 
   const cookieStore = await cookies();
   const isDemo = isDemoActive(cookieStore);
@@ -83,6 +101,9 @@ export async function createPatient(_prev: ActionResult, formData: FormData): Pr
   }
 
   if (isDemo) {
+    if (getDemoStore().patients.some((patient) => (patient.status ?? "active") === "active" && matchesRegistration(patient))) {
+      return { error: t("patients.error.duplicate") };
+    }
     const newId = addDemoPatient({
       name: input.name,
       clinicPatientNo: input.clinicPatientNo || null,
@@ -98,6 +119,7 @@ export async function createPatient(_prev: ActionResult, formData: FormData): Pr
       obstetricQuestionnaire: questionnaireData,
     });
 
+    revalidatePath("/(app)", "layout");
     revalidatePath("/patients");
     revalidatePath("/today");
     revalidatePath("/calls");
@@ -109,6 +131,13 @@ export async function createPatient(_prev: ActionResult, formData: FormData): Pr
   try {
     const [supabase, me] = await Promise.all([createClient(), getCurrentUser()]);
     const profile = { clinic_id: me.clinicId };
+    if (phone) {
+      const pattern = escapeSearchPattern(name).replaceAll(" ", "%");
+      const { data: matches, error } = await supabase.from("patients").select("name, phone")
+        .eq("clinic_id", me.clinicId).eq("status", "active").ilike("name", `%${pattern}%`);
+      if (error) return { error: t("patients.error.dbConnection") };
+      if (matches?.some(matchesRegistration)) return { error: t("patients.error.duplicate") };
+    }
 
     const [y, m, d] = input.lmp.split("-").map(Number);
     const lmpDate = new Date(y, m - 1, d);
@@ -165,6 +194,7 @@ export async function createPatient(_prev: ActionResult, formData: FormData): Pr
   }
 
   if (createdPatientId) {
+    revalidatePath("/(app)", "layout");
     revalidatePath("/patients");
     revalidatePath("/today");
     revalidatePath("/calls");
@@ -229,4 +259,49 @@ async function buildScheduleRows(
   }));
 
   return { rows, error: null };
+}
+
+export async function resolvePatientCard(raw: string): Promise<string | null> {
+  let reference = raw.trim();
+  if (!reference || reference.length > 2048) return null;
+  const urlMatch = reference.match(/(?:^|https?:\/\/[^/]+)\/patients\/([^/?#]+)/i);
+  if (urlMatch) {
+    try {
+      reference = decodeURIComponent(urlMatch[1]);
+    } catch {
+      return null;
+    }
+  } else if (reference.startsWith("{")) {
+    try {
+      const data: unknown = JSON.parse(reference);
+      if (!data || typeof data !== "object" || !("id" in data) || typeof data.id !== "string") return null;
+      reference = data.id.trim();
+    } catch {
+      return null;
+    }
+  }
+  if (!reference || reference.length > 80) return null;
+
+  const me = await getCurrentUser();
+  if (me.isDemo) {
+    const referenceLower = reference.toLowerCase();
+    const patients = getDemoStore().patients;
+    const idMatch = patients.find((patient) => patient.id === reference);
+    if (idMatch) return idMatch.id;
+    const matches = patients.filter((patient) => patient.clinicPatientNo?.toLowerCase() === referenceLower);
+    return matches.length === 1 ? matches[0].id : null;
+  }
+
+  const supabase = await createClient();
+  if (z.uuid().safeParse(reference).success) {
+    const { data, error } = await supabase.from("patients").select("id")
+      .eq("clinic_id", me.clinicId).eq("id", reference).maybeSingle();
+    if (error) throw error;
+    if (data) return data.id;
+  }
+  const exactCard = escapeSearchPattern(reference);
+  const { data, error } = await supabase.from("patients").select("id")
+    .eq("clinic_id", me.clinicId).ilike("clinic_patient_no", exactCard).limit(2);
+  if (error) throw error;
+  return data?.length === 1 ? data[0].id : null;
 }

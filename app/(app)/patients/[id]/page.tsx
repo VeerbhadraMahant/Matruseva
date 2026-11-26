@@ -1,14 +1,13 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Phone, WhatsappLogo, FilePdf, Baby, FileText, Microphone } from "@phosphor-icons/react/dist/ssr";
+import { Phone, FilePdf, Baby, FileText, Microphone, DotsThree } from "@phosphor-icons/react/dist/ssr";
 import { createClient } from "@/lib/supabase/server";
 import { gestationalAge, formatGALocalized, trimester } from "@/lib/pregnancy";
 import { getT } from "@/lib/i18n/server";
-import { intlLocale } from "@/lib/i18n/intl";
 import { careEventKind, careEventName, careStatusLabel, contactOutcomeLabel, documentTypeLabel, followUpRiskLabel } from "@/lib/clinicalLabels";
 import { todayInClinicTimezone, toISODate } from "@/lib/today";
-import { daysBetween, formatDate, formatGravidaPara, formatShortDate, parseLocalDate, relativeDays } from "@/lib/format";
+import { daysBetween, formatContactDate, formatDate, formatGravidaPara, formatShortDate, parseLocalDate, relativeDays } from "@/lib/format";
 import { bpFlag, hbFlag, fhrFlag, patientFlags, vitalsFlags, sortFlags, localizeFlags } from "@/lib/clinical";
 import {
   telLink,
@@ -101,7 +100,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
   const cookieStore = await cookies();
   const isDemo = isDemoActive(cookieStore);
   const { t, locale } = await getT();
-  const [me, supabase] = await Promise.all([getCurrentUser(), createClient()]);
+  const [me, supabase] = await Promise.all([getCurrentUser(), isDemo ? null : createClient()]);
 
   let patient: PatientRecord | null = null;
   let careEvents: CareEventRecord[] = [];
@@ -135,7 +134,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
     documents = demo.documents as DocRecord[];
     contacts = demo.contacts as ContactRecord[];
     risk = demo.risk as RiskRecord;
-  } else {
+  } else if (supabase) {
     const [pRes, ceRes, vRes, dRes, cRes, rRes] = await Promise.all([
       supabase.from("patients").select("*").eq("id", id).maybeSingle(),
       supabase
@@ -173,7 +172,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
   if (!patient) notFound();
 
   const docs = documents ?? [];
-  const { data: signed } = (!isDemo && docs.length)
+  const { data: signed } = (supabase && docs.length)
     ? await supabase.storage.from("documents").createSignedUrls(docs.map((d: DocRecord) => d.storage_path), 300)
     : { data: [] };
   const urlByPath = new Map((signed ?? []).map((s) => [s.path, s.signedUrl]));
@@ -214,9 +213,9 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
   ]);
   const alertFlags = localizeFlags(flags, t);
 
-  const [{ data: clinic }] = await Promise.all([
-    supabase.from("clinics").select("name, message_templates").eq("id", patient.clinic_id).single(),
-  ]);
+  const { data: clinic } = supabase
+    ? await supabase.from("clinics").select("name, message_templates").eq("id", patient.clinic_id).single()
+    : { data: null };
 
   const clinicTemplates = (clinic?.message_templates ?? {}) as MessageTemplates;
   const defaultLang = clinicTemplates.default_lang ?? "en";
@@ -237,6 +236,20 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
     mr: patient.phone ? whatsAppLink(patient.phone, messagesByLang.mr) : null,
   };
   const wa = whatsappByLang[defaultLang];
+  const isClosed = ["delivered", "closed"].includes(patient.status) ||
+    ["delivered", "closed"].includes(patient.pregnancy_status ?? "");
+  const visitWorkspace = (
+    <PatientDetailInteractive
+      patientId={id}
+      patientName={patient.name}
+      gaLabel={ga ? formatGALocalized(ga, t) : null}
+      wa={wa}
+      whatsappByLang={whatsappByLang}
+      messagesByLang={messagesByLang}
+      defaultLang={defaultLang}
+      documents={patientDocs}
+    />
+  );
 
   return (
     <>
@@ -247,8 +260,8 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
           </Link>
           {patient.clinic_patient_no ? <span className="num"> / #{patient.clinic_patient_no}</span> : null}
         </nav>
-        <div className={`overflow-hidden ${card}`}>
-        <div className="flex flex-wrap items-start justify-between gap-4 bg-[linear-gradient(135deg,color-mix(in_srgb,var(--color-pc-lilac)_70%,transparent)_0%,transparent_55%)] p-5">
+        <div className={`relative ${card}`}>
+        <div className="flex flex-wrap items-start justify-between gap-4 rounded-t-[var(--radius-cards)] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--color-pc-lilac)_70%,transparent)_0%,transparent_55%)] p-5">
           <div className="flex min-w-0 items-center gap-4">
             <span
               aria-hidden
@@ -277,114 +290,117 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Link
-              href={`/patients/${patient.id}/report`}
-              className={buttonSecondary}
-              title={t("patientDetail.header.reportTitle")}
-            >
-              <FileText size={16} weight="bold" className="text-[var(--color-primary)]" aria-hidden />
-              <span>{t("patientDetail.header.report")}</span>
-            </Link>
-            <Link href={`/patients/${patient.id}/consult`} className={buttonSecondary} title={t("consult.openTitle")}>
-              <Microphone size={16} weight="bold" className="text-[var(--color-primary)]" aria-hidden />
-              <span>{t("consult.open")}</span>
-            </Link>
-            <VoiceCounselorButton
-              data={{
-                patientId: patient.id,
-                patientName: patient.name,
-                phone: patient.phone,
-                age: patient.age,
-                gaWeeks: ga?.weeks ?? null,
-                trimester: (ga ? trimester(ga) : 2) as 1 | 2 | 3,
-                bpSys: latest?.bp_sys ?? null,
-                bpDia: latest?.bp_dia ?? null,
-                hb: latest?.hb ?? null,
-                fhr: latest?.fhr ?? null,
-                riskFlags: flags.map((f) => f.label),
-                nextVisitDate: firstOverdue?.dueFrom ?? null,
-                clinicName: me.clinicName,
-              }}
-            />
-            <EditPatientButton
-              patient={{
-                id: patient.id,
-                name: patient.name,
-                clinicPatientNo: patient.clinic_patient_no,
-                age: patient.age,
-                phone: patient.phone,
-                altPhone: patient.alt_phone,
-                address: patient.address,
-                gravida: patient.gravida,
-                para: patient.para,
-                bloodGroup: patient.blood_group,
-                rhNegative: patient.rh_negative,
-                lmp: patient.lmp,
-                edd: patient.edd,
-                eddSource: (patient.edd_source as "lmp" | "scan" | "manual") || "lmp",
-              }}
-            />
-            <MotherHealthCardButton
-              patient={{
-                id: patient.id,
-                name: patient.name,
-                clinicPatientNo: patient.clinic_patient_no,
-                age: patient.age,
-                phone: patient.phone,
-                altPhone: patient.alt_phone,
-                bloodGroup: patient.blood_group,
-                rhNegative: patient.rh_negative,
-                edd: eddIso ? formatShortDate(eddIso, locale) : null,
-                gaLabel: ga ? `${formatGALocalized(ga, t)} · ${t("clinical.trimester.short", { n: trimester(ga) })}` : null,
-                gravida: patient.gravida,
-                para: patient.para,
-                clinicName: me.clinicName,
-              }}
-            />
-            <NutritionDietButton
-              data={{
-                patientId: patient.id,
-                patientName: patient.name,
-                phone: patient.phone,
-                gaWeeks: ga?.weeks ?? null,
-                trimester: (ga ? trimester(ga) : 2) as 1 | 2 | 3,
-                hb: latest?.hb ?? null,
-                clinicName: me.clinicName,
-              }}
-            />
-            {tel && (
-              <a href={tel} className={buttonPrimary}>
-                <Phone size={15} weight="fill" aria-hidden /> {t("patientDetail.header.call")}
+            {!isClosed && (
+              <a href="#record-visit" className={`${buttonPrimary} min-h-11`}>
+                {t("patientDetail.header.recordVisit")}
               </a>
             )}
-            {wa && (
-              <a href={wa} target="_blank" rel="noreferrer" className={buttonSecondary}>
-                <WhatsappLogo size={15} aria-hidden /> WhatsApp
-              </a>
-            )}
-            {!(patient.status === "delivered" || patient.status === "closed" || patient.pregnancy_status === "delivered" || patient.pregnancy_status === "closed") ? (
-              <>
-                <a href="#record-visit" className={buttonSecondary}>
-                  {t("patientDetail.header.recordVisit")}
-                </a>
-                <ClosePregnancyForm
+            <details className="md:relative">
+              <summary className={`${buttonSecondary} min-h-11 cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
+                <DotsThree size={17} weight="bold" aria-hidden /> {t("patientDetail.header.more")}
+              </summary>
+              <div className={`absolute right-4 z-20 mt-2 md:right-0 flex w-max max-w-[min(20rem,calc(100vw-2rem))] flex-col items-stretch gap-2 p-2 ${card}`}>
+                <Link
+                  href={`/patients/${patient.id}/report`}
+                  className={buttonSecondary}
+                  title={t("patientDetail.header.reportTitle")}
+                >
+                  <FileText size={16} weight="bold" className="text-[var(--color-primary)]" aria-hidden />
+                  <span>{t("patientDetail.header.report")}</span>
+                </Link>
+                <Link href={`/patients/${patient.id}/consult`} className={buttonSecondary} title={t("consult.openTitle")}>
+                  <Microphone size={16} weight="bold" className="text-[var(--color-primary)]" aria-hidden />
+                  <span>{t("consult.open")}</span>
+                </Link>
+                <VoiceCounselorButton
+                  data={{
+                    patientId: patient.id,
+                    patientName: patient.name,
+                    phone: patient.phone,
+                    age: patient.age,
+                    gaWeeks: ga?.weeks ?? null,
+                    trimester: (ga ? trimester(ga) : 2) as 1 | 2 | 3,
+                    bpSys: latest?.bp_sys ?? null,
+                    bpDia: latest?.bp_dia ?? null,
+                    hb: latest?.hb ?? null,
+                    fhr: latest?.fhr ?? null,
+                    riskFlags: flags.map((f) => f.label),
+                    nextVisitDate: firstOverdue?.dueFrom ?? null,
+                    clinicName: me.clinicName,
+                  }}
+                />
+                <EditPatientButton
                   patient={{
                     id: patient.id,
                     name: patient.name,
                     clinicPatientNo: patient.clinic_patient_no,
+                    age: patient.age,
+                    phone: patient.phone,
+                    altPhone: patient.alt_phone,
+                    address: patient.address,
+                    gravida: patient.gravida,
+                    para: patient.para,
+                    bloodGroup: patient.blood_group,
+                    rhNegative: patient.rh_negative,
                     lmp: patient.lmp,
-                    edd: eddIso,
+                    edd: patient.edd,
+                    eddSource: (patient.edd_source as "lmp" | "scan" | "manual") || "lmp",
                   }}
-                  todayIso={toISODate(today)}
                 />
-              </>
-            ) : null}
+                <MotherHealthCardButton
+                  patient={{
+                    id: patient.id,
+                    name: patient.name,
+                    clinicPatientNo: patient.clinic_patient_no,
+                    age: patient.age,
+                    phone: patient.phone,
+                    altPhone: patient.alt_phone,
+                    bloodGroup: patient.blood_group,
+                    rhNegative: patient.rh_negative,
+                    edd: eddIso ? formatShortDate(eddIso, locale) : null,
+                    gaLabel: ga ? `${formatGALocalized(ga, t)} · ${t("clinical.trimester.short", { n: trimester(ga) })}` : null,
+                    gravida: patient.gravida,
+                    para: patient.para,
+                    clinicName: me.clinicName,
+                  }}
+                />
+                <NutritionDietButton
+                  data={{
+                    patientId: patient.id,
+                    patientName: patient.name,
+                    phone: patient.phone,
+                    gaWeeks: ga?.weeks ?? null,
+                    trimester: (ga ? trimester(ga) : 2) as 1 | 2 | 3,
+                    hb: latest?.hb ?? null,
+                    clinicName: me.clinicName,
+                  }}
+                />
+                {tel && (
+                  <a href={tel} className={buttonSecondary}>
+                    <Phone size={15} weight="fill" aria-hidden /> {t("patientDetail.header.call")}
+                  </a>
+                )}
+                {visitWorkspace}
+                {!isClosed && (
+                  <ClosePregnancyForm
+                    patient={{
+                      id: patient.id,
+                      name: patient.name,
+                      clinicPatientNo: patient.clinic_patient_no,
+                      lmp: patient.lmp,
+                      edd: eddIso,
+                    }}
+                    todayIso={toISODate(today)}
+                  />
+                )}
+              </div>
+            </details>
           </div>
         </div>
 
         <div className="grid grid-cols-2 divide-[var(--color-border)] border-t border-[var(--color-border)] sm:grid-cols-3 lg:grid-cols-6 lg:divide-x">
           <Fact label={t("patientDetail.fact.ga")}>
-            {(patient.status === "delivered" || patient.status === "closed" || patient.pregnancy_status === "delivered" || patient.pregnancy_status === "closed") ? (
+            {isClosed ? (
               <span className="font-semibold text-[var(--color-on-track)]">{t("patientDetail.fact.delivered")}</span>
             ) : ga ? (
               <>
@@ -400,7 +416,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
           </Fact>
           <Fact label={t("patientDetail.fact.lmp")}>{formatDate(patient.lmp, locale)}</Fact>
           <Fact label={t("patientDetail.fact.nextVisit")}>
-            {(patient.status === "delivered" || patient.status === "closed" || patient.pregnancy_status === "delivered" || patient.pregnancy_status === "closed") ? (
+            {isClosed ? (
               <span className="text-[var(--color-charcoal)]">{t("patientDetail.fact.concluded")}</span>
             ) : nextVisit ? (
               <>
@@ -418,7 +434,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
             )}
           </Fact>
           <Fact label={t("patientDetail.fact.followUp")}>
-            {(patient.status === "delivered" || patient.status === "closed" || patient.pregnancy_status === "delivered" || patient.pregnancy_status === "closed") ? (
+            {isClosed ? (
               <Tag tone="ok">{t("patientDetail.fact.delivered")}</Tag>
             ) : (
               <Tag tone={RISK_TONE[followUpRisk]}>{followUpRiskLabel(followUpRisk, t)}</Tag>
@@ -433,7 +449,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
       </header>
 
       <div className={`${pageBody} max-md:pb-20`}>
-        {(patient.status === "delivered" || patient.status === "closed" || patient.pregnancy_status === "delivered" || patient.pregnancy_status === "closed") && (
+        {isClosed && (
           <div className="rounded-[var(--radius-cards)] border border-[var(--color-on-track)]/40 bg-[var(--color-on-track-surface)] p-5 text-[var(--color-foreground)]">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--color-on-track)]/30 pb-2.5">
               <div className="flex items-center gap-2">
@@ -485,6 +501,14 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
           </div>
         )}
 
+        <div id="record-visit" className="scroll-mt-20" tabIndex={-1}>
+          <Panel title={t("patientDetail.panel.recordVisit")}>
+            <div className="p-4 pt-1">
+              <VisitForm patientId={id} />
+            </div>
+          </Panel>
+        </div>
+
         {lmp && ga && (
           <Panel title={t("patientDetail.panel.timeline")}>
             <PregnancyTimeline lmp={patient.lmp!} gaDays={ga.days} events={events} />
@@ -533,7 +557,9 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
                             )}
                           </td>
                           <td className={`${td} text-right`}>
-                            {e.status !== "done" && e.status !== "skipped" && <MarkDoneButton careEventId={e.id} patientId={id} />}
+                            {(e.status === "due" || e.status === "overdue" || e.status === "done") && (
+                              <MarkDoneButton careEventId={e.id} patientId={id} todayIso={toISODate(today)} done={e.status === "done"} />
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -603,24 +629,6 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
           </div>
 
           <div className="space-y-5">
-            <Panel title={t("patientDetail.panel.recordVisit")} className="scroll-mt-4" >
-              <div id="record-visit" className="p-4 pt-1">
-                <PatientDetailInteractive
-                  patientId={id}
-                  patientName={patient.name}
-                  gaLabel={ga ? formatGALocalized(ga, t) : null}
-                  phone={patient.phone}
-                  tel={tel}
-                  wa={wa}
-                  whatsappByLang={whatsappByLang}
-                  messagesByLang={messagesByLang}
-                  defaultLang={defaultLang}
-                  documents={patientDocs}
-                />
-                <VisitForm patientId={id} />
-              </div>
-            </Panel>
-
             <Panel title={t("patientDetail.panel.contacts")} count={(contacts ?? []).length}>
               {(contacts ?? []).length === 0 ? (
                 <Empty>{t("patientDetail.contacts.empty")}</Empty>
@@ -632,15 +640,9 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
                         {c.channel === "whatsapp" ? t("clinical.channel.whatsapp") : t("clinical.channel.call")} ·{" "}
                         <span className="font-medium">{contactOutcomeLabel(c.outcome as ContactOutcome, t)}</span>
                       </span>
-                      <span className="num text-[12px] text-[var(--color-charcoal)]">
-                        {new Date(c.created_at).toLocaleString(intlLocale(locale), {
-                          day: "2-digit",
-                          month: "short",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          timeZone: "Asia/Kolkata",
-                        })}
-                      </span>
+                      <time dateTime={c.created_at} className="num text-[12px] text-[var(--color-charcoal)]">
+                        {formatContactDate(c.created_at, locale)}
+                      </time>
                     </li>
                   ))}
                 </ul>

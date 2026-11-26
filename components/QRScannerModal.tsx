@@ -1,5 +1,7 @@
 "use client";
 
+import { resolvePatientCard } from "@/app/(app)/patients/actions";
+
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Camera, X, WarningCircle, Image as ImageIcon, ArrowRight, CheckCircle } from "@phosphor-icons/react";
@@ -52,48 +54,32 @@ export function QRScannerModal({ onClose }: { onClose: () => void }) {
   const [scannedId, setScannedId] = useState<string | null>(null);
   const [manualInput, setManualInput] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const processing = useRef(false);
   const scannerRef = useRef<unknown>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleDetected = useCallback((decodedText: string) => {
-    if (isProcessing) return;
+  const handleDetected = useCallback(async (decodedText: string) => {
+    if (processing.current) return;
+    processing.current = true;
     setIsProcessing(true);
-    playBeep();
-
-    let patientId = decodedText.trim();
-
-    // Check if it's a URL like https://.../patients/[id] or /patients/[id]
-    if (patientId.includes("/patients/")) {
-      const parts = patientId.split("/patients/");
-      if (parts[1]) {
-        patientId = parts[1].split("?")[0].split("/")[0].trim();
+    setError(null);
+    try {
+      const patientId = await resolvePatientCard(decodedText);
+      if (!patientId) {
+        setError(t("patients.qr.noPatient"));
+        return;
       }
-    } else {
-      // Check if it's JSON
-      try {
-        const parsed = JSON.parse(patientId);
-        if (parsed?.id) patientId = parsed.id;
-      } catch {
-        // Raw ID or patient number
-      }
-    }
-
-    setScannedId(patientId);
-
-    // Stop scanner
-    if (scannerRef.current) {
-      try {
-        (scannerRef.current as { stop?: () => Promise<void> }).stop?.();
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    setTimeout(() => {
+      playBeep();
+      setScannedId(patientId);
+      router.push(`/patients/${encodeURIComponent(patientId)}`);
       onClose();
-      router.push(`/patients/${patientId}/report`);
-    }, 600);
-  }, [isProcessing, onClose, router]);
+    } catch {
+      setError(t("patients.qr.lookupError"));
+    } finally {
+      processing.current = false;
+      setIsProcessing(false);
+    }
+  }, [onClose, router, t]);
 
   useEffect(() => {
     let html5QrCode: unknown = null;
@@ -114,7 +100,7 @@ export function QRScannerModal({ onClose }: { onClose: () => void }) {
             aspectRatio: 1.0,
           },
           (decodedText: string) => {
-            handleDetected(decodedText);
+            void handleDetected(decodedText);
           },
           () => {
             // Frame scan without code — quiet ignore
@@ -123,7 +109,7 @@ export function QRScannerModal({ onClose }: { onClose: () => void }) {
       })
       .catch((err) => {
         console.warn("Camera start failed:", err);
-        setError(t("patients.qr.cameraError"));
+        if (isMounted) setError((current) => current ?? t("patients.qr.cameraError"));
       });
 
     return () => {
@@ -151,7 +137,7 @@ export function QRScannerModal({ onClose }: { onClose: () => void }) {
       const tempScanner = new Html5Qrcode("reader-temp-file");
       const result = await tempScanner.scanFile(file, true);
       tempScanner.clear();
-      handleDetected(result);
+      await handleDetected(result);
     } catch (err) {
       console.error(err);
       setError(t("patients.qr.fileError"));
@@ -161,8 +147,7 @@ export function QRScannerModal({ onClose }: { onClose: () => void }) {
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!manualInput.trim()) return;
-    onClose();
-    router.push(`/patients/${manualInput.trim()}/report`);
+    void handleDetected(manualInput);
   };
 
   return (
@@ -226,7 +211,7 @@ export function QRScannerModal({ onClose }: { onClose: () => void }) {
               </div>
 
               {error && (
-                <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 p-2.5 text-xs text-amber-800">
+                <div role="alert" className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 p-2.5 text-xs text-amber-800">
                   <WarningCircle size={16} className="shrink-0 mt-0.5" />
                   <div>{error}</div>
                 </div>
@@ -263,7 +248,7 @@ export function QRScannerModal({ onClose }: { onClose: () => void }) {
                   onChange={(e) => setManualInput(e.target.value)}
                   className="min-h-9 flex-1 rounded-[var(--radius-buttons)] border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
                 />
-                <button type="submit" className={buttonPrimary}>
+                <button type="submit" className={buttonPrimary} disabled={isProcessing}>
                   <span>{t("patients.qr.go")}</span>
                   <ArrowRight size={13} />
                 </button>

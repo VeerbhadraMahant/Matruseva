@@ -4,6 +4,7 @@ import { intlLocale } from "@/lib/i18n/intl";
 import { getCurrentUser, isDemoActive } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getClinicSnapshot } from "@/lib/snapshot";
+import { hasOverdueItems, isAtRisk } from "@/lib/followUp";
 import { trimester } from "@/lib/pregnancy";
 import { ClinicAnalyticsSummary } from "@/components/ClinicAnalyticsSummary";
 import { HeroCard } from "@/components/today/HeroCard";
@@ -17,8 +18,8 @@ export default async function TodayPage() {
   const [me, { rows, today }, { t, locale }] = await Promise.all([getCurrentUser(), getClinicSnapshot(), getT()]);
 
   const worklist = buildWorklist(rows, today, t, locale);
-  const overduePatients = rows.filter((r) => r.overdue.length > 0);
-  const atRiskPatients = rows.filter((r) => r.risk !== "on_track");
+  const overdueCount = rows.filter((r) => hasOverdueItems(r.overdue.length)).length;
+  const atRiskCount = rows.filter((r) => isAtRisk(r.risk)).length;
   const deliveries = upcomingDeliveries(rows, today, locale);
 
   const cookieStore = await cookies();
@@ -62,8 +63,7 @@ export default async function TodayPage() {
   };
 
   const totalActive = rows.length;
-  const overdueMothers = rows.filter((r) => r.overdue.length > 0).length;
-  const compliantCount = Math.max(0, totalActive - overdueMothers);
+  const compliantCount = totalActive - overdueCount;
   const complianceRate = totalActive > 0 ? Math.round((compliantCount / totalActive) * 100) : 0;
 
   const dateLabel = today.toLocaleDateString(intlLocale(locale), { weekday: "long", day: "numeric", month: "long", year: "numeric" });
@@ -82,20 +82,20 @@ export default async function TodayPage() {
         <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] lg:items-start">
           <div className="contents lg:flex lg:flex-col lg:gap-5">
             <div className="order-1">
+              <TodayWorklist days={worklist.days} rows={worklist.rows} />
+            </div>
+            <div className="order-2">
               <HeroCard
-                dueToday={worklist.days[0]?.entries.length ?? 0}
-                overdue={overduePatients.length}
-                atRisk={atRiskPatients.length}
+                dueToday={worklist.days[0]?.entries.filter((entry) => entry.scheduled).length ?? 0}
+                overdue={overdueCount}
+                atRisk={atRiskCount}
                 totalActive={totalActive}
               />
-            </div>
-            <div className="order-3">
-              <TodayWorklist days={worklist.days} rows={worklist.rows} />
             </div>
           </div>
 
           <div className="contents lg:flex lg:flex-col lg:gap-5">
-            <div className="order-2">
+            <div className="order-3">
               <QuickActions />
             </div>
             <div className="order-4">
@@ -107,7 +107,7 @@ export default async function TodayPage() {
                 contactsAttempted={contactsAttempted}
                 contactsReached={contactsReached}
                 contactSuccessRate={contactSuccessRate}
-                overdueCount={overduePatients.length}
+                overdueCount={overdueCount}
                 deliveriesThisMonth={deliveriesThisMonth}
               />
             </div>

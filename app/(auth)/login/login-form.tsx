@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { Sparkle } from "@phosphor-icons/react";
 import { login, loginDemo, type ActionResult } from "../actions";
@@ -13,6 +13,7 @@ const initialState: ActionResult = { error: null };
 
 export function LoginForm({ demo }: { demo: boolean }) {
   const t = useT();
+  const [showPassword, setShowPassword] = useState(false);
   const [state, formAction] = useActionState(login, initialState);
 
   return (
@@ -38,18 +39,30 @@ export function LoginForm({ demo }: { demo: boolean }) {
           />
         </div>
         <div>
-          <label htmlFor="password" className="mb-1.5 block text-[13px] font-medium text-[var(--color-charcoal)]">
-            {t("auth.field.password")}
-          </label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            defaultValue={demo ? DEMO_PASSWORD : undefined}
-            required
-            className="min-h-11 w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 text-[15px]"
-          />
+          <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+            <label htmlFor="password" className="text-[13px] font-medium text-[var(--color-charcoal)]">
+              {t("auth.field.password")}
+            </label>
+            <Link href="/forgot-password" className="text-[13px] font-medium text-[var(--color-primary)] underline">
+              {t("auth.reset.forgot")}
+            </Link>
+          </div>
+          <div className="relative">
+            <input
+              id="password"
+              name="password"
+              type={showPassword ? "text" : "password"}
+              autoComplete="current-password"
+              defaultValue={demo ? DEMO_PASSWORD : undefined}
+              required
+              className="min-h-11 w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] pl-3 pr-14 text-[15px]"
+            />
+            <button type="button" onClick={() => setShowPassword((visible) => !visible)}
+              aria-label={t(showPassword ? "auth.reset.hidePassword" : "auth.reset.showPassword")}
+              className="absolute inset-y-0 right-0 min-w-11 px-2 text-[13px] font-medium text-[var(--color-primary)]">
+              {t(showPassword ? "auth.reset.hide" : "auth.reset.show")}
+            </button>
+          </div>
         </div>
 
         {state.error && (
@@ -61,21 +74,25 @@ export function LoginForm({ demo }: { demo: boolean }) {
         <SubmitButton>{t("auth.login.submit")}</SubmitButton>
       </form>
 
-      <div className="my-4 flex items-center gap-3 text-xs text-[var(--color-charcoal)]">
-        <span className="h-px flex-1 bg-[var(--color-border)]" />
-        {t("auth.signup.or")}
-        <span className="h-px flex-1 bg-[var(--color-border)]" />
-      </div>
+      {demo && (
+        <>
+          <div className="my-4 flex items-center gap-3 text-xs text-[var(--color-charcoal)]">
+            <span className="h-px flex-1 bg-[var(--color-border)]" />
+            {t("auth.signup.or")}
+            <span className="h-px flex-1 bg-[var(--color-border)]" />
+          </div>
 
-      <form action={loginDemo}>
-        <button
-          type="submit"
-          className="flex min-h-11 w-full items-center justify-center gap-2 rounded-[var(--radius-buttons)] border border-[var(--color-border)] bg-[var(--color-background)] px-4 text-[15px] font-semibold text-[var(--color-foreground)] transition-all hover:border-[var(--color-primary)] hover:bg-[var(--color-surface-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
-        >
-          <Sparkle size={18} weight="fill" className="text-[var(--color-primary)]" aria-hidden />
-          {t("auth.login.demoButton")}
-        </button>
-      </form>
+          <form action={loginDemo}>
+            <button
+              type="submit"
+              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-[var(--radius-buttons)] border border-[var(--color-border)] bg-[var(--color-background)] px-4 text-[15px] font-semibold text-[var(--color-foreground)] transition-all hover:border-[var(--color-primary)] hover:bg-[var(--color-surface-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+            >
+              <Sparkle size={18} weight="fill" className="text-[var(--color-primary)]" aria-hidden />
+              {t("auth.login.demoButton")}
+            </button>
+          </form>
+        </>
+      )}
 
       <p className="mt-6 text-sm text-[var(--color-charcoal)]">
         {t("auth.login.noAccount")}{" "}

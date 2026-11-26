@@ -5,6 +5,7 @@ export const settings = defineArea({
   en: {
     "settings.title": "Settings",
     "settings.demo.title": "Settings need a live clinic account",
+    "settings.demo.readOnly": "Demo clinic settings are read-only.",
     "settings.demo.body":
       "Clinic details, risk thresholds, the ANC schedule, staff and message templates are stored in your clinic's database. Sign in with your clinic account to view and change them. In demo mode they aren't available.",
     "settings.demo.back": "Back to Today",
@@ -115,6 +116,7 @@ export const settings = defineArea({
   hi: {
     "settings.title": "सेटिंग्स",
     "settings.demo.title": "सेटिंग्स के लिए लाइव क्लिनिक खाता ज़रूरी है",
+    "settings.demo.readOnly": "डेमो क्लिनिक की सेटिंग्स केवल देखने के लिए हैं।",
     "settings.demo.body":
       "क्लिनिक का विवरण, जोखिम सीमा-मान, ANC शेड्यूल, स्टाफ़ और संदेश टेम्पलेट आपके क्लिनिक के डेटाबेस में रहते हैं। इन्हें देखने और बदलने के लिए अपने क्लिनिक खाते से साइन इन करें। डेमो मोड में ये उपलब्ध नहीं हैं।",
     "settings.demo.back": "आज की सूची पर वापस जाएँ",
@@ -225,6 +227,7 @@ export const settings = defineArea({
   mr: {
     "settings.title": "सेटिंग्ज",
     "settings.demo.title": "सेटिंग्जसाठी लाइव्ह क्लिनिक खाते आवश्यक आहे",
+    "settings.demo.readOnly": "डेमो क्लिनिकची सेटिंग्ज फक्त पाहता येतात.",
     "settings.demo.body":
       "क्लिनिकचा तपशील, जोखीम मर्यादा मूल्ये, ANC वेळापत्रक, कर्मचारी आणि संदेश टेम्पलेट तुमच्या क्लिनिकच्या डेटाबेसमध्ये साठवलेले असतात. ते पाहण्यासाठी आणि बदलण्यासाठी तुमच्या क्लिनिक खात्याने साइन इन करा. डेमो मोडमध्ये ते उपलब्ध नाहीत.",
     "settings.demo.back": "आजच्या यादीकडे परत जा",

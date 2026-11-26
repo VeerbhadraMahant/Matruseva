@@ -133,7 +133,7 @@ export function Stat({
 
 /** Pill filter chip (use with aria-pressed or role="tab" + aria-selected). */
 export function chipClass(active: boolean): string {
-  return `inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-medium transition-colors duration-150 ${
+  return `inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-medium transition-colors duration-150 ${
     active
       ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white"
       : "border-[var(--color-border)] bg-[var(--color-background)] text-[var(--color-foreground)] hover:border-[var(--color-primary)]"

@@ -1,3 +1,5 @@
+export const WORKLIST_DAYS = 7;
+
 const CLINIC_TIMEZONE = "Asia/Kolkata";
 
 /**

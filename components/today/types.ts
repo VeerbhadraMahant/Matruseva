@@ -38,8 +38,9 @@ export interface DayEntry {
   rowId: string;
   /** Booked visit or schedule window closing on this exact day. */
   scheduled: boolean;
-  /** Day-specific reason, shown instead of the row summary on future days. */
-  reason: string | null;
+  /** Booked visit and schedule items for the selected day. */
+  reasons: string[];
+  items: WorklistItem[];
 }
 
 export interface WorklistDay {

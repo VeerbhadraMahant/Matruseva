@@ -1,8 +1,10 @@
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { getClinicSnapshot, daysOverdue, needsFollowUp, followUpPriority } from "@/lib/snapshot";
+import { getClinicSnapshot, daysOverdue, followUpPriority } from "@/lib/snapshot";
+import { isManualContact, needsFollowUp } from "@/lib/followUp";
 import { formatGALocalized } from "@/lib/pregnancy";
-import { daysBetween, parseLocalDate } from "@/lib/format";
+import { daysBetween } from "@/lib/format";
+import { todayInClinicTimezone, toISODate } from "@/lib/today";
 import {
   telLink,
   whatsAppLink,
@@ -18,12 +20,12 @@ import { getT } from "@/lib/i18n/server";
 
 const FILTER_IDS: CallFilter[] = ["all", "overdue", "at_risk", "lost", "pending"];
 
-export default async function CallsPage({ searchParams }: { searchParams: Promise<{ f?: string }> }) {
+export default async function CallsPage({ searchParams }: { searchParams: Promise<{ f?: string; simulator?: string }> }) {
   const { t } = await getT();
   const me = await getCurrentUser();
   const supabase = me.isDemo ? null : await createClient();
 
-  const [{ f }, { rows, today }, { data: clinic }] = await Promise.all([
+  const [{ f, simulator }, { rows, today }, { data: clinic }] = await Promise.all([
     searchParams,
     getClinicSnapshot(),
     supabase
@@ -34,14 +36,27 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
   // Only the queued patients' summaries, chunked: PostgREST caps responses
   // (max-rows) and long .in() lists overflow the URL.
   const followUpIds = rows.filter(needsFollowUp).map((r) => r.id);
+  // Today's rows (IST) are fetched separately so "contacted today" sees every
+  // contact, not just the latest one the summary keeps.
+  const todayStart = `${toISODate(today)}T00:00:00+05:30`;
   const contacts = [];
+  const todaysContacts: { patient_id: string; outcome: string }[] = [];
   if (supabase) {
     for (let i = 0; i < followUpIds.length; i += 150) {
-      const { data } = await supabase
-        .from("patient_contact_summary")
-        .select("patient_id, last_outcome, last_channel, last_contact_at, attempts_30d")
-        .in("patient_id", followUpIds.slice(i, i + 150));
+      const ids = followUpIds.slice(i, i + 150);
+      const [{ data }, { data: todayRows }] = await Promise.all([
+        supabase
+          .from("patient_contact_summary")
+          .select("patient_id, last_outcome, last_channel, last_contact_at, attempts_30d")
+          .in("patient_id", ids),
+        supabase
+          .from("contact_log")
+          .select("patient_id, outcome")
+          .in("patient_id", ids)
+          .gte("created_at", todayStart),
+      ]);
       contacts.push(...(data ?? []));
+      todaysContacts.push(...(todayRows ?? []));
     }
   }
   const templates = (clinic?.message_templates ?? {}) as MessageTemplates;
@@ -50,10 +65,11 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
   type ContactSummary = {
     lastContact: { outcome: string; channel: string; createdAt: string } | null;
     attempts30d: number;
+    contactedToday: boolean;
   };
   const summaryBy = new Map<string, ContactSummary>();
   if (me.isDemo) {
-    // Demo contacts arrive newest first per patient; same rule as the DB view.
+    // Demo contacts arrive newest first per patient; same rules as the DB path.
     const demoBy = new Map<string, { outcome: string; channel: string; createdAt: string }[]>();
     for (const dc of getDemoContacts()) {
       const list = demoBy.get(dc.patientId) ?? [];
@@ -61,17 +77,21 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
       demoBy.set(dc.patientId, list);
     }
     for (const [pid, list] of demoBy) {
+      const ageOf = (h: { createdAt: string }) => daysBetween(todayInClinicTimezone(new Date(h.createdAt)), today);
       summaryBy.set(pid, {
         lastContact: list[0],
-        attempts30d: list.filter((h) => daysBetween(new Date(h.createdAt), today) <= 30).length,
+        attempts30d: list.filter((h) => ageOf(h) >= 0 && ageOf(h) <= 30).length,
+        contactedToday: list.some((h) => isManualContact(h.outcome) && ageOf(h) === 0),
       });
     }
   }
+  const manualToday = new Set(todaysContacts.filter((c) => isManualContact(c.outcome)).map((c) => c.patient_id));
   for (const c of contacts) {
     if (!c.patient_id || !c.last_contact_at) continue;
     summaryBy.set(c.patient_id, {
       lastContact: { outcome: c.last_outcome ?? "", channel: c.last_channel ?? "", createdAt: c.last_contact_at },
       attempts30d: c.attempts_30d ?? 0,
+      contactedToday: manualToday.has(c.patient_id),
     });
   }
 
@@ -89,9 +109,9 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
       };
       const summary = summaryBy.get(r.id);
       const last = summary?.lastContact;
-      const lastDate = last ? new Date(last.createdAt) : null;
+      const lastDate = last ? todayInClinicTimezone(new Date(last.createdAt)) : null;
       const lastDaysAgo = lastDate
-        ? daysBetween(parseLocalDate(lastDate.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" })), today)
+        ? daysBetween(lastDate, today)
         : null;
       return {
         id: r.id,
@@ -105,6 +125,7 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
         flags: r.flags.filter((fl) => fl.severity !== "info"),
         noAnswerStreak: r.noAnswerStreak,
         attempts30d: summary?.attempts30d ?? 0,
+        contactedToday: summary?.contactedToday ?? false,
         lastContact: last
           ? { outcome: last.outcome as ContactOutcome, channel: last.channel, daysAgo: lastDaysAgo ?? 0 }
           : null,
@@ -116,7 +137,7 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
     });
 
   const initialFilter = FILTER_IDS.includes(f as CallFilter) ? (f as CallFilter) : "all";
-  const pending = queue.filter((q) => q.lastContact?.daysAgo !== 0).length;
+  const pending = queue.filter((row) => !row.contactedToday).length;
 
   return (
     <>
@@ -129,7 +150,7 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
         }
       />
       <div className={pageBody}>
-        <CallQueue rows={queue} initialFilter={initialFilter} defaultLang={defaultLang} />
+        <CallQueue key={initialFilter} rows={queue} initialFilter={initialFilter} defaultLang={defaultLang} showSimulator={me.isDemo && simulator === "1"} />
       </div>
     </>
   );

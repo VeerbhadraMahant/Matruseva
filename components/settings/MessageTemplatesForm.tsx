@@ -39,7 +39,7 @@ const LANG_NAME_KEY: Record<SupportedLanguage, MsgKey> = {
 /** Placeholder tokens shown literally inside the help sentence (rendered as <code>). */
 const TOKEN_PARAMS = { name: "{name}", item: "{item}", clinic: "{clinic}" };
 
-export function MessageTemplatesForm({ templates }: { templates: MessageTemplates }) {
+export function MessageTemplatesForm({ templates, readOnly = false }: { templates: MessageTemplates; readOnly?: boolean }) {
   const t = useT();
   const langLabel = (l: { code: SupportedLanguage; nativeLabel: string }) => {
     const name = t(LANG_NAME_KEY[l.code]);
@@ -74,7 +74,7 @@ export function MessageTemplatesForm({ templates }: { templates: MessageTemplate
           </div>
           <button
             type="button"
-            disabled={isResetting}
+            disabled={readOnly || isResetting}
             onClick={() => {
               startResetTransition(async () => {
                 const res = await resetMessageTemplatesToCertified();
@@ -127,6 +127,7 @@ export function MessageTemplatesForm({ templates }: { templates: MessageTemplate
           </p>
         </div>
         <select
+          disabled={readOnly}
           id="defaultLangSelect"
           name="defaultLang"
           defaultValue={templates.default_lang ?? "en"}
@@ -181,10 +182,11 @@ export function MessageTemplatesForm({ templates }: { templates: MessageTemplate
                 </span>
               </div>
               <textarea
+                readOnly={readOnly}
                 id={`template-${activeLang}-${field.name}`}
                 name={field.name}
                 rows={2}
-                defaultValue={customVal}
+                defaultValue={readOnly ? customVal || defaultVal : customVal}
                 placeholder={defaultVal}
                 className={textareaClass}
               />
@@ -199,7 +201,7 @@ export function MessageTemplatesForm({ templates }: { templates: MessageTemplate
       {state.error && <p className="text-[13px] text-[var(--color-overdue)]">{state.error}</p>}
 
       <div className="pt-2">
-        <SubmitButton>{t("settings.templates.save", { language: t(LANG_NAME_KEY[activeLang]) })}</SubmitButton>
+        {!readOnly && <SubmitButton>{t("settings.templates.save", { language: t(LANG_NAME_KEY[activeLang]) })}</SubmitButton>}
       </div>
     </form>
   );

@@ -1,5 +1,7 @@
 "use client";
 
+import { formatVisitDate } from "@/lib/visitDate";
+
 import { useState, useActionState } from "react";
 import type { ActionResult } from "@/app/(app)/patients/[id]/actions";
 import { saveVisitAction } from "@/components/offlineActions";
@@ -22,7 +24,7 @@ export function VisitForm({ patientId }: { patientId: string }) {
   const [isVoiceOpen, setIsVoiceOpen] = useState(false);
 
   // Controlled values for live CDSS protocol evaluation and voice auto-fill
-  const [visitDate, setVisitDate] = useState(() => toISODate(todayInClinicTimezone()));
+  const [visitDate, setVisitDate] = useState(() => formatVisitDate(toISODate(todayInClinicTimezone())));
   const [bpSys, setBpSys] = useState<string>("");
   const [bpDia, setBpDia] = useState<string>("");
   const [weight, setWeight] = useState<string>("");
@@ -148,7 +150,8 @@ export function VisitForm({ patientId }: { patientId: string }) {
           <input
             id="visitDate"
             name="visitDate"
-            type="date"
+            type="text"
+            placeholder="DD/MM/YYYY"
             value={visitDate}
             onChange={(e) => setVisitDate(e.target.value)}
             className={inputClass}
@@ -164,7 +167,6 @@ export function VisitForm({ patientId }: { patientId: string }) {
             type="number"
             value={bpSys}
             onChange={(e) => setBpSys(e.target.value)}
-            placeholder="120"
             className={inputClass}
           />
         </div>
@@ -178,7 +180,6 @@ export function VisitForm({ patientId }: { patientId: string }) {
             type="number"
             value={bpDia}
             onChange={(e) => setBpDia(e.target.value)}
-            placeholder="80"
             className={inputClass}
           />
         </div>
@@ -193,7 +194,6 @@ export function VisitForm({ patientId }: { patientId: string }) {
             step="0.1"
             value={weight}
             onChange={(e) => setWeight(e.target.value)}
-            placeholder="54.0"
             className={inputClass}
           />
         </div>
@@ -208,7 +208,6 @@ export function VisitForm({ patientId }: { patientId: string }) {
             step="0.1"
             value={hb}
             onChange={(e) => setHb(e.target.value)}
-            placeholder="11.5"
             className={inputClass}
           />
         </div>
@@ -222,7 +221,6 @@ export function VisitForm({ patientId }: { patientId: string }) {
             type="number"
             value={fhr}
             onChange={(e) => setFhr(e.target.value)}
-            placeholder="140"
             className={inputClass}
           />
         </div>
@@ -237,7 +235,6 @@ export function VisitForm({ patientId }: { patientId: string }) {
             step="0.1"
             value={fundalHeight}
             onChange={(e) => setFundalHeight(e.target.value)}
-            placeholder="28"
             className={inputClass}
           />
         </div>
@@ -248,7 +245,8 @@ export function VisitForm({ patientId }: { patientId: string }) {
           <input
             id="nextVisitDate"
             name="nextVisitDate"
-            type="date"
+            type="text"
+            placeholder="DD/MM/YYYY"
             value={nextVisitDate}
             onChange={(e) => setNextVisitDate(e.target.value)}
             className={inputClass}

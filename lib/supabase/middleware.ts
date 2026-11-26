@@ -34,7 +34,7 @@ export async function updateSession(request: NextRequest) {
   // Public pages never read the session here (auth actions/callback set their own
   // cookies), so skip the Supabase round trip — and any refresh stall — on them.
   const { pathname } = request.nextUrl;
-  if (pathname === "/" || isListenPath(pathname) || PUBLIC_PATHS.some((path) => pathname.startsWith(path))) {
+  if (pathname === "/" || pathname === "/forgot-password" || pathname === "/reset-password" || isListenPath(pathname) || PUBLIC_PATHS.some((path) => pathname.startsWith(path))) {
     return response;
   }
 

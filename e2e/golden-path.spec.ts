@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -10,10 +10,14 @@ function loadEnv() {
     if (match) process.env[match[1]] ??= match[2].trim();
   }
 }
-loadEnv();
+test.skip(process.env.DEMO_MODE === "1", "The golden path writes to live Supabase and is excluded from demo runs.");
 
-const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
-  auth: { autoRefreshToken: false, persistSession: false },
+let admin: SupabaseClient;
+test.beforeAll(() => {
+  loadEnv();
+  admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
 });
 
 const RUN_ID = Date.now();
@@ -26,6 +30,7 @@ let clinicId: string | undefined;
 let patientId: string | undefined;
 
 test.afterAll(async () => {
+  if (!admin) return;
   if (clinicId) await admin.from("clinics").delete().eq("id", clinicId);
   const { data } = await admin.auth.admin.listUsers();
   const user = data.users.find((u) => u.email === DOCTOR_EMAIL);

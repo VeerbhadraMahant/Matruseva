@@ -94,7 +94,7 @@ export function ObstetricQuestionnaireFields({
               </span>
             </span>
             <span className="block text-[12px] text-[var(--color-charcoal)]">
-              7 clinical questions required for FOGSI risk stratification & the 1-page obstetric dossier
+              {isPrimi ? 4 : 7} clinical questions for the 1-page obstetric report
             </span>
           </span>
         </span>
@@ -116,7 +116,7 @@ export function ObstetricQuestionnaireFields({
           {/* Question 1: Delivery Mode */}
           <div className="space-y-2">
             <label className="block text-[13px] font-bold text-[var(--color-foreground)]">
-              1. Previous Delivery Mode & Type (पिछला प्रसव प्रकार)
+              1. Previous Delivery Mode & Type
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {[
@@ -157,7 +157,7 @@ export function ObstetricQuestionnaireFields({
           {!isPrimi && (
             <div className="space-y-2">
               <label className="block text-[13px] font-bold text-[var(--color-foreground)]">
-                2. Prior Obstetric Complications (पिछली गर्भावस्था में जटिलताएं)
+                2. Prior Obstetric Complications
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {[
@@ -198,7 +198,7 @@ export function ObstetricQuestionnaireFields({
           {/* Question 3: Past Pregnancy Loss */}
           <div className="space-y-2">
             <label className="block text-[13px] font-bold text-[var(--color-foreground)]">
-              3. Past Pregnancy Loss (गर्भपात या मृत प्रसव का इतिहास)
+              {isPrimi ? 2 : 3}. Past Pregnancy Loss
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {[
@@ -229,7 +229,7 @@ export function ObstetricQuestionnaireFields({
           {!isPrimi && (
             <div className="space-y-2">
               <label className="block text-[13px] font-bold text-[var(--color-foreground)]">
-                4. Previous Baby Birth Weight (पिछले बच्चे का जन्म वजन)
+                4. Previous Baby Birth Weight
               </label>
               <div className="grid grid-cols-3 gap-2">
                 {[
@@ -258,7 +258,7 @@ export function ObstetricQuestionnaireFields({
           {!isPrimi && (
             <div className="space-y-2">
               <label className="block text-[13px] font-bold text-[var(--color-foreground)]">
-                5. Interpregnancy Interval (दो प्रसवों के बीच का अंतर)
+                5. Interpregnancy Interval
               </label>
               <div className="grid grid-cols-3 gap-2">
                 {[
@@ -288,7 +288,7 @@ export function ObstetricQuestionnaireFields({
           {/* Question 6: Family History */}
           <div className="space-y-2">
             <label className="block text-[13px] font-bold text-[var(--color-foreground)]">
-              6. Family Pregnancy & Genetic History (मातृ/पारिवारिक इतिहास - माँ या बहन)
+              {isPrimi ? 3 : 6}. Family Pregnancy & Genetic History
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {[
@@ -326,7 +326,7 @@ export function ObstetricQuestionnaireFields({
           {/* Question 7: Pre-Existing Chronic Conditions */}
           <div className="space-y-2">
             <label className="block text-[13px] font-bold text-[var(--color-foreground)]">
-              7. Pre-existing Chronic Medical Conditions (पूर्व-मौजूदा चिकित्सीय स्थितियां)
+              {isPrimi ? 4 : 7}. Pre-existing Chronic Medical Conditions
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {[

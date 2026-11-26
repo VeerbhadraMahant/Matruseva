@@ -1,13 +1,15 @@
 "use server";
 
+import { randomInt } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { cookies, headers } from "next/headers";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser, isDemoActive } from "@/lib/auth";
 import { todayInClinicTimezone, toISODate } from "@/lib/today";
+import { normalizeVisitDate } from "@/lib/visitDate";
 import { formatDate, parseLocalDate } from "@/lib/format";
-import { closeDemoPregnancy, getDemoPatientDetail, markDemoCareEventDone, recordDemoVisit, updateDemoPatient } from "@/lib/demo-data";
+import { closeDemoPregnancy, getDemoPatientDetail, markDemoCareEventDone, undoDemoCareEvent, recordDemoVisit, updateDemoPatient } from "@/lib/demo-data";
 import { isDuplicateRequest } from "@/lib/idempotency";
 import { eddFromLmp } from "@/lib/pregnancy";
 import { getT } from "@/lib/i18n/server";
@@ -28,48 +30,67 @@ export interface ActionResult {
 
 /** Every page that renders per-patient schedule/visit/risk data. */
 function revalidatePatientViews(patientId: string) {
+  revalidatePath("/(app)", "layout");
   revalidatePath(`/patients/${patientId}`);
   revalidatePath("/patients");
   revalidatePath("/today");
   revalidatePath("/calls");
 }
 
-export async function markCareEventDone(careEventId: string, patientId: string): Promise<ActionResult> {
+export async function setCareEventCompletion(
+  careEventId: string, patientId: string, value: string, undo: boolean,
+): Promise<ActionResult & { completionToken?: string }> {
   const { t } = await getT();
+  const todayIso = toISODate(todayInClinicTimezone());
+  const completedOn = undo ? value.slice(0, 10) : value;
+  if (!z.iso.date().safeParse(completedOn).success || completedOn > todayIso ||
+      (undo && !z.iso.datetime().safeParse(value).success)) {
+    return { error: t("visits.error.invalidDate") };
+  }
+  // Keep the selected day in IST and give each completion its own undo token.
+  const completedAt = undo ? value
+    : new Date(Date.parse(`${completedOn}T00:00:00Z`) + randomInt(18 * 60 * 60 * 1000)).toISOString();
   const cookieStore = await cookies();
-  const isDemo = isDemoActive(cookieStore);
-  if (isDemo) {
-    markDemoCareEventDone(careEventId, patientId);
+  if (isDemoActive(cookieStore)) {
+    const detail = getDemoPatientDetail(patientId);
+    const event = detail.patient.id === patientId && detail.careEvents.find((item) => item.id === careEventId);
+    if (!event || (undo ? event.completed_at !== completedAt : event.status !== "due" && event.status !== "overdue")) {
+      return { error: t("patientDetail.error.markDoneFailed") };
+    }
+    if (undo) undoDemoCareEvent(careEventId, patientId);
+    else markDemoCareEventDone(careEventId, patientId, completedAt);
     revalidatePatientViews(patientId);
-    return { error: null };
+    return { error: null, completionToken: undo ? undefined : completedAt };
   }
 
   try {
     const [supabase, me] = await Promise.all([createClient(), getCurrentUser()]);
-    const { error } = await supabase
-      .from("care_events")
-      .update({ completed_at: new Date().toISOString() })
+    const update = supabase.from("care_events")
+      .update({ completed_at: undo ? null : completedAt })
       .eq("id", careEventId)
       .eq("patient_id", patientId)
-      .eq("clinic_id", me.clinicId);
-
-    if (error) return { error: error.message };
+      .eq("clinic_id", me.clinicId)
+      .is("skipped_reason", null)
+      .lte("due_from", todayIso);
+    const { data, error } = await (undo ? update.eq("completed_at", completedAt) : update.is("completed_at", null))
+      .select("id").maybeSingle();
+    if (error || !data) return { error: error?.message ?? t("patientDetail.error.markDoneFailed") };
 
     revalidatePatientViews(patientId);
-    return { error: null };
-  } catch (err: unknown) {
-    return { error: err instanceof Error ? err.message : t("patientDetail.error.dbConnection") };
+    return { error: null, completionToken: undo ? undefined : completedAt };
+  } catch {
+    return { error: t("patientDetail.error.dbConnection") };
   }
 }
 
 const visitSchema = z.object({
   visitDate: z.iso.date().optional().or(z.literal("")),
-  bpSys: z.coerce.number().int().positive().optional().or(z.literal("")),
-  bpDia: z.coerce.number().int().positive().optional().or(z.literal("")),
-  weight: z.coerce.number().positive().optional().or(z.literal("")),
-  hb: z.coerce.number().positive().optional().or(z.literal("")),
-  fhr: z.coerce.number().int().positive().optional().or(z.literal("")),
-  fundalHeight: z.coerce.number().positive().optional().or(z.literal("")),
+  bpSys: z.coerce.number().int().min(30).max(300).optional().or(z.literal("")),
+  bpDia: z.coerce.number().int().min(10).max(200).optional().or(z.literal("")),
+  weight: z.coerce.number().min(15).max(400).optional().or(z.literal("")),
+  hb: z.coerce.number().min(1).max(30).optional().or(z.literal("")),
+  fhr: z.coerce.number().int().min(30).max(300).optional().or(z.literal("")),
+  fundalHeight: z.coerce.number().min(1).max(65).optional().or(z.literal("")),
   notes: z.string().optional(),
   nextVisitDate: z.iso.date().optional().or(z.literal("")),
   // Idempotency key from the offline queue / client (optional, backwards compatible).
@@ -92,7 +113,11 @@ export async function recordVisit(
 ): Promise<ActionResult> {
   const { t } = await getT();
   const raw = Object.fromEntries(formData.entries());
-  const parsed = visitSchema.safeParse(raw);
+  const parsed = visitSchema.safeParse({
+    ...raw,
+    visitDate: normalizeVisitDate(raw.visitDate),
+    nextVisitDate: normalizeVisitDate(raw.nextVisitDate),
+  });
   if (!parsed.success) {
     const field = String(parsed.error.issues[0]?.path[0] ?? "");
     const label = VISIT_FIELD_LABELS[field];
@@ -101,6 +126,10 @@ export async function recordVisit(
   }
   const v = parsed.data;
   const num = (x: number | "" | undefined) => (x === "" || x === undefined ? null : x);
+  if (![v.bpSys, v.bpDia, v.weight, v.hb, v.fhr, v.fundalHeight].some((value) => num(value) !== null)
+    && !v.notes?.trim() && !v.nextVisitDate) {
+    return { error: t("visits.error.empty") };
+  }
   const clientRequestId = v.clientRequestId || undefined;
 
   const cookieStore = await cookies();

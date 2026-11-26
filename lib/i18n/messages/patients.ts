@@ -79,6 +79,7 @@ export const patients = defineArea({
     "patients.error.lmpInvalid": "Enter a valid LMP date",
     "patients.error.lmpFuture": "LMP date cannot be in the future",
     "patients.error.createFailed": "Could not create patient.",
+    "patients.error.duplicate": "A patient with this name and phone is already registered. Check the existing record in Patients.",
     "patients.error.dbConnection": "Database connection failed. Please check your Supabase configuration.",
     "patients.error.createFailedFinal": "Failed to create patient record.",
 
@@ -134,7 +135,9 @@ export const patients = defineArea({
     "patients.qr.fileError": "Could not find a valid QR code in this image. Please ensure the code is clear and well-lit.",
     "patients.qr.upload": "Upload QR card photo (WhatsApp)",
     "patients.qr.orEnterId": "or enter ID",
-    "patients.qr.idPlaceholder": "Enter UHID or patient ID...",
+    "patients.qr.idPlaceholder": "Card number",
+    "patients.qr.noPatient": "No patient found for that card. Check the number and try again.",
+    "patients.qr.lookupError": "Could not look up the card. Try again.",
     "patients.qr.go": "Go",
 
     // Scan page
@@ -241,6 +244,7 @@ export const patients = defineArea({
     "patients.error.lmpInvalid": "LMP की सही तारीख़ दर्ज करें",
     "patients.error.lmpFuture": "LMP की तारीख़ भविष्य की नहीं हो सकती",
     "patients.error.createFailed": "मरीज़ को पंजीकृत नहीं किया जा सका।",
+    "patients.error.duplicate": "इस नाम और फ़ोन वाला मरीज़ पहले से पंजीकृत है। मरीज़ों की सूची में रिकॉर्ड देखें।",
     "patients.error.dbConnection": "डेटाबेस से कनेक्शन नहीं हो सका। कृपया अपनी Supabase सेटिंग जाँचें।",
     "patients.error.createFailedFinal": "मरीज़ का रिकॉर्ड नहीं बन सका।",
 
@@ -294,7 +298,9 @@ export const patients = defineArea({
     "patients.qr.fileError": "इस फ़ोटो में कोई मान्य QR कोड नहीं मिला। कृपया देखें कि कोड साफ़ और रोशनी में हो।",
     "patients.qr.upload": "QR कार्ड की फ़ोटो अपलोड करें (WhatsApp)",
     "patients.qr.orEnterId": "या ID दर्ज करें",
-    "patients.qr.idPlaceholder": "UHID या मरीज़ ID दर्ज करें...",
+    "patients.qr.idPlaceholder": "कार्ड नंबर",
+    "patients.qr.noPatient": "इस कार्ड का कोई मरीज़ नहीं मिला। नंबर जाँचकर फिर कोशिश करें।",
+    "patients.qr.lookupError": "कार्ड नहीं खोज पाए। फिर कोशिश करें।",
     "patients.qr.go": "खोलें",
 
     "patients.scan.title": "QR कार्ड स्कैन करें",
@@ -399,6 +405,7 @@ export const patients = defineArea({
     "patients.error.lmpInvalid": "LMP ची योग्य तारीख टाका",
     "patients.error.lmpFuture": "LMP ची तारीख भविष्यातील असू शकत नाही",
     "patients.error.createFailed": "रुग्णाची नोंद करता आली नाही.",
+    "patients.error.duplicate": "या नावाचा आणि फोन क्रमांकाचा रुग्ण आधीच नोंदणीकृत आहे. रुग्णांच्या यादीत नोंद पहा.",
     "patients.error.dbConnection": "डेटाबेसशी जोडणी झाली नाही. कृपया तुमची Supabase सेटिंग्ज तपासा.",
     "patients.error.createFailedFinal": "रुग्णाची नोंद तयार करता आली नाही.",
 
@@ -452,7 +459,9 @@ export const patients = defineArea({
     "patients.qr.fileError": "या फोटोत वैध QR कोड सापडला नाही. कृपया कोड स्पष्ट आणि उजेडात असल्याची खात्री करा.",
     "patients.qr.upload": "QR कार्डचा फोटो अपलोड करा (WhatsApp)",
     "patients.qr.orEnterId": "किंवा ID टाका",
-    "patients.qr.idPlaceholder": "UHID किंवा रुग्ण ID टाका...",
+    "patients.qr.idPlaceholder": "कार्ड क्रमांक",
+    "patients.qr.noPatient": "या कार्डसाठी रुग्ण सापडला नाही. क्रमांक तपासून पुन्हा प्रयत्न करा.",
+    "patients.qr.lookupError": "कार्ड शोधता आले नाही. पुन्हा प्रयत्न करा.",
     "patients.qr.go": "उघडा",
 
     "patients.scan.title": "QR कार्ड स्कॅन करा",

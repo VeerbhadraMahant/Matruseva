@@ -1,6 +1,8 @@
 "use client";
 
-import { memo, useCallback, useMemo, useState, useRef, useTransition } from "react";
+import { hasOverdueItems, isAtRisk, isLost } from "@/lib/followUp";
+
+import { memo, useCallback, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import {
@@ -9,7 +11,6 @@ import {
   CheckCircle,
   X,
   PhoneCall,
-  ArrowsLeftRight,
   Translate,
   Robot,
   CaretDown,
@@ -22,7 +23,7 @@ import { logBatchContacts } from "@/app/(app)/calls/actions";
 import { submitQuickContact } from "@/components/offlineActions";
 import { PAGE_SIZE, nextLimit, remainingCount } from "@/lib/paging";
 import type { ClinicalFlag } from "@/lib/clinical";
-import type { ContactOutcome, FollowUpRisk } from "@/lib/supabase/enums";
+import type { ContactOutcome, ManualContactOutcome, FollowUpRisk } from "@/lib/supabase/enums";
 import { useT } from "@/lib/i18n/provider";
 import type { Translator } from "@/lib/i18n/translate-client";
 import { careEventName } from "@/lib/clinicalLabels";
@@ -51,6 +52,7 @@ export interface CallRow {
   flags: ClinicalFlag[];
   noAnswerStreak: number;
   attempts30d: number;
+  contactedToday: boolean;
   lastContact: { outcome: ContactOutcome; channel: string; daysAgo: number } | null;
   tel: string | null;
   whatsapp: string | null;
@@ -64,10 +66,10 @@ type MsgKey = Parameters<Translator>[0];
 
 const FILTERS: { id: CallFilter; labelKey: MsgKey; test: (r: CallRow) => boolean }[] = [
   { id: "all", labelKey: "calls.filter.all", test: () => true },
-  { id: "pending", labelKey: "calls.filter.pending", test: (r) => r.lastContact?.daysAgo !== 0 },
-  { id: "overdue", labelKey: "calls.filter.overdue", test: (r) => r.overdueItems.length > 0 },
-  { id: "at_risk", labelKey: "calls.filter.atRisk", test: (r) => r.risk === "at_risk" },
-  { id: "lost", labelKey: "calls.filter.lost", test: (r) => r.reason === "lost" },
+  { id: "pending", labelKey: "calls.filter.pending", test: (r) => !r.contactedToday },
+  { id: "overdue", labelKey: "calls.filter.overdue", test: (r) => hasOverdueItems(r.overdueItems.length) },
+  { id: "at_risk", labelKey: "calls.filter.atRisk", test: (r) => isAtRisk(r.risk) },
+  { id: "lost", labelKey: "calls.filter.lost", test: (r) => isLost(r.risk) },
 ];
 
 const OUTCOME: Record<ContactOutcome, { labelKey: MsgKey; tone: Tone }> = {
@@ -76,6 +78,7 @@ const OUTCOME: Record<ContactOutcome, { labelKey: MsgKey; tone: Tone }> = {
   no_answer: { labelKey: "calls.outcome.noAnswer", tone: "warning" },
   wrong_number: { labelKey: "calls.outcome.wrongNumber", tone: "critical" },
   refused: { labelKey: "calls.outcome.refused", tone: "critical" },
+  automated_reminder: { labelKey: "calls.batch.opt.automated", tone: "neutral" },
 };
 
 function ago(t: Translator, days: number) {
@@ -95,10 +98,12 @@ export function CallQueue({
   rows,
   initialFilter,
   defaultLang = "en",
+  showSimulator = false,
 }: {
   rows: CallRow[];
   initialFilter: CallFilter;
   defaultLang?: SupportedLanguage;
+  showSimulator?: boolean;
 }) {
   const t = useT();
   const [filter, setFilter] = useState<CallFilter>(initialFilter);
@@ -120,7 +125,7 @@ export function CallQueue({
   const shown = useMemo(() => visible.slice(0, limit), [visible, limit]);
   const remaining = remainingCount(visible.length, limit);
 
-  const handleQuickSubmit = (outcome: ContactOutcome, notes?: string) => {
+  const handleQuickSubmit = (outcome: ManualContactOutcome, notes?: string) => {
     if (!quickLogTarget) return;
     const target = quickLogTarget;
     startTransition(async () => {
@@ -142,7 +147,7 @@ export function CallQueue({
   const selectedIds = useMemo(() => visible.filter((r) => selection.has(r.id)).map((r) => r.id), [visible, selection]);
   const allSelected = visible.length > 0 && selectedIds.length === visible.length;
   const partiallySelected = selectedIds.length > 0 && !allSelected;
-  const [batchOutcome, setBatchOutcome] = useState<ContactOutcome | "automated_reminder">("no_answer");
+  const [batchOutcome, setBatchOutcome] = useState<ContactOutcome>("no_answer");
   const [batchNotes, setBatchNotes] = useState("");
   const [showBatchConfirm, setShowBatchConfirm] = useState(false);
   const [batchToast, setBatchToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
@@ -174,7 +179,6 @@ export function CallQueue({
     });
   }, []);
 
-  const triggerBot = useCallback((id: string) => setSimulatorPatientId(id), []);
 
   const changeFilter = (next: CallFilter) => {
     if (next === filter) return;
@@ -183,23 +187,21 @@ export function CallQueue({
     setSelection(new Set());
   };
 
-  const getBatchOutcomeLabel = (out: ContactOutcome | "automated_reminder") => {
-    if (out === "automated_reminder") return t("calls.batch.opt.automated");
-    const o = OUTCOME[out as ContactOutcome];
+  const getBatchOutcomeLabel = (out: ContactOutcome) => {
+    const o = OUTCOME[out];
     return o ? t(o.labelKey) : out;
   };
 
   const handleBatchSubmit = () => {
     if (selectedIds.length === 0) return;
     const ids = selectedIds;
-    const outcomeToLog: ContactOutcome = batchOutcome === "automated_reminder" ? "reached" : batchOutcome;
     const finalNotes =
       batchOutcome === "automated_reminder"
         ? (batchNotes.trim() ? `Automated reminder sent: ${batchNotes.trim()}` : "Automated WhatsApp reminder sent")
         : (batchNotes.trim() || undefined);
 
     startBatchTransition(async () => {
-      const res = await logBatchContacts(ids, outcomeToLog, finalNotes, batchOutcome === "automated_reminder" ? "whatsapp" : "call");
+      const res = await logBatchContacts(ids, batchOutcome, finalNotes, batchOutcome === "automated_reminder" ? "whatsapp" : "call");
       setShowBatchConfirm(false);
       if (res.error) {
         setBatchToast({ message: res.error, type: "error" });
@@ -238,16 +240,18 @@ export function CallQueue({
 
           {/* Action Tools: WhatsApp Bot Simulator & Language Switcher */}
           <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              disabled={visible.length === 0}
-              onClick={() => setSimulatorPatientId(visible[0].id)}
-              className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-background)] px-3.5 text-[13px] font-medium text-[var(--color-foreground)] transition-colors enabled:hover:border-[var(--color-primary)] enabled:hover:text-[var(--color-primary)] disabled:opacity-50"
-              title={t("calls.toolbar.botTitle")}
-            >
-              <Robot size={15} weight="bold" />
-              <span>{t("calls.toolbar.bot")}</span>
-            </button>
+            {showSimulator && (
+              <button
+                type="button"
+                disabled={visible.length === 0}
+                onClick={() => setSimulatorPatientId(visible[0].id)}
+                className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-background)] px-3.5 text-[13px] font-medium text-[var(--color-foreground)] transition-colors enabled:hover:border-[var(--color-primary)] enabled:hover:text-[var(--color-primary)] disabled:opacity-50"
+                title={t("calls.toolbar.botTitle")}
+              >
+                <Robot size={15} weight="bold" />
+                <span>{t("calls.toolbar.bot")}</span>
+              </button>
+            )}
 
             {/* WhatsApp Language Switcher */}
             <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t("calls.toolbar.language")}>
@@ -262,7 +266,7 @@ export function CallQueue({
                     type="button"
                     aria-pressed={selectedLang === l.code}
                     onClick={() => setSelectedLang(l.code)}
-                    className={`min-h-8 rounded-full px-3 text-[13px] font-medium transition-colors ${
+                    className={`min-h-11 min-w-11 rounded-full px-3 text-[13px] font-medium transition-colors ${
                       selectedLang === l.code
                         ? "bg-[var(--color-primary)] text-white font-semibold"
                         : "text-[var(--color-foreground)] hover:bg-[var(--color-background)]"
@@ -274,17 +278,6 @@ export function CallQueue({
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Mobile Gestures Hint */}
-        <div className="lg:hidden flex items-center justify-between px-4 py-2 bg-[var(--color-surface-1)] border-b border-[var(--color-border)] text-[12px] text-[var(--color-charcoal)]">
-          <span className="flex items-center gap-1.5">
-            <ArrowsLeftRight size={13} aria-hidden />
-            <span>{t("calls.swipe.hint")}</span>
-          </span>
-          <span className="font-medium text-[var(--color-foreground)]">
-            {t("calls.swipe.lang", { lang: SUPPORTED_LANGUAGES.find((l) => l.code === selectedLang)?.nativeLabel ?? "" })}
-          </span>
         </div>
 
         {/* Batch Feedback Toast */}
@@ -342,7 +335,7 @@ export function CallQueue({
 
         <ol>
           {shown.map((r, i) => (
-            <SwipeableCallCard
+            <CallCard
               key={r.id}
               row={r}
               index={i}
@@ -352,7 +345,6 @@ export function CallQueue({
               onToggleSelect={toggleSelect}
               onTriggerCall={triggerCall}
               onTriggerWhatsApp={triggerWhatsApp}
-              onTriggerBot={triggerBot}
             />
           ))}
         </ol>
@@ -556,7 +548,7 @@ export function CallQueue({
                 <select
                   id="batch-outcome"
                   value={batchOutcome}
-                  onChange={(e) => setBatchOutcome(e.target.value as ContactOutcome | "automated_reminder")}
+                  onChange={(e) => setBatchOutcome(e.target.value as ContactOutcome)}
                   className="rounded-xl min-h-9 border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2.5 py-1 text-xs font-medium focus:ring-1 focus:ring-[var(--color-primary)]"
                 >
                   <option value="no_answer">{t("calls.batch.opt.noAnswer")}</option>
@@ -635,10 +627,10 @@ export function CallQueue({
 }
 
 /* =========================================================================
-   Swipeable Call Card Sub-component with Language-aware WhatsApp
+   Call card
    ========================================================================= */
 
-const SwipeableCallCard = memo(function SwipeableCallCard({
+const CallCard = memo(function CallCard({
   row: r,
   index: i,
   selectedLang,
@@ -647,7 +639,6 @@ const SwipeableCallCard = memo(function SwipeableCallCard({
   onToggleSelect,
   onTriggerCall,
   onTriggerWhatsApp,
-  onTriggerBot,
 }: {
   row: CallRow;
   index: number;
@@ -657,98 +648,14 @@ const SwipeableCallCard = memo(function SwipeableCallCard({
   onToggleSelect: (id: string) => void;
   onTriggerCall: (row: CallRow) => void;
   onTriggerWhatsApp: (row: CallRow, waLink: string | null) => void;
-  onTriggerBot?: (id: string) => void;
 }) {
   const t = useT();
-  const [offsetX, setOffsetX] = useState(0);
-  const [swiping, setSwiping] = useState(false);
   const [showLog, setShowLog] = useState(false);
-  const startXRef = useRef<number | null>(null);
-  const currentXRef = useRef(0);
-
-  const calledToday = r.lastContact?.daysAgo === 0;
-
-  const onTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length !== 1 || (e.target instanceof Element && e.target.closest("a,button,input,select,label"))) {
-      startXRef.current = null;
-      return;
-    }
-    startXRef.current = e.touches[0].clientX;
-    currentXRef.current = e.touches[0].clientX;
-    setSwiping(true);
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    if (startXRef.current === null) return;
-    currentXRef.current = e.touches[0].clientX;
-    const diff = currentXRef.current - startXRef.current;
-    if (Math.abs(diff) < 140) {
-      setOffsetX(diff);
-    }
-  };
-
-  const onTouchEnd = () => {
-    if (startXRef.current === null) return;
-    const diff = currentXRef.current - startXRef.current;
-    startXRef.current = null;
-    setSwiping(false);
-    setOffsetX(0);
-
-    // Right swipe threshold: Call
-    if (diff > 65) {
-      onTriggerCall(r);
-    }
-    // Left swipe threshold: WhatsApp
-    else if (diff < -65) {
-      onTriggerWhatsApp(r, waLink);
-    }
-  };
+  const calledToday = r.contactedToday;
 
   return (
     <li className="row-cv relative border-b border-[var(--color-border)] overflow-hidden last:border-0">
-      {/* Background Action Reveal Panels during Swipe */}
-      <div className="absolute inset-0 flex items-center justify-between pointer-events-none px-4 text-white text-[13px] font-semibold">
-        {/* Left reveal: Swipe right for Call */}
-        <div
-          className={`flex items-center gap-2 h-full absolute inset-y-0 left-0 px-4 bg-[var(--color-primary)] transition-opacity ${
-            offsetX > 20 ? "opacity-100" : "opacity-0"
-          }`}
-          style={{ width: `${Math.max(0, offsetX)}px` }}
-        >
-          <Phone size={18} weight="fill" className="shrink-0" />
-          {offsetX > 60 && <span className="whitespace-nowrap">{t("calls.swipe.call")}</span>}
-        </div>
-
-        {/* Right reveal: Swipe left for WhatsApp */}
-        <div
-          className={`flex items-center justify-end gap-2 h-full absolute inset-y-0 right-0 px-4 bg-[#25D366] text-black transition-opacity ${
-            offsetX < -20 ? "opacity-100" : "opacity-0"
-          }`}
-          style={{ width: `${Math.max(0, -offsetX)}px` }}
-        >
-          {offsetX < -60 && (
-            <span className="whitespace-nowrap font-medium">
-              {t("calls.swipe.whatsapp", { lang: SUPPORTED_LANGUAGES.find((l) => l.code === selectedLang)?.nativeLabel ?? "" })}
-            </span>
-          )}
-          <WhatsappLogo size={18} weight="fill" className="shrink-0" />
-        </div>
-      </div>
-
-      {/* Swipeable Card Content */}
       <div
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-        onTouchCancel={() => {
-          startXRef.current = null;
-          setSwiping(false);
-          setOffsetX(0);
-        }}
-        style={{
-          transform: `translateX(${offsetX}px)`,
-          transition: swiping ? "none" : "transform 0.2s ease-out",
-        }}
         className={`relative z-1 bg-[var(--color-background)] grid gap-3 px-4 py-4 grid-cols-[auto_minmax(0,1fr)] lg:grid-cols-[1.5rem_2rem_minmax(0,1.3fr)_minmax(0,1fr)_auto] lg:items-center ${
           calledToday ? "bg-[var(--color-surface-1)]" : ""
         } ${isSelected ? "ring-1 ring-[var(--color-primary)] bg-[var(--color-surface-1)]" : ""}`}
@@ -770,7 +677,7 @@ const SwipeableCallCard = memo(function SwipeableCallCard({
 
         <div className="min-w-0 space-y-1">
           <div className="flex flex-wrap items-baseline gap-x-2">
-            <Link href={`/patients/${r.id}`} className="font-semibold hover:underline">
+            <Link href={`/patients/${r.id}`} className="inline-flex min-h-11 min-w-11 items-center font-semibold hover:underline">
               {r.name}
             </Link>
             <span className="num text-[12px] text-[var(--color-charcoal)]">
@@ -778,8 +685,8 @@ const SwipeableCallCard = memo(function SwipeableCallCard({
             </span>
           </div>
           <div className="flex flex-wrap gap-1">
-            {r.reason === "lost" && <Tag tone="critical">{t("calls.card.lostToFollowUp")}</Tag>}
-            {r.reason === "at_risk" && (
+            {isLost(r.risk) && <Tag tone="critical">{t("calls.card.lostToFollowUp")}</Tag>}
+            {isAtRisk(r.risk) && (
               <Tag tone="warning">{r.noAnswerStreak >= 2 ? t("calls.card.unreachable", { count: r.noAnswerStreak }) : t("calls.card.atRisk")}</Tag>
             )}
             {r.flags.map((f) => (
@@ -834,17 +741,6 @@ const SwipeableCallCard = memo(function SwipeableCallCard({
             >
               <WhatsappLogo size={15} aria-hidden />
               <span>{t("calls.channel.whatsapp")}</span>
-            </button>
-          )}
-          {onTriggerBot && (
-            <button
-              type="button"
-              onClick={() => onTriggerBot(r.id)}
-              className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-xl text-[var(--color-charcoal)] transition-colors hover:bg-[var(--color-primary-surface)] hover:text-[var(--color-primary)] cursor-pointer"
-              title={t("calls.card.botTitle")}
-              aria-label={t("calls.card.botAria", { name: r.name })}
-            >
-              <Robot size={18} aria-hidden />
             </button>
           )}
           <button

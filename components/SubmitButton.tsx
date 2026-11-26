@@ -3,8 +3,9 @@
 import { useFormStatus } from "react-dom";
 import { useT } from "@/lib/i18n/provider";
 
-export function SubmitButton({ children }: { children: React.ReactNode }) {
-  const { pending } = useFormStatus();
+export function SubmitButton({ children, pending: actionPending }: { children: React.ReactNode; pending?: boolean }) {
+  const { pending: formPending } = useFormStatus();
+  const pending = actionPending ?? formPending;
   const t = useT();
 
   return (
