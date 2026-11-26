@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useT } from "@/lib/i18n/provider";
+import { chipClass } from "@/components/ui";
 import Link from "next/link";
 import {
-  SpeakerHigh,
   Play,
   Pause,
   Heart,
@@ -13,7 +13,6 @@ import {
   WarningCircle,
   PhoneCall,
   ArrowLeft,
-  Sparkle,
 } from "@phosphor-icons/react";
 import {
   generateCounseling,
@@ -54,7 +53,7 @@ const CHROME: Record<
     pause: "आवाज़ रोकें",
     speaking: "आवाज़ में संदेश चल रहा है…",
     paused: "रोका गया है",
-    idle: "▶️ यहाँ दबाकर आवाज़ में सुनिए",
+    idle: "यहाँ दबाकर आवाज़ में सुनिए",
     speed: "गति:",
     slow: "धीमी (0.8x)",
     normal: "सामान्य (1.0x)",
@@ -70,7 +69,7 @@ const CHROME: Record<
     pause: "आवाज थांबवा",
     speaking: "संदेश आवाजात ऐकवला जात आहे…",
     paused: "थांबवले आहे",
-    idle: "▶️ आवाजात ऐकण्यासाठी येथे दाबा",
+    idle: "आवाजात ऐकण्यासाठी येथे दाबा",
     speed: "गती:",
     slow: "हळू (0.8x)",
     normal: "सामान्य (1.0x)",
@@ -86,7 +85,7 @@ const CHROME: Record<
     pause: "અવાજ અટકાવો",
     speaking: "સંદેશ અવાજમાં ચાલી રહ્યો છે…",
     paused: "અટકાવ્યું છે",
-    idle: "▶️ અવાજમાં સાંભળવા અહીં દબાવો",
+    idle: "અવાજમાં સાંભળવા અહીં દબાવો",
     speed: "ઝડપ:",
     slow: "ધીમી (0.8x)",
     normal: "સામાન્ય (1.0x)",
@@ -102,7 +101,7 @@ const CHROME: Record<
     pause: "Pause audio",
     speaking: "Playing the message…",
     paused: "Paused",
-    idle: "▶️ Tap here to listen",
+    idle: "Tap here to listen",
     speed: "Speed:",
     slow: "Slow (0.8x)",
     normal: "Normal (1.0x)",
@@ -131,6 +130,7 @@ export function MotherAudioPlayer({
   const [isPaused, setIsPaused] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [speechRate, setSpeechRate] = useState(0.9);
+  const [ttsMissing, setTtsMissing] = useState(false);
 
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -183,7 +183,7 @@ export function MotherAudioPlayer({
 
   const handlePlayPause = () => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-      alert(ui.ttsUnsupported);
+      setTtsMissing(true);
       return;
     }
 
@@ -258,124 +258,101 @@ export function MotherAudioPlayer({
 
   const progressPercent = Math.min(100, (currentTime / estimatedDuration) * 100);
 
+  const playing = isPlaying && !isPaused;
+  const sectionIcons = [
+    <Baby key="b" size={22} className="text-[var(--color-primary)]" aria-hidden />,
+    <Pill key="p" size={22} className="text-[var(--color-on-track)]" aria-hidden />,
+    <Heart key="h" size={22} className="text-[var(--color-info)]" aria-hidden />,
+    <WarningCircle key="w" size={22} weight="fill" className="text-[var(--color-overdue)]" aria-hidden />,
+  ];
+
   return (
-    <div lang={lang} className="min-h-screen bg-[var(--color-surface-1)] text-[var(--color-foreground)] py-6 px-4 sm:px-6">
+    <div lang={lang} className="min-h-screen bg-[var(--color-surface-1)] px-4 py-6 text-[var(--color-foreground)] sm:px-6">
       <div className="mx-auto max-w-lg space-y-5">
-        {/* Navigation Bar */}
-        <div className="flex items-center justify-between">
+        <div className="flex min-h-11 items-center justify-between gap-3">
           {publicView ? (
             <span />
           ) : (
-          <Link
-            href={`/patients/${patientData.patientId}`}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--color-charcoal)] hover:text-[var(--color-primary)]"
-          >
-            <ArrowLeft size={16} />
-            <span>{t("common.back")}</span>
-          </Link>
+            <Link
+              href={`/patients/${patientData.patientId}`}
+              className="inline-flex min-h-11 items-center gap-1.5 text-[14px] font-semibold text-[var(--color-charcoal)] hover:text-[var(--color-primary)]"
+            >
+              <ArrowLeft size={18} aria-hidden />
+              <span>{t("common.back")}</span>
+            </Link>
           )}
-          <div className="flex items-center gap-1 text-[11px] font-bold text-[var(--color-primary)] bg-[var(--color-primary)]/10 px-2.5 py-1 rounded-full">
-            <Sparkle size={12} weight="fill" />
-            <span>MatruSetu Voice Bridge</span>
-          </div>
+          <span className="text-[14px] font-semibold text-[var(--color-primary)]">MatruSetu</span>
         </div>
 
-        {/* Big Maternal Greeting Card */}
-        <div className="rounded-2xl border border-[var(--color-border)] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--color-pc-lilac)_90%,transparent)_0%,var(--color-background)_100%)] p-6 text-center shadow-sm">
-          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--color-primary)] text-white shadow-md">
-            <SpeakerHigh size={34} weight="fill" />
-          </div>
-
-          <h1 className="text-xl font-bold text-[var(--color-foreground)]">
-            {patientData.patientName}
-          </h1>
-          <p className="mt-1 text-xs text-[var(--color-charcoal)] font-medium">
-            {ui.week.replace("{n}", String(patientData.gaWeeks ?? 24))} · {patientData.clinicName || ui.defaultClinic}
+        <header className="rounded-[var(--radius-cards)] border border-[var(--color-border)] bg-[var(--color-background)] p-5 text-center shadow-[var(--shadow-card)]">
+          <h1 className="text-balance text-[24px] font-semibold leading-snug">{patientData.patientName}</h1>
+          <p className="mt-1 text-[16px] text-[var(--color-charcoal)]">
+            <span className="num">{ui.week.replace("{n}", String(patientData.gaWeeks ?? 24))}</span> · {patientData.clinicName || ui.defaultClinic}
           </p>
-
-          {/* Language Selector Buttons */}
-          <div className="mt-4 flex flex-wrap justify-center gap-1.5">
+          <div className="mt-4 flex flex-wrap justify-center gap-2" role="group" aria-label={ui.summary}>
             {COUNSELING_LANGUAGES.map((l) => (
               <button
                 key={l.code}
                 type="button"
+                lang={l.code}
+                aria-pressed={lang === l.code}
                 onClick={() => {
                   stopSpeech();
                   setLang(l.code);
                 }}
-                className={`px-3 py-1.5 text-xs rounded-xl font-bold transition cursor-pointer ${
-                  lang === l.code
-                    ? "bg-[var(--color-primary)] text-white shadow-xs"
-                    : "bg-[var(--color-background)] text-[var(--color-charcoal)] border border-[var(--color-border)] hover:bg-[var(--color-surface-2)]"
-                }`}
+                className={`${chipClass(lang === l.code)} min-h-11 px-4 text-[16px] md:min-h-11`}
               >
                 {l.nativeLabel}
               </button>
             ))}
           </div>
-        </div>
+        </header>
 
-        {/* Prominent Play/Pause Audio Center */}
-        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-background)] p-6 shadow-md text-center space-y-4">
-          <div className="flex justify-center items-center">
-            <button
-              type="button"
-              onClick={handlePlayPause}
-              className={`flex h-20 w-20 items-center justify-center rounded-full text-white shadow-xl transition-transform active:scale-90 cursor-pointer ${
-                isPlaying && !isPaused
-                  ? "bg-amber-600 hover:bg-amber-700"
-                  : "bg-emerald-600 hover:bg-emerald-700"
-              }`}
-              title={isPlaying && !isPaused ? ui.pause : ui.play}
-              aria-label={isPlaying && !isPaused ? ui.pause : ui.play}
-            >
-              {isPlaying && !isPaused ? (
-                <Pause size={36} weight="fill" />
-              ) : (
-                <Play size={36} weight="fill" className="ml-1" />
-              )}
-            </button>
-          </div>
+        <section className="space-y-4 rounded-[var(--radius-cards)] border border-[var(--color-border)] bg-[var(--color-background)] p-6 text-center shadow-[var(--shadow-card)]">
+          <button
+            type="button"
+            onClick={handlePlayPause}
+            className="press mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-[var(--color-primary)] text-white shadow-[var(--shadow-overlay)] hover:bg-[var(--color-primary-hover)]"
+            title={playing ? ui.pause : ui.play}
+            aria-label={playing ? ui.pause : ui.play}
+          >
+            {playing ? <Pause size={44} weight="fill" aria-hidden /> : <Play size={44} weight="fill" className="ml-1" aria-hidden />}
+          </button>
 
-          <div>
-            <h2 className="text-base font-bold text-[var(--color-foreground)]">
-              {isPlaying && !isPaused
-                ? ui.speaking
-                : isPaused
-                ? ui.paused
-                : ui.idle}
-            </h2>
-            <p className="text-xs text-[var(--color-charcoal)] font-mono mt-0.5">
+          <div role="status">
+            <p className="text-[18px] font-semibold">{playing ? ui.speaking : isPaused ? ui.paused : ui.idle}</p>
+            <p className="num mt-0.5 text-[15px] text-[var(--color-charcoal)]">
               {formatTimer(currentTime)} / {formatTimer(estimatedDuration)}
             </p>
           </div>
+          {ttsMissing && (
+            <p role="alert" className="rounded-[var(--radius-buttons)] bg-[var(--color-due-surface)] px-3 py-2 text-[15px]">
+              {ui.ttsUnsupported}
+            </p>
+          )}
 
-          {/* Soundwave Bars */}
-          <div className="flex items-center justify-center gap-1.5 h-8">
+          <div className="flex h-8 items-center justify-center gap-1.5" aria-hidden>
             {[40, 70, 50, 90, 60, 85, 45, 95, 75, 50, 80, 65].map((h, i) => (
               <div
                 key={i}
-                className={`w-1.5 rounded-full bg-emerald-600 transition-all duration-200 ${
-                  isPlaying && !isPaused ? "animate-pulse" : "opacity-30"
-                }`}
-                style={{
-                  height: isPlaying && !isPaused ? `${h}%` : "30%",
-                  animationDelay: `${i * 80}ms`,
-                }}
+                className={`w-1.5 rounded-full bg-[var(--color-primary)] transition-[height,opacity] duration-200 ${playing ? "animate-pulse" : "opacity-30"}`}
+                style={{ height: playing ? `${h}%` : "30%", animationDelay: `${i * 80}ms` }}
               />
             ))}
           </div>
 
-          {/* Progress Bar */}
-          <div className="w-full bg-[var(--color-surface-2)] h-2 rounded-full overflow-hidden">
-            <div
-              className="bg-emerald-600 h-full transition-all duration-300 rounded-full"
-              style={{ width: `${progressPercent}%` }}
-            />
+          <div
+            className="h-2 w-full overflow-hidden rounded-full bg-[var(--color-surface-3)]"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(progressPercent)}
+            aria-label={ui.summary}
+          >
+            <div className="h-full rounded-full bg-[var(--color-primary)] transition-[width] duration-300" style={{ width: `${progressPercent}%` }} />
           </div>
 
-          {/* Speed Tuning */}
-          <div className="flex items-center justify-center gap-2 pt-1 text-xs text-[var(--color-charcoal)]">
+          <div className="flex flex-wrap items-center justify-center gap-2 text-[15px] text-[var(--color-charcoal)]">
             <span>{ui.speed}</span>
             {[
               { rate: 0.82, label: ui.slow },
@@ -384,64 +361,47 @@ export function MotherAudioPlayer({
               <button
                 key={s.rate}
                 type="button"
+                aria-pressed={speechRate === s.rate}
                 onClick={() => {
                   setSpeechRate(s.rate);
                   if (isPlaying) stopSpeech();
                 }}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer ${
-                  speechRate === s.rate
-                    ? "bg-[var(--color-primary)] text-white"
-                    : "bg-[var(--color-surface-2)] text-[var(--color-charcoal)]"
-                }`}
+                className={`${chipClass(speechRate === s.rate)} min-h-11 text-[15px] md:min-h-11`}
               >
                 {s.label}
               </button>
             ))}
           </div>
-        </div>
+        </section>
 
-        {/* Written Advice Cards for Reading */}
-        <div className="space-y-3">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--color-charcoal)] px-1">
-            {ui.summary}
-          </h3>
-
+        <section className="space-y-3">
+          <h2 className="px-1 text-[18px] font-semibold">{ui.summary}</h2>
           {counseling.sections.map((sec, idx) => (
-            <div
+            <article
               key={idx}
-              className={`rounded-xl border p-4 shadow-2xs ${
-                idx === 3
-                  ? "border-red-200 bg-red-50/70 text-red-950"
-                  : "border-[var(--color-border)] bg-[var(--color-background)]"
+              className={`rounded-[var(--radius-cards)] border p-4 ${
+                idx === 3 ? "border-[var(--color-overdue)]/40 bg-[var(--color-overdue-surface)]" : "border-[var(--color-border)] bg-[var(--color-background)]"
               }`}
             >
-              <div className="flex items-center gap-2 mb-1.5">
-                {idx === 0 && <Baby size={18} className="text-[var(--color-primary)]" />}
-                {idx === 1 && <Pill size={18} className="text-emerald-700" />}
-                {idx === 2 && <Heart size={18} className="text-sky-700" />}
-                {idx === 3 && <WarningCircle size={18} className="text-red-600" />}
-                <h4 className="text-xs font-bold">{sec.title}</h4>
+              <div className="mb-1.5 flex items-center gap-2">
+                {sectionIcons[idx]}
+                <h3 className="text-[17px] font-semibold">{sec.title}</h3>
               </div>
-              <p className="text-xs leading-relaxed opacity-90 whitespace-pre-line pl-6">
-                {sec.content}
-              </p>
-            </div>
+              <p className="whitespace-pre-line pl-8 text-[16px] leading-relaxed">{sec.content}</p>
+            </article>
           ))}
-        </div>
+        </section>
 
-        {/* Emergency Help Button */}
-        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-4 text-center space-y-2">
-          <p className="text-xs font-semibold text-[var(--color-charcoal)]">
-            {ui.emergencyLead}
-          </p>
+        <section className="space-y-3 rounded-[var(--radius-cards)] border border-[var(--color-border)] bg-[var(--color-background)] p-5 text-center">
+          <p className="text-[16px] font-medium">{ui.emergencyLead}</p>
           <a
             href="tel:108"
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-5 py-2.5 shadow-sm transition"
+            className="press inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-[var(--radius-buttons)] bg-[var(--color-overdue)] px-5 text-[16px] font-semibold text-white hover:opacity-90"
           >
-            <PhoneCall size={16} weight="fill" />
+            <PhoneCall size={22} weight="fill" aria-hidden />
             <span>{ui.ambulance}</span>
           </a>
-        </div>
+        </section>
       </div>
     </div>
   );

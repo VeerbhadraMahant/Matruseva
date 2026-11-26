@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useTransition, useEffect, useCallback } from "react";
-import { Baby, X, Warning, CheckCircle, ArrowRight, ArrowLeft } from "@phosphor-icons/react";
-import { buttonPrimary, buttonSecondary } from "@/components/ui";
+import { useState, useTransition, useCallback } from "react";
+import { Warning, CheckCircle, ArrowRight, ArrowLeft } from "@phosphor-icons/react";
+import { OverlayShell } from "@/components/OverlayShell";
+import { buttonDanger, buttonPrimary, buttonSecondary, helpClass, inputClass, labelClass } from "@/components/ui";
 import { closePregnancy } from "@/app/(app)/patients/[id]/actions";
 import type { ClosePregnancyFormProps } from "@/components/ClosePregnancyForm";
 import { useLocale, useT } from "@/lib/i18n/provider";
@@ -31,17 +32,6 @@ export function ClosePregnancyModal({
     if (isPending) return;
     onClose();
   }, [isPending, onClose]);
-
-  // Handle escape key
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        handleClose();
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [handleClose]);
 
   const handleProceedToConfirm = (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,224 +84,165 @@ export function ClosePregnancyModal({
     });
   };
 
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="close-pregnancy-title"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs"
-    >
-      <div className="rounded-2xl relative w-full max-w-lg border border-[var(--color-border-strong)] bg-[var(--color-background)] p-6 shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-3">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center bg-[var(--color-primary)] text-white">
-              <Baby size={18} weight="bold" />
-            </div>
-            <div>
-              <h2 id="close-pregnancy-title" className="text-[16px] font-bold text-[var(--color-foreground)]">
-                {t("patientDetail.closure.title")}
-              </h2>
-              <p className="text-[12px] text-[var(--color-charcoal)]">
-                {patient.name} {patient.clinicPatientNo ? `(${patient.clinicPatientNo})` : ""}
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={handleClose}
-            disabled={isPending}
-            className="p-1 text-[var(--color-charcoal)] hover:text-[var(--color-foreground)] transition-colors cursor-pointer"
-            aria-label={t("common.close")}
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* Success state */}
-        {success ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center space-y-2">
-            <CheckCircle size={48} weight="fill" className="text-[var(--color-on-track)] animate-bounce" />
-            <h3 className="text-base font-bold text-[var(--color-foreground)]">{t("patientDetail.closure.successTitle")}</h3>
-            <p className="text-xs text-[var(--color-charcoal)]">
-              {t("patientDetail.closure.successBody")}
-            </p>
-          </div>
+  const formId = "close-pregnancy-form";
+  const footer = success ? null : step === "form" ? (
+    <>
+      <button type="button" onClick={handleClose} disabled={isPending} className={buttonSecondary}>
+        {t("common.cancel")}
+      </button>
+      <button type="submit" form={formId} className={buttonPrimary}>
+        <span>{t("patientDetail.closure.next")}</span>
+        <ArrowRight size={16} aria-hidden />
+      </button>
+    </>
+  ) : (
+    <>
+      <button type="button" onClick={() => setStep("form")} disabled={isPending} className={`${buttonSecondary} sm:mr-auto`}>
+        <ArrowLeft size={16} aria-hidden />
+        <span>{t("patientDetail.closure.backToEdit")}</span>
+      </button>
+      <button type="button" onClick={handleFinalSubmit} disabled={isPending} className={buttonDanger}>
+        {isPending ? (
+          <span>{t("patientDetail.closure.closing")}</span>
         ) : (
-          <div className="mt-4">
-            {error && (
-              <div className="rounded-xl mb-4 flex items-start gap-2 border border-[var(--color-overdue)] bg-[var(--color-overdue-surface)] p-2.5 text-xs text-[var(--color-overdue)]">
-                <Warning size={16} className="shrink-0 mt-0.5" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            {step === "form" ? (
-              <form onSubmit={handleProceedToConfirm} className="space-y-4">
-                {/* Delivery Date */}
-                <div>
-                  <label htmlFor="delivery-date" className="block text-[12px] font-medium text-[var(--color-charcoal)]">
-                    {t("patientDetail.closure.deliveryDate")} <span className="text-[var(--color-overdue)]">*</span>
-                  </label>
-                  <input
-                    id="delivery-date"
-                    type="date"
-                    required
-                    max={todayIso}
-                    min={patient.lmp || undefined}
-                    value={deliveryDate}
-                    onChange={(e) => setDeliveryDate(e.target.value)}
-                    className="rounded-xl mt-1 w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
-                  />
-                  {patient.lmp && (
-                    <p className="mt-1 text-[11px] text-[var(--color-charcoal)]">
-                      {t("patientDetail.closure.lmpHint", { lmp: formatDate(patient.lmp, locale) })}
-                    </p>
-                  )}
-                </div>
-
-                {/* Delivery Mode */}
-                <div>
-                  <label htmlFor="delivery-mode" className="block text-[12px] font-medium text-[var(--color-charcoal)]">
-                    {t("patientDetail.closure.deliveryMode")} <span className="text-[var(--color-overdue)]">*</span>
-                  </label>
-                  <select
-                    id="delivery-mode"
-                    required
-                    value={deliveryMode}
-                    onChange={(e) => setDeliveryMode(e.target.value as "NVD" | "LSCS")}
-                    className="rounded-xl mt-1 w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
-                  >
-                    <option value="NVD">{t("clinical.delivery.NVD")}</option>
-                    <option value="LSCS">{t("clinical.delivery.LSCS")}</option>
-                  </select>
-                </div>
-
-                {/* Birth Weight (kg) */}
-                <div>
-                  <label htmlFor="birth-weight" className="block text-[12px] font-medium text-[var(--color-charcoal)]">
-                    {t("patientDetail.closure.birthWeight")} <span className="text-[var(--color-overdue)]">*</span>
-                  </label>
-                  <input
-                    id="birth-weight"
-                    type="number"
-                    step="0.01"
-                    min="0.5"
-                    max="6.5"
-                    required
-                    value={birthWeightKg}
-                    onChange={(e) => setBirthWeightKg(e.target.value)}
-                    className="rounded-xl mt-1 w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
-                    placeholder={t("patientDetail.closure.birthWeightPlaceholder")}
-                  />
-                  <p className="mt-1 text-[11px] text-[var(--color-charcoal)]">
-                    {t("patientDetail.closure.birthWeightHint")}
-                  </p>
-                </div>
-
-                {/* Optional Notes */}
-                <div>
-                  <label htmlFor="closure-notes" className="block text-[12px] font-medium text-[var(--color-charcoal)]">
-                    {t("patientDetail.closure.remarks")}
-                  </label>
-                  <textarea
-                    id="closure-notes"
-                    rows={2}
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder={t("patientDetail.closure.remarksPlaceholder")}
-                    className="rounded-xl mt-1 w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
-                  />
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--color-border)]">
-                  <button
-                    type="button"
-                    onClick={handleClose}
-                    disabled={isPending}
-                    className={buttonSecondary}
-                  >
-                    {t("common.cancel")}
-                  </button>
-                  <button
-                    type="submit"
-                    className={buttonPrimary}
-                  >
-                    <span>{t("patientDetail.closure.next")}</span>
-                    <ArrowRight size={14} />
-                  </button>
-                </div>
-              </form>
-            ) : (
-              /* Step 2: Confirmation */
-              <div className="space-y-4">
-                <div className="rounded-xl border border-[var(--color-due)] bg-[var(--color-due-surface)] p-3 text-[13px] text-[var(--color-foreground)]">
-                  <div className="flex items-center gap-1.5 font-semibold text-[var(--color-due)]">
-                    <Warning size={16} weight="fill" />
-                    <span>{t("patientDetail.closure.confirmTitle")}</span>
-                  </div>
-                  <p className="mt-1.5 text-[12px] text-[var(--color-charcoal)] leading-relaxed">
-                    {t("patientDetail.closure.confirmBody")}
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] p-3 space-y-2 text-[13px]">
-                  <div className="flex justify-between gap-3 border-b border-[var(--color-border)] pb-1.5">
-                    <span className="text-[var(--color-charcoal)]">{t("patientDetail.closure.sumPatient")}</span>
-                    <span className="font-semibold">{patient.name}</span>
-                  </div>
-                  <div className="flex justify-between gap-3 border-b border-[var(--color-border)] pb-1.5">
-                    <span className="text-[var(--color-charcoal)]">{t("patientDetail.closure.sumDate")}</span>
-                    <span className="font-semibold">{formatDate(deliveryDate, locale)}</span>
-                  </div>
-                  <div className="flex justify-between gap-3 border-b border-[var(--color-border)] pb-1.5">
-                    <span className="text-[var(--color-charcoal)]">{t("patientDetail.closure.sumMode")}</span>
-                    <span className="font-semibold">{deliveryMode === "NVD" ? t("clinical.delivery.NVD") : t("clinical.delivery.LSCS")}</span>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <span className="text-[var(--color-charcoal)]">{t("patientDetail.closure.sumWeight")}</span>
-                    <span className="font-semibold font-mono">{birthWeightKg} kg</span>
-                  </div>
-                  {notes && (
-                    <div className="pt-1.5 border-t border-[var(--color-border)] text-xs text-[var(--color-charcoal)]">
-                      <span className="font-medium">{t("patientDetail.closure.sumRemarks")}</span> {notes}
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between pt-2 border-t border-[var(--color-border)]">
-                  <button
-                    type="button"
-                    onClick={() => setStep("form")}
-                    disabled={isPending}
-                    className={buttonSecondary}
-                  >
-                    <ArrowLeft size={14} />
-                    <span>{t("patientDetail.closure.backToEdit")}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleFinalSubmit}
-                    disabled={isPending}
-                    className={`${buttonPrimary} bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)]`}
-                  >
-                    {isPending ? (
-                      <span>{t("patientDetail.closure.closing")}</span>
-                    ) : (
-                      <>
-                        <CheckCircle size={15} weight="bold" />
-                        <span>{t("patientDetail.closure.confirm")}</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+          <>
+            <CheckCircle size={16} weight="bold" aria-hidden />
+            <span>{t("patientDetail.closure.confirm")}</span>
+          </>
         )}
-      </div>
-    </div>
+      </button>
+    </>
+  );
+
+  return (
+    <OverlayShell
+      title={t("patientDetail.closure.title")}
+      subtitle={`${patient.name}${patient.clinicPatientNo ? ` (${patient.clinicPatientNo})` : ""}`}
+      closeLabel={t("common.close")}
+      onClose={handleClose}
+      backdropClose={false}
+      footer={footer}
+    >
+      {success ? (
+        <div className="flex flex-col items-center justify-center space-y-2 py-8 text-center" role="status">
+          <CheckCircle size={48} weight="fill" className="text-[var(--color-on-track)]" aria-hidden />
+          <h3 className="text-[16px] font-semibold">{t("patientDetail.closure.successTitle")}</h3>
+          <p className="text-[13px] text-[var(--color-charcoal)]">{t("patientDetail.closure.successBody")}</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {error && (
+            <div role="alert" className="flex items-start gap-2 rounded-[var(--radius-buttons)] bg-[var(--color-overdue-surface)] p-3 text-[13px] text-[var(--color-overdue)]">
+              <Warning size={16} weight="fill" className="mt-0.5 shrink-0" aria-hidden />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {step === "form" ? (
+            <form id={formId} onSubmit={handleProceedToConfirm} className="space-y-4">
+              <div>
+                <label htmlFor="delivery-date" className={labelClass}>
+                  {t("patientDetail.closure.deliveryDate")} <span className="text-[var(--color-overdue)]">*</span>
+                </label>
+                <input
+                  id="delivery-date"
+                  type="date"
+                  required
+                  max={todayIso}
+                  min={patient.lmp || undefined}
+                  value={deliveryDate}
+                  onChange={(e) => setDeliveryDate(e.target.value)}
+                  className={inputClass}
+                />
+                {patient.lmp && <p className={helpClass}>{t("patientDetail.closure.lmpHint", { lmp: formatDate(patient.lmp, locale) })}</p>}
+              </div>
+
+              <div>
+                <label htmlFor="delivery-mode" className={labelClass}>
+                  {t("patientDetail.closure.deliveryMode")} <span className="text-[var(--color-overdue)]">*</span>
+                </label>
+                <select
+                  id="delivery-mode"
+                  required
+                  value={deliveryMode}
+                  onChange={(e) => setDeliveryMode(e.target.value as "NVD" | "LSCS")}
+                  className={inputClass}
+                >
+                  <option value="NVD">{t("clinical.delivery.NVD")}</option>
+                  <option value="LSCS">{t("clinical.delivery.LSCS")}</option>
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="birth-weight" className={labelClass}>
+                  {t("patientDetail.closure.birthWeight")} <span className="text-[var(--color-overdue)]">*</span>
+                </label>
+                <input
+                  id="birth-weight"
+                  type="number"
+                  step="0.01"
+                  min="0.5"
+                  max="6.5"
+                  required
+                  value={birthWeightKg}
+                  onChange={(e) => setBirthWeightKg(e.target.value)}
+                  className={`${inputClass} num`}
+                  placeholder={t("patientDetail.closure.birthWeightPlaceholder")}
+                />
+                <p className={helpClass}>{t("patientDetail.closure.birthWeightHint")}</p>
+              </div>
+
+              <div>
+                <label htmlFor="closure-notes" className={labelClass}>
+                  {t("patientDetail.closure.remarks")}
+                </label>
+                <textarea
+                  id="closure-notes"
+                  rows={2}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder={t("patientDetail.closure.remarksPlaceholder")}
+                  className={`${inputClass} py-2`}
+                />
+              </div>
+            </form>
+          ) : (
+            <>
+              <div className="rounded-[var(--radius-buttons)] bg-[var(--color-overdue-surface)] p-3 text-[14px]">
+                <div className="flex items-center gap-1.5 font-semibold text-[var(--color-overdue)]">
+                  <Warning size={16} weight="fill" aria-hidden />
+                  <span>{t("patientDetail.closure.confirmTitle")}</span>
+                </div>
+                <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--color-foreground)]">{t("patientDetail.closure.confirmBody")}</p>
+              </div>
+
+              <dl className="divide-y divide-[var(--color-border)]/70 rounded-[var(--radius-buttons)] bg-[var(--color-surface-1)] px-3 text-[14px]">
+                <div className="flex justify-between gap-3 py-2">
+                  <dt className="text-[var(--color-charcoal)]">{t("patientDetail.closure.sumPatient")}</dt>
+                  <dd className="font-semibold">{patient.name}</dd>
+                </div>
+                <div className="flex justify-between gap-3 py-2">
+                  <dt className="text-[var(--color-charcoal)]">{t("patientDetail.closure.sumDate")}</dt>
+                  <dd className="num font-semibold">{formatDate(deliveryDate, locale)}</dd>
+                </div>
+                <div className="flex justify-between gap-3 py-2">
+                  <dt className="text-[var(--color-charcoal)]">{t("patientDetail.closure.sumMode")}</dt>
+                  <dd className="font-semibold">{deliveryMode === "NVD" ? t("clinical.delivery.NVD") : t("clinical.delivery.LSCS")}</dd>
+                </div>
+                <div className="flex justify-between gap-3 py-2">
+                  <dt className="text-[var(--color-charcoal)]">{t("patientDetail.closure.sumWeight")}</dt>
+                  <dd className="num font-semibold">{birthWeightKg} kg</dd>
+                </div>
+                {notes && (
+                  <div className="py-2 text-[13px] text-[var(--color-charcoal)]">
+                    <dt className="inline font-medium">{t("patientDetail.closure.sumRemarks")}</dt> <dd className="inline">{notes}</dd>
+                  </div>
+                )}
+              </dl>
+            </>
+          )}
+        </div>
+      )}
+    </OverlayShell>
   );
 }

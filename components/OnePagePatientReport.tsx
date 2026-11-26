@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import {
   Printer,
@@ -11,7 +11,6 @@ import {
   CheckCircle,
   FileText,
   MagnifyingGlassPlus,
-  X,
   PhoneCall,
   Calendar,
   Baby,
@@ -20,6 +19,8 @@ import {
 } from "@phosphor-icons/react";
 import type { PastObstetricHistory, FamilyPregnancyHistory, DiagnosticScanReport } from "@/lib/obstetricReportData";
 import { VoiceCounselorButton } from "@/components/VoiceCounselorModal";
+import { OverlayShell } from "@/components/OverlayShell";
+import { ActionBar, Tag, buttonPrimary, buttonSecondary } from "@/components/ui";
 import { useLocale, useT } from "@/lib/i18n/provider";
 import { formatDate } from "@/lib/format";
 import { careEventName, careStatusLabel } from "@/lib/clinicalLabels";
@@ -76,6 +77,52 @@ export interface OnePagePatientReportProps {
   riskFlags: string[];
 }
 
+const lab = "block text-[12px] text-[var(--color-charcoal)] print:text-[10px]";
+const val = "text-[14px] font-semibold text-[var(--color-foreground)] print:text-[11px]";
+const tile = "rounded-[var(--radius-buttons)] bg-[var(--color-surface-1)] p-2.5 print:p-1.5";
+const TXT_CRIT = "text-[var(--color-overdue)] font-bold";
+const TXT_WARN = "text-[var(--color-due)] font-bold";
+const TXT_OK = "text-[var(--color-on-track)]";
+
+function Section({
+  icon,
+  title,
+  aside,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  aside?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="break-inside-avoid border-t border-[var(--color-border)] pt-4 print:pt-2">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 print:mb-1.5">
+        <h2 className="flex items-center gap-2 text-[16px] font-semibold print:text-[12px]">
+          <span className="shrink-0 text-[var(--color-primary)]" aria-hidden>
+            {icon}
+          </span>
+          {title}
+        </h2>
+        {aside && <span className="text-[13px] text-[var(--color-charcoal)] print:text-[10px]">{aside}</span>}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function Tile({ label, unit, children }: { label: string; unit?: string; children: React.ReactNode }) {
+  return (
+    <div className={tile}>
+      <dt className={lab}>{label}</dt>
+      <dd className="num mt-0.5 text-[18px] font-semibold leading-tight print:text-[13px]">
+        {children}
+        {unit && <span className="ml-1 text-[12px] font-normal text-[var(--color-charcoal)] print:text-[9px]">{unit}</span>}
+      </dd>
+    </div>
+  );
+}
+
 export function OnePagePatientReport({
   patient,
   pastHistory,
@@ -90,7 +137,6 @@ export function OnePagePatientReport({
   const d = (iso: string | null | undefined) => (iso ? formatDate(iso, locale) : "—");
   const [selectedScan, setSelectedScan] = useState<DiagnosticScanReport | null>(null);
   const [copied, setCopied] = useState(false);
-  const printAreaRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = () => {
     window.print();
@@ -110,28 +156,22 @@ export function OnePagePatientReport({
 
   const latestVisit = visits[0];
   const isHighRisk = patient.risk !== "on_track" || patient.rhNegative || riskFlags.length > 0;
+  const bpTone = (sys?: number | null, dia?: number | null) =>
+    sys && (sys >= 140 || (dia && dia >= 90)) ? TXT_CRIT : sys && sys >= 130 ? TXT_WARN : "";
 
   return (
-    <div className="min-h-screen bg-[var(--color-surface-1)]/60 text-[var(--color-foreground)] py-6 px-3 sm:px-6 print:p-0 print:bg-white">
-      {/* Top Floating Control Bar (Screen Only) */}
-      <div className="max-w-5xl mx-auto mb-4 flex flex-wrap items-center justify-between gap-3 bg-[var(--color-background)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 shadow-xs print:hidden">
-        <div className="flex items-center gap-3">
-          <Link
-            href={`/patients/${patient.id}`}
-            className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--color-charcoal)] hover:text-[var(--color-primary)] transition-colors"
-          >
-            <ArrowLeft size={16} weight="bold" />
-            <span>{t("reports.dossier.back")}</span>
-          </Link>
-          <span className="text-[var(--color-border-strong)]">|</span>
-          <span className="text-[12px] font-semibold tracking-wide uppercase text-[var(--color-primary)]">
-            {t("reports.dossier.label")}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2">
+    <div className="mx-auto w-full max-w-5xl space-y-4 px-4 pb-24 pt-5 text-[var(--color-foreground)] md:px-8 md:pb-12 md:pt-7 print:m-0 print:max-w-none print:space-y-0 print:p-0">
+      <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
+        <Link
+          href={`/patients/${patient.id}`}
+          className="inline-flex min-h-11 items-center gap-1.5 text-[14px] font-medium text-[var(--color-charcoal)] hover:text-[var(--color-primary)]"
+        >
+          <ArrowLeft size={18} aria-hidden />
+          <span>{t("reports.dossier.back")}</span>
+        </Link>
+        <div className="flex flex-wrap items-center gap-2">
           <VoiceCounselorButton
-            variant="subtle"
+            variant="secondary"
             label={t("reports.dossier.audioCounselling")}
             data={{
               patientId: patient.id,
@@ -148,130 +188,85 @@ export function OnePagePatientReport({
               clinicName: patient.clinicName,
             }}
           />
-
-          <button
-            type="button"
-            onClick={handleShare}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-1.5 text-[12px] font-medium text-[var(--color-charcoal)] hover:border-[var(--color-foreground)] transition-colors cursor-pointer"
-          >
-            <ShareNetwork size={15} />
-            <span>{copied ? t("reports.dossier.linkCopied") : t("reports.dossier.shareLink")}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handlePrint}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-primary)] text-white px-3.5 py-1.5 text-[12px] font-semibold hover:bg-[var(--color-primary-hover)] transition-colors shadow-xs cursor-pointer"
-          >
-            <Printer size={15} weight="bold" />
-            <span>{t("reports.dossier.print")}</span>
-          </button>
+          <span className="hidden md:contents">
+            <button type="button" onClick={handleShare} className={buttonSecondary} aria-live="polite">
+              <ShareNetwork size={16} aria-hidden />
+              <span>{copied ? t("reports.dossier.linkCopied") : t("reports.dossier.shareLink")}</span>
+            </button>
+            <button type="button" onClick={handlePrint} className={buttonPrimary}>
+              <Printer size={16} weight="bold" aria-hidden />
+              <span>{t("reports.dossier.print")}</span>
+            </button>
+          </span>
         </div>
       </div>
 
-      {/* Main Single-Sheet Obstetric Dossier Document */}
-      <div
-        ref={printAreaRef}
-        className="max-w-5xl mx-auto bg-white border border-[var(--color-border)] shadow-md rounded-2xl p-6 sm:p-8 print:border-none print:shadow-none print:p-0 print:rounded-none"
-      >
-        {/* Document Header: Clinical Authority Banner */}
-        <header className="border-b-2 border-[var(--color-primary)] pb-4 mb-5">
-          <div className="flex flex-wrap items-start justify-between gap-4">
+      <article className="space-y-5 rounded-[var(--radius-cards)] border border-[var(--color-border)] bg-white p-5 shadow-[var(--shadow-card)] md:p-8 print:space-y-3 print:rounded-none print:border-none print:p-0 print:shadow-none">
+        <header className="space-y-3 print:space-y-2">
+          <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 border-b-2 border-[var(--color-primary)] pb-3 print:pb-1.5">
             <div>
-              <div className="flex items-center gap-2">
-                <span className="font-serif text-[18px] sm:text-[22px] font-bold tracking-tight text-[var(--color-primary)]">
-                  MATRUSETU
-                </span>
-                <span className="text-[10px] tracking-widest uppercase font-semibold text-[var(--color-charcoal)] border border-[var(--color-border)] px-1.5 py-0.5 rounded">
-                  PMSMA / FRU
-                </span>
-              </div>
-              <h1 className="text-[15px] sm:text-[17px] font-semibold text-slate-800 tracking-[-0.01em] mt-0.5">
-                {t("reports.dossier.heading")}
-              </h1>
-              <p className="text-[11px] text-[var(--color-charcoal)] mt-0.5">
+              <p className="flex flex-wrap items-center gap-2 text-[14px] font-semibold tracking-[0.06em] text-[var(--color-primary)] print:text-[12px]">
+                MATRUSETU
+                <span className="rounded border border-[var(--color-border)] px-1.5 text-[11px] font-semibold tracking-wide text-[var(--color-charcoal)]">PMSMA / FRU</span>
+              </p>
+              <p className="text-[15px] font-semibold print:text-[12px]">{t("reports.dossier.heading")}</p>
+              <p className="text-[13px] text-[var(--color-charcoal)] print:text-[10px]">
                 {t("reports.dossier.subtitle", { clinic: patient.clinicName || t("reports.dossier.defaultClinic") })}
               </p>
             </div>
-
-            <div className="text-right">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-bold tracking-wide uppercase border mb-1">
-                {isHighRisk ? (
-                  <span className="inline-flex items-center gap-1 text-red-700 bg-red-50 border-red-200 px-2.5 py-0.5 rounded-full">
-                    <ShieldWarning size={14} weight="fill" />
-                    <span>{t("reports.dossier.hrp")}</span>
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 text-emerald-800 bg-emerald-50 border-emerald-200 px-2.5 py-0.5 rounded-full">
-                    <CheckCircle size={14} weight="fill" />
-                    <span>{t("reports.dossier.routine")}</span>
-                  </span>
-                )}
-              </div>
-              <p className="text-[10px] text-[var(--color-charcoal)] font-mono">
-                RCH/OPD: <span className="font-semibold text-slate-900">{patient.clinicPatientNo || "ANC-REG"}</span>
-              </p>
-            </div>
+            <p className="num text-[13px] text-[var(--color-charcoal)] print:text-[10px]">
+              RCH/OPD: <span className="font-semibold text-[var(--color-foreground)]">{patient.clinicPatientNo || "ANC-REG"}</span>
+            </p>
           </div>
 
-          {/* Primary Patient Identification Strip */}
-          <div className="mt-3.5 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2 bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-xl p-3 text-[12px]">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <h1 className="text-balance text-[24px] font-semibold leading-tight tracking-[-0.015em] print:text-[18px]">{patient.name}</h1>
+            <Tag tone={isHighRisk ? "critical" : "ok"}>{isHighRisk ? t("reports.dossier.hrp") : t("reports.dossier.routine")}</Tag>
+          </div>
+          <p className="-mt-2 text-[14px] text-[var(--color-charcoal)] print:text-[11px]">
+            <span className="num">
+              {patient.age ? t("patientDetail.header.ageYears", { age: patient.age }) : "—"} · G{patient.gravida ?? 1}P{patient.para ?? 0}
+            </span>
+          </p>
+
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-3 rounded-[var(--radius-buttons)] bg-[var(--color-surface-1)] p-3 sm:grid-cols-3 lg:grid-cols-5 print:grid-cols-5 print:gap-y-1.5 print:p-2">
             <div>
-              <span className="text-[10px] uppercase tracking-wider text-[var(--color-charcoal)] block">{t("reports.dossier.mothersName")}</span>
-              <span className="font-semibold text-slate-900 text-[13px]">{patient.name}</span>
-            </div>
-            <div>
-              <span className="text-[10px] uppercase tracking-wider text-[var(--color-charcoal)] block">{t("reports.dossier.ageGpla")}</span>
-              <span className="font-semibold text-slate-900">
-                {patient.age ? t("patientDetail.header.ageYears", { age: patient.age }) : "—"} · G{patient.gravida ?? 1}P{patient.para ?? 0}
-              </span>
-            </div>
-            <div>
-              <span className="text-[10px] uppercase tracking-wider text-[var(--color-charcoal)] block">{t("reports.dossier.bloodGroup")}</span>
-              <span className={`font-semibold ${patient.rhNegative ? "text-red-700 font-bold" : "text-slate-900"}`}>
+              <dt className={lab}>{t("reports.dossier.bloodGroup")}</dt>
+              <dd className={`${val} ${patient.rhNegative ? TXT_CRIT : ""}`}>
                 {patient.bloodGroup || t("common.unknown")}
                 {patient.rhNegative && ` ${t("reports.dossier.rhNeg")}`}
-              </span>
+              </dd>
             </div>
             <div>
-              <span className="text-[10px] uppercase tracking-wider text-[var(--color-charcoal)] block">{t("reports.dossier.ga")}</span>
-              <span className="font-semibold text-[var(--color-primary)] font-mono">
+              <dt className={lab}>{t("reports.dossier.ga")}</dt>
+              <dd className={`${val} num`}>
                 {patient.gaWeeks !== null ? t("clinical.ga.full", { weeks: patient.gaWeeks, days: patient.gaDaysRemainder ?? 0 }) : "—"}
                 {patient.trimester && ` (${t("clinical.trimester.short", { n: patient.trimester })})`}
-              </span>
+              </dd>
             </div>
             <div>
-              <span className="text-[10px] uppercase tracking-wider text-[var(--color-charcoal)] block">{t("reports.dossier.edd")}</span>
-              <span className="font-semibold text-slate-900 font-mono">{d(patient.edd)}</span>
+              <dt className={lab}>{t("reports.dossier.edd")}</dt>
+              <dd className={`${val} num`}>{d(patient.edd)}</dd>
             </div>
             <div>
-              <span className="text-[10px] uppercase tracking-wider text-[var(--color-charcoal)] block">{t("reports.dossier.lmp")}</span>
-              <span className="font-semibold text-slate-900 font-mono">{d(patient.lmp)}</span>
+              <dt className={lab}>{t("reports.dossier.lmp")}</dt>
+              <dd className={`${val} num`}>{d(patient.lmp)}</dd>
             </div>
             <div>
-              <span className="text-[10px] uppercase tracking-wider text-[var(--color-charcoal)] block">{t("reports.dossier.phone")}</span>
-              <span className="font-semibold text-slate-900">{patient.phone || "—"}</span>
+              <dt className={lab}>{t("reports.dossier.phone")}</dt>
+              <dd className={`${val} num`}>{patient.phone || "—"}</dd>
             </div>
-          </div>
+          </dl>
         </header>
 
-        {/* Two-Column Grid: Section 1 & Section 2 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          {/* Section 1: Past Obstetric History */}
-          <div className="border border-[var(--color-border)] rounded-xl p-3.5 bg-white">
-            <div className="flex items-center gap-2 border-b border-[var(--color-border)]/70 pb-2 mb-2.5">
-              <Baby size={16} className="text-[var(--color-primary)] shrink-0" />
-              <h2 className="text-[13px] font-bold tracking-tight text-[var(--color-foreground)] uppercase">
-                {t("reports.dossier.s1")}
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 text-[11px] mb-2.5">
-              <div className="bg-[var(--color-surface-1)] p-2 rounded-lg">
-                <span className="text-[10px] text-[var(--color-charcoal)] block">{t("reports.dossier.prevMode")}</span>
-                <span className="font-bold text-slate-900 text-[12px]">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 print:grid-cols-2 print:gap-4">
+          <Section icon={<Baby size={18} />} title={t("reports.dossier.s1")}>
+            <dl className="mb-3 grid grid-cols-2 gap-2 print:mb-1.5 print:gap-1">
+              <div className={tile}>
+                <dt className={lab}>{t("reports.dossier.prevMode")}</dt>
+                <dd className={val}>
                   {pastHistory.previousDeliveryMode === "LSCS" ? (
-                    <span className="text-amber-800">{t("reports.dossier.prevLscs")}</span>
+                    <span className="text-[var(--color-due)]">{t("reports.dossier.prevLscs")}</span>
                   ) : pastHistory.previousDeliveryMode === "NVD" ? (
                     t("clinical.delivery.NVD")
                   ) : pastHistory.previousDeliveryMode === "None (Primi)" ? (
@@ -281,14 +276,13 @@ export function OnePagePatientReport({
                   ) : (
                     pastHistory.previousDeliveryMode
                   )}
-                </span>
+                </dd>
               </div>
-
-              <div className="bg-[var(--color-surface-1)] p-2 rounded-lg">
-                <span className="text-[10px] text-[var(--color-charcoal)] block">{t("reports.dossier.pastComplications")}</span>
-                <span className="font-semibold text-slate-900">
+              <div className={tile}>
+                <dt className={lab}>{t("reports.dossier.pastComplications")}</dt>
+                <dd className={val}>
                   {pastHistory.pastPreEclampsia || pastHistory.pastGDM || pastHistory.pastPPH ? (
-                    <span className="text-red-700 font-bold">
+                    <span className="text-[var(--color-overdue)]">
                       {[
                         pastHistory.pastPreEclampsia && "Pre-eclampsia",
                         pastHistory.pastGDM && t("reports.dossier.gdm"),
@@ -298,496 +292,291 @@ export function OnePagePatientReport({
                         .join(", ")}
                     </span>
                   ) : (
-                    <span className="text-emerald-800">{t("reports.dossier.noneReported")}</span>
+                    <span className={TXT_OK}>{t("reports.dossier.noneReported")}</span>
                   )}
-                </span>
+                </dd>
               </div>
-
-              <div className="bg-[var(--color-surface-1)] p-2 rounded-lg">
-                <span className="text-[10px] text-[var(--color-charcoal)] block">{t("reports.dossier.pastMiscarriages")}</span>
-                <span className={`font-semibold ${pastHistory.pastMiscarriages > 0 ? "text-amber-700 font-bold" : "text-slate-900"}`}>
+              <div className={tile}>
+                <dt className={lab}>{t("reports.dossier.pastMiscarriages")}</dt>
+                <dd className={`${val} num ${pastHistory.pastMiscarriages > 0 ? "text-[var(--color-due)]" : ""}`}>
                   {pastHistory.pastMiscarriages > 0 ? t("reports.dossier.abortions", { count: pastHistory.pastMiscarriages }) : t("reports.dossier.nilZero")}
                   {pastHistory.pastStillbirths > 0 && ` · ${t("reports.dossier.stillbirths", { count: pastHistory.pastStillbirths })}`}
-                </span>
+                </dd>
               </div>
-
-              <div className="bg-[var(--color-surface-1)] p-2 rounded-lg">
-                <span className="text-[10px] text-[var(--color-charcoal)] block">{t("reports.dossier.interval")}</span>
-                <span className="font-semibold text-slate-900">
+              <div className={tile}>
+                <dt className={lab}>{t("reports.dossier.interval")}</dt>
+                <dd className={`${val} num`}>
                   {pastHistory.interPregnancyMonths ? t("common.unit.month", { count: pastHistory.interPregnancyMonths }) : t("reports.dossier.firstPreg")}
-                </span>
+                </dd>
               </div>
-            </div>
-
-            <p className="text-[11px] text-slate-700 bg-amber-50/50 border border-amber-200/50 rounded-lg p-2 leading-relaxed">
-              <span className="font-semibold text-amber-900">{t("reports.dossier.clinicalNote")}</span>
+            </dl>
+            <p className="text-[13px] leading-relaxed print:text-[10px]">
+              <span className="font-semibold">{t("reports.dossier.clinicalNote")}</span>
               {pastHistory.notes}
             </p>
-          </div>
+          </Section>
 
-          {/* Section 2: Family Pregnancy & Genetic History */}
-          <div className="border border-[var(--color-border)] rounded-xl p-3.5 bg-white">
-            <div className="flex items-center gap-2 border-b border-[var(--color-border)]/70 pb-2 mb-2.5">
-              <UsersThree size={16} className="text-[var(--color-primary)] shrink-0" />
-              <h2 className="text-[13px] font-bold tracking-tight text-[var(--color-foreground)] uppercase">
-                {t("reports.dossier.s2")}
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 text-[11px] mb-2.5">
-              <div className="bg-[var(--color-surface-1)] p-2 rounded-lg">
-                <span className="text-[10px] text-[var(--color-charcoal)] block">{t("reports.dossier.famPih")}</span>
-                <span className="font-semibold">
-                  {familyHistory.familyPreEclampsia ? (
-                    <span className="text-red-700 font-bold">{t("reports.dossier.famPihYes")}</span>
-                  ) : (
-                    <span className="text-slate-800">{t("reports.dossier.famPihNo")}</span>
-                  )}
-                </span>
+          <Section icon={<UsersThree size={18} />} title={t("reports.dossier.s2")}>
+            <dl className="mb-3 grid grid-cols-2 gap-2 print:mb-1.5 print:gap-1">
+              <div className={tile}>
+                <dt className={lab}>{t("reports.dossier.famPih")}</dt>
+                <dd className={val}>
+                  {familyHistory.familyPreEclampsia ? <span className="text-[var(--color-overdue)]">{t("reports.dossier.famPihYes")}</span> : t("reports.dossier.famPihNo")}
+                </dd>
               </div>
-
-              <div className="bg-[var(--color-surface-1)] p-2 rounded-lg">
-                <span className="text-[10px] text-[var(--color-charcoal)] block">{t("reports.dossier.famDiabetes")}</span>
-                <span className="font-semibold">
-                  {familyHistory.familyDiabetes ? (
-                    <span className="text-amber-800 font-bold">{t("reports.dossier.famDiabetesYes")}</span>
-                  ) : (
-                    <span className="text-slate-800">{t("reports.dossier.negative")}</span>
-                  )}
-                </span>
+              <div className={tile}>
+                <dt className={lab}>{t("reports.dossier.famDiabetes")}</dt>
+                <dd className={val}>
+                  {familyHistory.familyDiabetes ? <span className="text-[var(--color-due)]">{t("reports.dossier.famDiabetesYes")}</span> : t("reports.dossier.negative")}
+                </dd>
               </div>
-
-              <div className="bg-[var(--color-surface-1)] p-2 rounded-lg">
-                <span className="text-[10px] text-[var(--color-charcoal)] block">{t("reports.dossier.twins")}</span>
-                <span className="font-semibold">
-                  {familyHistory.familyTwins ? (
-                    <span className="text-indigo-800 font-bold">{t("reports.dossier.twinsYes")}</span>
-                  ) : (
-                    <span className="text-slate-800">{t("reports.dossier.no")}</span>
-                  )}
-                </span>
+              <div className={tile}>
+                <dt className={lab}>{t("reports.dossier.twins")}</dt>
+                <dd className={val}>
+                  {familyHistory.familyTwins ? <span className="text-[var(--color-info)]">{t("reports.dossier.twinsYes")}</span> : t("reports.dossier.no")}
+                </dd>
               </div>
-
-              <div className="bg-[var(--color-surface-1)] p-2 rounded-lg">
-                <span className="text-[10px] text-[var(--color-charcoal)] block">{t("reports.dossier.genetic")}</span>
-                <span className="font-semibold text-slate-800">
-                  {familyHistory.familyGeneticAnomalies ? (
-                    <span className="text-red-700 font-bold">{t("reports.dossier.geneticFlag")}</span>
-                  ) : (
-                    t("reports.dossier.nilReported")
-                  )}
-                </span>
+              <div className={tile}>
+                <dt className={lab}>{t("reports.dossier.genetic")}</dt>
+                <dd className={val}>
+                  {familyHistory.familyGeneticAnomalies ? <span className="text-[var(--color-overdue)]">{t("reports.dossier.geneticFlag")}</span> : t("reports.dossier.nilReported")}
+                </dd>
               </div>
-            </div>
-
-            <p className="text-[11px] text-slate-700 bg-indigo-50/40 border border-indigo-200/50 rounded-lg p-2 leading-relaxed">
-              <span className="font-semibold text-indigo-950">{t("reports.dossier.familialRisk")}</span>
+            </dl>
+            <p className="text-[13px] leading-relaxed print:text-[10px]">
+              <span className="font-semibold">{t("reports.dossier.familialRisk")}</span>
               {familyHistory.notes}
             </p>
-          </div>
+          </Section>
         </div>
 
-        {/* Section 3: Longitudinal Vitals Track (Current Pregnancy) */}
-        <div className="border border-[var(--color-border)] rounded-xl p-3.5 bg-white mb-4">
-          <div className="flex items-center justify-between border-b border-[var(--color-border)]/70 pb-2 mb-2.5">
-            <div className="flex items-center gap-2">
-              <Heartbeat size={16} className="text-[var(--color-primary)] shrink-0" />
-              <h2 className="text-[13px] font-bold tracking-tight text-[var(--color-foreground)] uppercase">
-                {t("reports.dossier.s3")}
-              </h2>
-            </div>
-            {latestVisit && (
-              <span className="text-[11px] text-[var(--color-charcoal)]">
-                {t("reports.dossier.latestVisit")} <span className="font-mono font-semibold text-slate-800">{d(latestVisit.visitDate)}</span>
-              </span>
-            )}
-          </div>
-
-          {/* Latest Key Vitals Gauge Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 mb-3 text-center">
-            <div className="bg-[var(--color-surface-1)] p-2 rounded-lg border border-[var(--color-border)]/50">
-              <span className="text-[10px] text-[var(--color-charcoal)] block uppercase">{t("reports.dossier.bp")}</span>
-              <span
-                className={`text-[15px] font-bold font-mono ${
-                  latestVisit?.bpSys && (latestVisit.bpSys >= 140 || (latestVisit.bpDia && latestVisit.bpDia >= 90))
-                    ? "text-red-700"
-                    : latestVisit?.bpSys && latestVisit.bpSys >= 130
-                    ? "text-amber-700"
-                    : "text-slate-900"
-                }`}
-              >
+        <Section
+          icon={<Heartbeat size={18} />}
+          title={t("reports.dossier.s3")}
+          aside={
+            latestVisit && (
+              <>
+                {t("reports.dossier.latestVisit")} <span className="num font-semibold text-[var(--color-foreground)]">{d(latestVisit.visitDate)}</span>
+              </>
+            )
+          }
+        >
+          <dl className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6 print:mb-1.5 print:grid-cols-6 print:gap-1">
+            <Tile label={t("reports.dossier.bp")} unit="mmHg">
+              <span className={bpTone(latestVisit?.bpSys, latestVisit?.bpDia)}>
                 {latestVisit?.bpSys && latestVisit?.bpDia ? `${latestVisit.bpSys}/${latestVisit.bpDia}` : "—"}
               </span>
-              <span className="text-[9px] text-[var(--color-charcoal)] block">mmHg</span>
-            </div>
-
-            <div className="bg-[var(--color-surface-1)] p-2 rounded-lg border border-[var(--color-border)]/50">
-              <span className="text-[10px] text-[var(--color-charcoal)] block uppercase">{t("reports.dossier.hb")}</span>
-              <span
-                className={`text-[15px] font-bold font-mono ${
-                  latestVisit?.hb && latestVisit.hb < 7.0
-                    ? "text-red-700"
-                    : latestVisit?.hb && latestVisit.hb < 11.0
-                    ? "text-amber-700"
-                    : "text-emerald-800"
-                }`}
-              >
+            </Tile>
+            <Tile label={t("reports.dossier.hb")} unit="g/dL">
+              <span className={latestVisit?.hb && latestVisit.hb < 7.0 ? TXT_CRIT : latestVisit?.hb && latestVisit.hb < 11.0 ? TXT_WARN : ""}>
                 {latestVisit?.hb ? `${latestVisit.hb}` : "—"}
               </span>
-              <span className="text-[9px] text-[var(--color-charcoal)] block">g/dL</span>
-            </div>
-
-            <div className="bg-[var(--color-surface-1)] p-2 rounded-lg border border-[var(--color-border)]/50">
-              <span className="text-[10px] text-[var(--color-charcoal)] block uppercase">{t("reports.dossier.weight")}</span>
-              <span className="text-[15px] font-bold font-mono text-slate-900">
-                {latestVisit?.weight ? `${latestVisit.weight}` : "—"}
-              </span>
-              <span className="text-[9px] text-[var(--color-charcoal)] block">kg</span>
-            </div>
-
-            <div className="bg-[var(--color-surface-1)] p-2 rounded-lg border border-[var(--color-border)]/50">
-              <span className="text-[10px] text-[var(--color-charcoal)] block uppercase">{t("reports.dossier.fhr")}</span>
-              <span
-                className={`text-[15px] font-bold font-mono ${
-                  latestVisit?.fhr && (latestVisit.fhr < 110 || latestVisit.fhr > 160)
-                    ? "text-red-700"
-                    : "text-slate-900"
-                }`}
-              >
+            </Tile>
+            <Tile label={t("reports.dossier.weight")} unit="kg">
+              {latestVisit?.weight ? `${latestVisit.weight}` : "—"}
+            </Tile>
+            <Tile label={t("reports.dossier.fhr")} unit="bpm">
+              <span className={latestVisit?.fhr && (latestVisit.fhr < 110 || latestVisit.fhr > 160) ? TXT_CRIT : ""}>
                 {latestVisit?.fhr ? `${latestVisit.fhr}` : "—"}
               </span>
-              <span className="text-[9px] text-[var(--color-charcoal)] block">bpm</span>
-            </div>
+            </Tile>
+            <Tile label={t("reports.dossier.fundal")} unit="cm">
+              {latestVisit?.fundalHeight ? `${latestVisit.fundalHeight}` : "—"}
+            </Tile>
+            <Tile label={t("reports.dossier.urine")} unit={t("reports.dossier.dipstick")}>
+              {t("reports.dossier.nilNil")}
+            </Tile>
+          </dl>
 
-            <div className="bg-[var(--color-surface-1)] p-2 rounded-lg border border-[var(--color-border)]/50">
-              <span className="text-[10px] text-[var(--color-charcoal)] block uppercase">{t("reports.dossier.fundal")}</span>
-              <span className="text-[15px] font-bold font-mono text-slate-900">
-                {latestVisit?.fundalHeight ? `${latestVisit.fundalHeight}` : "—"}
-              </span>
-              <span className="text-[9px] text-[var(--color-charcoal)] block">cm</span>
-            </div>
-
-            <div className="bg-[var(--color-surface-1)] p-2 rounded-lg border border-[var(--color-border)]/50">
-              <span className="text-[10px] text-[var(--color-charcoal)] block uppercase">{t("reports.dossier.urine")}</span>
-              <span className="text-[13px] font-bold font-mono text-slate-800 mt-0.5 block">{t("reports.dossier.nilNil")}</span>
-              <span className="text-[9px] text-[var(--color-charcoal)] block">{t("reports.dossier.dipstick")}</span>
-            </div>
-          </div>
-
-          {/* Vitals History Progression Table */}
           {visits.length > 0 && (
-            <div className="overflow-x-auto rounded-lg border border-[var(--color-border)]/70">
-              <table className="w-full text-[11px] text-left">
-                <thead className="bg-[var(--color-surface-1)] text-[10px] uppercase tracking-wider text-[var(--color-charcoal)]">
+            <div className="overflow-x-auto rounded-[var(--radius-buttons)] border border-[var(--color-border)]">
+              <table className="w-full text-left text-[13px] print:text-[10px]">
+                <thead className="bg-[var(--color-surface-1)] text-[12px] text-[var(--color-charcoal)] print:text-[9px]">
                   <tr>
-                    <th className="py-1.5 px-3">{t("common.date")}</th>
-                    <th className="py-1.5 px-2">GA</th>
-                    <th className="py-1.5 px-2">{t("reports.dossier.thBp")}</th>
-                    <th className="py-1.5 px-2">{t("reports.dossier.thWeight")}</th>
-                    <th className="py-1.5 px-2">{t("reports.dossier.thHb")}</th>
-                    <th className="py-1.5 px-2">{t("reports.dossier.thFhr")}</th>
-                    <th className="py-1.5 px-2">{t("reports.dossier.thFh")}</th>
-                    <th className="py-1.5 px-3">{t("reports.dossier.thRemarks")}</th>
+                    <th scope="col" className="px-3 py-2 font-semibold print:py-1">{t("common.date")}</th>
+                    <th scope="col" className="px-2 py-2 font-semibold print:py-1">GA</th>
+                    <th scope="col" className="px-2 py-2 font-semibold print:py-1">{t("reports.dossier.thBp")}</th>
+                    <th scope="col" className="px-2 py-2 font-semibold print:py-1">{t("reports.dossier.thWeight")}</th>
+                    <th scope="col" className="px-2 py-2 font-semibold print:py-1">{t("reports.dossier.thHb")}</th>
+                    <th scope="col" className="px-2 py-2 font-semibold print:py-1">{t("reports.dossier.thFhr")}</th>
+                    <th scope="col" className="px-2 py-2 font-semibold print:py-1">{t("reports.dossier.thFh")}</th>
+                    <th scope="col" className="px-3 py-2 font-semibold print:py-1">{t("reports.dossier.thRemarks")}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[var(--color-border)]/40 font-mono">
+                <tbody className="num divide-y divide-[var(--color-border)]/70">
                   {visits.slice(0, 4).map((v, idx) => (
-                    <tr key={idx} className="hover:bg-[var(--color-surface-1)]/40">
-                      <td className="py-1.5 px-3 font-semibold text-slate-900 whitespace-nowrap">{d(v.visitDate)}</td>
-                      <td className="py-1.5 px-2 text-slate-700">{v.gaWeeks || "—"}</td>
-                      <td className="py-1.5 px-2">
-                        {v.bpSys && v.bpDia ? (
-                          <span
-                            className={
-                              v.bpSys >= 140 || v.bpDia >= 90
-                                ? "text-red-700 font-bold"
-                                : v.bpSys >= 130
-                                ? "text-amber-700 font-semibold"
-                                : "text-slate-800"
-                            }
-                          >
-                            {v.bpSys}/{v.bpDia}
-                          </span>
-                        ) : (
-                          "—"
-                        )}
+                    <tr key={idx}>
+                      <td className="whitespace-nowrap px-3 py-2 font-semibold print:py-1">{d(v.visitDate)}</td>
+                      <td className="whitespace-nowrap px-2 py-2 print:py-1">{v.gaWeeks || "—"}</td>
+                      <td className="whitespace-nowrap px-2 py-2 print:py-1">
+                        {v.bpSys && v.bpDia ? <span className={bpTone(v.bpSys, v.bpDia)}>{v.bpSys}/{v.bpDia}</span> : "—"}
                       </td>
-                      <td className="py-1.5 px-2 text-slate-800">{v.weight ?? "—"}</td>
-                      <td className="py-1.5 px-2">
-                        {v.hb ? (
-                          <span className={v.hb < 11.0 ? "text-amber-700 font-bold" : "text-slate-800"}>
-                            {v.hb}
-                          </span>
-                        ) : (
-                          "—"
-                        )}
-                      </td>
-                      <td className="py-1.5 px-2 text-slate-800">{v.fhr ?? "—"}</td>
-                      <td className="py-1.5 px-2 text-slate-800">{v.fundalHeight ?? "—"}</td>
-                      <td className="py-1.5 px-3 font-sans text-slate-700 text-[10px] max-w-44 break-words">
-                        {v.notes || t("reports.dossier.routineFollowup")}
-                      </td>
+                      <td className="px-2 py-2 print:py-1">{v.weight ?? "—"}</td>
+                      <td className="px-2 py-2 print:py-1">{v.hb ? <span className={v.hb < 11.0 ? TXT_WARN : ""}>{v.hb}</span> : "—"}</td>
+                      <td className="px-2 py-2 print:py-1">{v.fhr ?? "—"}</td>
+                      <td className="px-2 py-2 print:py-1">{v.fundalHeight ?? "—"}</td>
+                      <td className="max-w-44 break-words px-3 py-2 font-sans print:py-1">{v.notes || t("reports.dossier.routineFollowup")}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           )}
-        </div>
+        </Section>
 
-        {/* Section 4: Sonography (USG) & Diagnostic Lab Test Reports */}
-        <div className="border border-[var(--color-border)] rounded-xl p-3.5 bg-white mb-4">
-          <div className="flex items-center justify-between border-b border-[var(--color-border)]/70 pb-2 mb-2.5">
-            <div className="flex items-center gap-2">
-              <FileText size={16} className="text-[var(--color-primary)] shrink-0" />
-              <h2 className="text-[13px] font-bold tracking-tight text-[var(--color-foreground)] uppercase">
-                {t("reports.dossier.s4")}
-              </h2>
-            </div>
-            <span className="text-[10px] text-[var(--color-charcoal)]">
-              {t("reports.dossier.scanHint")}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <Section icon={<FileText size={18} />} title={t("reports.dossier.s4")} aside={<span className="print:hidden">{t("reports.dossier.scanHint")}</span>}>
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 print:grid-cols-3 print:gap-2">
             {scans.map((scan) => (
-              <div
-                key={scan.id}
-                onClick={() => setSelectedScan(scan)}
-                className="group border border-[var(--color-border)] rounded-xl overflow-hidden bg-[var(--color-surface-1)]/30 hover:border-[var(--color-primary)] transition-all cursor-pointer shadow-2xs hover:shadow-sm"
-              >
-                {/* Visual Sonogram / Lab Preview Thumbnail */}
-                <div className="relative h-28 w-full bg-[#0a0d14] overflow-hidden border-b border-[var(--color-border)]/50">
-                  <div
-                    dangerouslySetInnerHTML={{ __html: scan.svgImage }}
-                    className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-200"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-between p-2">
-                    <span className="text-[10px] font-medium text-white flex items-center gap-1">
-                      <MagnifyingGlassPlus size={13} /> {t("reports.dossier.inspect")}
-                    </span>
-                    <span className="text-[9px] font-mono text-cyan-300">{t("reports.dossier.hiRes")}</span>
-                  </div>
-                </div>
-
-                {/* Scan Summary Details */}
-                <div className="p-2.5">
-                  <div className="flex items-start justify-between gap-1 mb-1">
-                    <h3 className="text-[11px] font-bold text-slate-900 group-hover:text-[var(--color-primary)] line-clamp-1">
-                      {scan.title}
-                    </h3>
-                    <span className="text-[9px] font-mono text-[var(--color-charcoal)] shrink-0">
-                      {d(scan.date)}
-                    </span>
-                  </div>
-
-                  <p className="text-[10px] text-slate-600 line-clamp-2 leading-relaxed mb-2">
-                    {scan.findings}
-                  </p>
-
-                  <div className="flex flex-wrap items-center gap-1.5 border-t border-[var(--color-border)]/40 pt-1.5">
-                    {scan.keyMetrics.slice(0, 3).map((metric, mIdx) => (
-                      <span
-                        key={mIdx}
-                        className={`text-[9px] px-1.5 py-0.5 rounded font-mono ${
-                          metric.alert
-                            ? "bg-red-50 text-red-700 font-bold border border-red-200"
-                            : "bg-white text-slate-800 border border-slate-200"
-                        }`}
-                      >
-                        <span className="text-slate-500">{metric.label}: </span>
-                        {metric.value}
-                        {metric.unit && ` ${metric.unit}`}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Section 5 & Section 6: ANC Milestones & PMSMA Clinical Risk Alerts */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          {/* Section 5: ANC Care Milestones */}
-          <div className="border border-[var(--color-border)] rounded-xl p-3.5 bg-white">
-            <div className="flex items-center gap-2 border-b border-[var(--color-border)]/70 pb-2 mb-2.5">
-              <Calendar size={16} className="text-[var(--color-primary)] shrink-0" />
-              <h2 className="text-[13px] font-bold tracking-tight text-[var(--color-foreground)] uppercase">
-                {t("reports.dossier.s5")}
-              </h2>
-            </div>
-
-            <div className="space-y-1.5 text-[11px]">
-              {careEvents.slice(0, 5).map((ce, cIdx) => (
-                <div
-                  key={cIdx}
-                  className="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-[var(--color-surface-1)]/60"
+              <li key={scan.id}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedScan(scan)}
+                  className="group block w-full overflow-hidden rounded-[var(--radius-buttons)] border border-[var(--color-border)] text-left hover:border-[var(--color-primary)] print:pointer-events-none"
                 >
-                  <span className="font-medium text-slate-800">{careEventName(ce.name, t)}</span>
-                  <span
-                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                      ce.status === "done"
-                        ? "bg-emerald-100 text-emerald-800"
-                        : ce.status === "overdue"
-                        ? "bg-red-100 text-red-800"
-                        : "bg-amber-100 text-amber-800"
-                    }`}
-                  >
-                    {ce.status === "done"
-                      ? t("clinical.status.completed")
-                      : ce.status === "overdue"
-                      ? careStatusLabel("overdue", t)
-                      : t("clinical.status.dueSoon")}
-                  </span>
-                </div>
+                  <div className="relative h-28 w-full overflow-hidden bg-[var(--color-pc-ink)] print:h-20">
+                    <div dangerouslySetInnerHTML={{ __html: scan.svgImage }} className="h-full w-full" />
+                    <span className="absolute bottom-2 left-2 flex items-center gap-1 rounded bg-[var(--color-pc-ink)]/80 px-1.5 py-0.5 text-[12px] font-medium text-white print:hidden">
+                      <MagnifyingGlassPlus size={14} aria-hidden /> {t("reports.dossier.inspect")}
+                    </span>
+                  </div>
+                  <div className="space-y-1.5 p-2.5 print:p-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="line-clamp-1 text-[14px] font-semibold print:text-[10px]">{scan.title}</h3>
+                      <span className="num shrink-0 text-[12px] text-[var(--color-charcoal)] print:text-[9px]">{d(scan.date)}</span>
+                    </div>
+                    <p className="line-clamp-2 text-[13px] leading-relaxed text-[var(--color-charcoal)] print:text-[9px]">{scan.findings}</p>
+                    <div className="flex flex-wrap items-center gap-1.5 border-t border-[var(--color-border)]/70 pt-1.5">
+                      {scan.keyMetrics.slice(0, 3).map((metric, mIdx) => (
+                        <span
+                          key={mIdx}
+                          className={`num rounded px-1.5 py-0.5 text-[12px] print:text-[9px] ${
+                            metric.alert ? "bg-[var(--color-overdue-surface)] font-bold text-[var(--color-overdue)]" : "bg-[var(--color-surface-1)]"
+                          }`}
+                        >
+                          <span className="text-[var(--color-charcoal)]">{metric.label}: </span>
+                          {metric.value}
+                          {metric.unit && ` ${metric.unit}`}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </Section>
+
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 print:grid-cols-2 print:gap-4">
+          <Section icon={<Calendar size={18} />} title={t("reports.dossier.s5")}>
+            <ul className="space-y-1.5 print:space-y-1">
+              {careEvents.slice(0, 5).map((ce, cIdx) => (
+                <li key={cIdx} className="flex items-center justify-between gap-2 rounded-[var(--radius-buttons)] bg-[var(--color-surface-1)] px-2.5 py-1.5 text-[14px] print:text-[10px]">
+                  <span className="font-medium">{careEventName(ce.name, t)}</span>
+                  <Tag tone={ce.status === "done" ? "ok" : ce.status === "overdue" ? "critical" : "warning"}>
+                    {ce.status === "done" ? t("clinical.status.completed") : ce.status === "overdue" ? careStatusLabel("overdue", t) : t("clinical.status.dueSoon")}
+                  </Tag>
+                </li>
               ))}
-            </div>
-          </div>
+            </ul>
+          </Section>
 
-          {/* Section 6: Clinical Decision Protocol & Risk Flags */}
-          <div className="border border-[var(--color-border)] rounded-xl p-3.5 bg-white">
-            <div className="flex items-center gap-2 border-b border-[var(--color-border)]/70 pb-2 mb-2.5">
-              <FirstAid size={16} className="text-[var(--color-primary)] shrink-0" />
-              <h2 className="text-[13px] font-bold tracking-tight text-[var(--color-foreground)] uppercase">
-                {t("reports.dossier.s6")}
-              </h2>
-            </div>
-
+          <Section icon={<FirstAid size={18} />} title={t("reports.dossier.s6")}>
             {riskFlags.length > 0 || isHighRisk ? (
               <div className="space-y-2">
-                <div className="bg-red-50 border border-red-200 rounded-lg p-2.5 text-[11px]">
-                  <p className="font-bold text-red-900 mb-1 flex items-center gap-1.5">
-                    <ShieldWarning size={14} weight="fill" className="text-red-700" />
+                <div className="rounded-[var(--radius-buttons)] bg-[var(--color-overdue-surface)] p-3 text-[14px] print:p-1.5 print:text-[10px]">
+                  <p className="mb-1 flex items-center gap-1.5 font-semibold text-[var(--color-overdue)]">
+                    <ShieldWarning size={16} weight="fill" aria-hidden />
                     <span>{t("reports.dossier.activeFlags")}</span>
                   </p>
-                  <ul className="list-disc list-inside space-y-0.5 text-red-800">
+                  <ul className="list-inside list-disc space-y-0.5">
                     {riskFlags.map((flag, fIdx) => (
                       <li key={fIdx}>{flag}</li>
                     ))}
-                    {pastHistory.previousDeliveryMode === "LSCS" && (
-                      <li>{t("reports.dossier.prevCs")}</li>
-                    )}
-                    {patient.rhNegative && (
-                      <li>{t("reports.dossier.rhNegAdvice")}</li>
-                    )}
+                    {pastHistory.previousDeliveryMode === "LSCS" && <li>{t("reports.dossier.prevCs")}</li>}
+                    {patient.rhNegative && <li>{t("reports.dossier.rhNegAdvice")}</li>}
                   </ul>
                 </div>
-
-                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2 text-[10px] text-emerald-900">
-                  <span className="font-bold">{t("reports.dossier.pmsma")}</span>
+                <p className="rounded-[var(--radius-buttons)] bg-[var(--color-on-track-surface)] p-2.5 text-[13px] print:p-1.5 print:text-[9px]">
+                  <span className="font-semibold">{t("reports.dossier.pmsma")}</span>
                   {t("reports.dossier.pmsmaBody")}
-                </div>
-              </div>
-            ) : (
-              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 text-center">
-                <CheckCircle size={24} weight="fill" className="text-emerald-700 mx-auto mb-1.5" />
-                <p className="text-[12px] font-bold text-emerald-900">{t("reports.dossier.lowRisk")}</p>
-                <p className="text-[10px] text-emerald-700 mt-0.5">
-                  {t("reports.dossier.lowRiskBody")}
                 </p>
               </div>
+            ) : (
+              <div className="rounded-[var(--radius-buttons)] bg-[var(--color-on-track-surface)] p-4 text-center">
+                <CheckCircle size={24} weight="fill" className="mx-auto mb-1.5 text-[var(--color-on-track)]" aria-hidden />
+                <p className="text-[14px] font-semibold">{t("reports.dossier.lowRisk")}</p>
+                <p className="mt-0.5 text-[13px] text-[var(--color-charcoal)]">{t("reports.dossier.lowRiskBody")}</p>
+              </div>
             )}
-          </div>
+          </Section>
         </div>
 
-        {/* Document Footer: Emergency 108 Dispatch & Medical Verification Stamp */}
-        <footer className="border-t border-[var(--color-border)] pt-3.5 text-[11px] text-[var(--color-charcoal)]">
+        <footer className="break-inside-avoid border-t border-[var(--color-border)] pt-4 text-[13px] text-[var(--color-charcoal)] print:pt-2 print:text-[10px]">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1.5 bg-red-50 border border-red-200 px-2.5 py-1 rounded-lg text-red-800 font-bold">
-                <PhoneCall size={14} weight="bold" />
-                <span>{t("reports.dossier.hotline")}</span>
-              </div>
-              <span className="text-[10px]">
-                {t("reports.dossier.asha")} <span className="font-semibold text-slate-800">{patient.ashaName || "Rekha Patil"}</span> (9820199999)
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="inline-flex items-center gap-1.5 rounded-[var(--radius-buttons)] bg-[var(--color-overdue-surface)] px-2.5 py-1 font-semibold text-[var(--color-overdue)]">
+                <PhoneCall size={16} weight="bold" aria-hidden />
+                {t("reports.dossier.hotline")}
+              </span>
+              <span>
+                {t("reports.dossier.asha")} <span className="font-semibold text-[var(--color-foreground)]">{patient.ashaName || "Rekha Patil"}</span> <span className="num">(9820199999)</span>
               </span>
             </div>
-
             <div className="text-right">
-              <span className="text-[10px] block font-mono">
-                Verified: Dr. Demo, MBBS, DGO · Reg: MCI-41920
-              </span>
-              <span className="text-[9px] text-slate-400">
-                {t("reports.dossier.footerStamp")}
-              </span>
+              <span className="num block">Verified: Dr. Demo, MBBS, DGO · Reg: MCI-41920</span>
+              <span className="text-[12px] print:text-[9px]">{t("reports.dossier.footerStamp")}</span>
             </div>
           </div>
         </footer>
-      </div>
+      </article>
 
-      {/* High-Resolution Sonography & Lab Report Lightbox Modal */}
       {selectedScan && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label={selectedScan.title}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-xs print:hidden"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setSelectedScan(null);
-          }}
-        >
-          <div className="relative w-full max-w-2xl bg-[var(--color-background)] rounded-2xl shadow-2xl overflow-hidden border border-[var(--color-border)]">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between bg-[var(--color-surface-1)] border-b border-[var(--color-border)] px-5 py-3">
-              <div>
-                <h3 className="text-[14px] font-bold text-slate-900">{selectedScan.title}</h3>
-                <p className="text-[11px] text-[var(--color-charcoal)]">
-                  {t("reports.dossier.dated", { date: d(selectedScan.date), lab: selectedScan.doctorOrLab })}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedScan(null)}
-                aria-label={t("common.close")}
-                className="p-1 rounded-lg hover:bg-black/5 text-slate-600 cursor-pointer"
-              >
-                <X size={18} weight="bold" />
-              </button>
-            </div>
-
-            {/* Modal Image Display */}
-            <div className="p-5">
-              <div className="w-full h-64 bg-[#0a0d14] rounded-xl overflow-hidden shadow-inner mb-4 flex items-center justify-center">
-                <div dangerouslySetInnerHTML={{ __html: selectedScan.svgImage }} className="w-full h-full" />
-              </div>
-
-              {/* Clinical Metrics & Findings */}
-              <div className="space-y-3">
-                <div className="flex flex-wrap gap-2">
-                  {selectedScan.keyMetrics.map((km, idx) => (
-                    <div
-                      key={idx}
-                      className="bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-lg px-3 py-1.5 text-[11px]"
-                    >
-                      <span className="text-[10px] text-[var(--color-charcoal)] block">{km.label}</span>
-                      <span className="font-mono font-bold text-slate-900">
-                        {km.value} {km.unit || ""}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="bg-[var(--color-surface-1)]/70 p-3 rounded-xl border border-[var(--color-border)]/60 text-[12px] leading-relaxed">
-                  <span className="font-semibold text-slate-900 block mb-1">{t("reports.dossier.radReport")}</span>
-                  <p className="text-slate-700">{selectedScan.findings}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Actions */}
-            <div className="flex items-center justify-end gap-2 bg-[var(--color-surface-1)] border-t border-[var(--color-border)] px-5 py-2.5">
-              <button
-                type="button"
-                onClick={() => setSelectedScan(null)}
-                className="px-4 py-1.5 rounded-lg border border-[var(--color-border)] bg-white text-[12px] font-semibold hover:border-slate-400 cursor-pointer"
-              >
+        <div className="print:hidden">
+          <OverlayShell
+            title={selectedScan.title}
+            subtitle={t("reports.dossier.dated", { date: d(selectedScan.date), lab: selectedScan.doctorOrLab })}
+            closeLabel={t("common.close")}
+            onClose={() => setSelectedScan(null)}
+            size="lg"
+            footer={
+              <button type="button" onClick={() => setSelectedScan(null)} className={buttonSecondary}>
                 {t("reports.dossier.closeViewer")}
               </button>
+            }
+          >
+            <div className="space-y-4">
+              <div className="h-64 w-full overflow-hidden rounded-[var(--radius-buttons)] bg-[var(--color-pc-ink)]">
+                <div dangerouslySetInnerHTML={{ __html: selectedScan.svgImage }} className="h-full w-full" />
+              </div>
+              <dl className="flex flex-wrap gap-2">
+                {selectedScan.keyMetrics.map((km, idx) => (
+                  <div key={idx} className="rounded-[var(--radius-buttons)] bg-[var(--color-surface-1)] px-3 py-1.5">
+                    <dt className="text-[12px] text-[var(--color-charcoal)]">{km.label}</dt>
+                    <dd className="num text-[14px] font-semibold">
+                      {km.value} {km.unit || ""}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+              <div className="rounded-[var(--radius-buttons)] bg-[var(--color-surface-1)] p-3 text-[14px] leading-relaxed">
+                <span className="mb-1 block font-semibold">{t("reports.dossier.radReport")}</span>
+                <p>{selectedScan.findings}</p>
+              </div>
             </div>
-          </div>
+          </OverlayShell>
         </div>
       )}
+
+      <ActionBar>
+        <button type="button" onClick={handleShare} className={`${buttonSecondary} md:hidden`}>
+          <ShareNetwork size={16} aria-hidden />
+          <span>{copied ? t("reports.dossier.linkCopied") : t("reports.dossier.shareLink")}</span>
+        </button>
+        <button type="button" onClick={handlePrint} className={`${buttonPrimary} md:hidden`}>
+          <Printer size={16} weight="bold" aria-hidden />
+          <span>{t("reports.dossier.print")}</span>
+        </button>
+      </ActionBar>
     </div>
   );
 }
