@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useId, useMemo, useState } from "react";
+import { useId, useMemo, useState, type ReactNode } from "react";
 import { ArrowRight, CaretDown, CheckCircle, Phone, Warning } from "@phosphor-icons/react";
 import { useT } from "@/lib/i18n/provider";
 import { Badge, STATUS_BADGE } from "./StatusBadge";
@@ -205,7 +205,7 @@ function Row({
   );
 }
 
-export function TodayWorklist({ days, rows }: { days: WorklistDay[]; rows: WorklistRow[] }) {
+export function TodayWorklist({ days, rows, summary }: { days: WorklistDay[]; rows: WorklistRow[]; summary: ReactNode }) {
   const t = useT();
   const [selected, setSelected] = useState(days[0]?.iso ?? "");
   const [filter, setFilter] = useState<Filter>("all");
@@ -257,8 +257,10 @@ export function TodayWorklist({ days, rows }: { days: WorklistDay[]; rows: Workl
     : "";
 
   return (
-    <section aria-labelledby="worklist-title" className="space-y-4">
-      <div className="pc-glass overflow-hidden rounded-[24px]">
+    <div className="space-y-4">
+      <WeekStrip days={days} selected={selected} onSelect={selectDay} />
+      {summary}
+      <section aria-labelledby="worklist-title" className="pc-glass overflow-hidden rounded-[24px]">
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 pb-3 pt-4 sm:px-5">
           <h2 id="worklist-title" className="text-[17px] font-semibold">
             {t("today.worklist.title")} <span className="font-normal text-pc-muted">· {dayTitle}</span>
@@ -341,8 +343,7 @@ export function TodayWorklist({ days, rows }: { days: WorklistDay[]; rows: Workl
             {showAll ? t("today.worklist.showFewer") : t("today.worklist.showMore", { count: visible.length - PAGE_SIZE })}
           </button>
         )}
-      </div>
-      <WeekStrip days={days} selected={selected} onSelect={selectDay} />
-    </section>
+      </section>
+    </div>
   );
 }

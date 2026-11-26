@@ -1,5 +1,7 @@
 "use client";
 
+import { PatientDetailDialog } from "@/components/PatientDetailDialog";
+
 import type { NutritionPatientData } from "@/components/NutritionDietModal";
 import { useState } from "react";
 import { BowlFood, WhatsappLogo, X, Heart, Plant, Pill } from "@phosphor-icons/react";
@@ -103,32 +105,24 @@ export function NutritionDietModal({
   const whatsappUrl = data.phone ? whatsAppLink(data.phone, generateWhatsAppMessage()) : null;
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={t("patientDetail.nutrition.aria")}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs overflow-y-auto"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="relative my-6 w-full max-w-2xl rounded-[var(--radius-cards)] bg-[var(--color-background)] border border-[var(--color-border)] shadow-2xl overflow-hidden">
+    <PatientDetailDialog label={t("patientDetail.nutrition.aria")} onClose={onClose}>
+      <div className="relative flex h-full max-h-full w-full flex-col overflow-hidden rounded-[var(--radius-cards)] border border-[var(--color-border)] bg-[var(--color-background)] shadow-2xl lg:h-[92dvh] lg:w-[85vw]">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface-1)] px-5 py-3.5">
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-primary-surface)] text-[var(--color-primary)]">
-              <BowlFood size={16} weight="bold" />
+        <div className="flex shrink-0 items-start justify-between gap-2 border-b border-[var(--color-border)] bg-[var(--color-surface-1)] px-4 py-4 sm:items-center sm:px-6 lg:px-8">
+          <div className="flex min-w-0 items-center gap-3">
+            <div aria-hidden="true" className="hidden size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary-surface)] text-[var(--color-primary)] sm:flex">
+              <BowlFood size={18} weight="bold" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-[14px] font-bold text-[var(--color-foreground)]">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-lg font-bold leading-snug text-[var(--color-foreground)] sm:text-xl">
                   {t("patientDetail.nutrition.title")}
                 </h2>
-                <span className="rounded-full bg-[var(--color-primary-surface)] px-2 py-0.5 text-[10px] font-bold text-[var(--color-primary)] border border-[var(--color-primary)]/20">
+                <span className="rounded-full border border-[var(--color-primary)]/20 bg-[var(--color-primary-surface)] px-2 py-0.5 text-xs font-bold text-[var(--color-primary)]">
                   {t("clinical.trimester.short", { n: currentTrimester })}
                 </span>
               </div>
-              <p className="text-[11px] text-[var(--color-charcoal)]">
+              <p className="mt-1 text-sm text-[var(--color-charcoal)]">
                 {t("patientDetail.nutrition.tailored", { name: data.patientName })} · Hb: <strong>{hb} g/dL</strong>
               </p>
             </div>
@@ -137,23 +131,23 @@ export function NutritionDietModal({
             type="button"
             onClick={onClose}
             aria-label={t("common.close")}
-            className="rounded-lg p-1.5 text-[var(--color-charcoal)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-foreground)] transition"
+            className="flex size-11 shrink-0 items-center justify-center rounded-lg text-[var(--color-charcoal)] transition hover:bg-[var(--color-surface-2)] hover:text-[var(--color-foreground)]"
           >
             <X size={18} />
           </button>
         </div>
 
         {/* Body */}
-        <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain p-4 text-sm leading-relaxed sm:p-6 sm:text-base lg:p-8">
           {/* Anemia Status Banner */}
-          <div className={`flex items-center justify-between rounded-[var(--radius-cards)] border p-3 ${anemiaStatus.color}`}>
+          <div className={`rounded-[var(--radius-cards)] border p-4 sm:p-5 ${anemiaStatus.color}`}>
             <div className="flex items-center gap-2.5">
               <Heart size={18} weight="fill" className="shrink-0" />
               <div>
-                <div className="text-[13px] font-bold">
+                <div className="text-base font-bold sm:text-lg">
                   {anemiaStatus.level} ({hb} g/dL)
                 </div>
-                <div className="text-[11px] opacity-90">
+                <div className="opacity-90">
                   {hb < 7.0
                     ? t("patientDetail.nutrition.adviceSevere")
                     : hb < 11.0
@@ -165,45 +159,45 @@ export function NutritionDietModal({
           </div>
 
           {/* Trimester Focus Card */}
-          <div className="rounded-[var(--radius-cards)] border border-[var(--color-border)] bg-[var(--color-surface-1)] p-3 space-y-1">
-            <div className="text-[12px] font-bold text-[var(--color-foreground)]">{trimesterFocus.title}</div>
-            <div className="text-[12px] text-[var(--color-charcoal)]">
+          <div className="space-y-1.5 rounded-[var(--radius-cards)] border border-[var(--color-border)] bg-[var(--color-surface-1)] p-4 sm:p-5">
+            <div className="text-base font-bold text-[var(--color-foreground)] sm:text-lg">{trimesterFocus.title}</div>
+            <div className="text-[var(--color-charcoal)]">
               <strong>{t("patientDetail.nutrition.goal")}</strong> {trimesterFocus.focus}
             </div>
-            <div className="text-[11px] text-[var(--color-primary)] font-semibold">
+            <div className="font-semibold text-[var(--color-primary)]">
               {t("patientDetail.nutrition.energy", { value: trimesterFocus.calorieSurplus })}
             </div>
           </div>
 
           {/* Affordable Local Superfoods */}
           <div>
-            <div className="flex items-center gap-1.5 mb-2">
-              <Plant size={15} weight="bold" className="text-[var(--color-primary)]" />
-              <h3 className="text-[12px] font-bold text-[var(--color-foreground)]">
+            <div className="mb-3 flex items-center gap-2">
+              <Plant size={18} weight="bold" className="shrink-0 text-[var(--color-primary)]" />
+              <h3 className="text-base font-bold text-[var(--color-foreground)] sm:text-lg">
                 {t("patientDetail.nutrition.superfoods")}
               </h3>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="grid gap-3 md:grid-cols-2 md:gap-4">
               {superfoods.map((food, idx) => (
                 <div
                   key={idx}
-                  className="rounded-[var(--radius-cards)] border border-[var(--color-border)] bg-[var(--color-background)] p-3 space-y-1"
+                  className="space-y-1.5 rounded-[var(--radius-cards)] border border-[var(--color-border)] bg-[var(--color-background)] p-4 sm:p-5"
                 >
-                  <div className="text-[12px] font-bold text-[var(--color-primary)]">{food.name}</div>
-                  <div className="text-[11px] text-[var(--color-foreground)]">{food.benefit}</div>
-                  <div className="text-[10px] text-[var(--color-charcoal)] italic">{t("patientDetail.nutrition.howToEat", { usage: food.usage })}</div>
+                  <div className="text-base font-bold text-[var(--color-primary)]">{food.name}</div>
+                  <div className="text-[var(--color-foreground)]">{food.benefit}</div>
+                  <div className="text-sm italic text-[var(--color-charcoal)]">{t("patientDetail.nutrition.howToEat", { usage: food.usage })}</div>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Critical Iron Tablet Rules */}
-          <div className="rounded-[var(--radius-cards)] border border-[var(--color-due)]/30 bg-[var(--color-due-surface)] p-3 space-y-2">
-            <div className="flex items-center gap-2 text-[var(--color-foreground)] font-bold text-[12px]">
-              <Pill size={16} weight="bold" className="text-[var(--color-due)]" />
+          <div className="space-y-2 rounded-[var(--radius-cards)] border border-[var(--color-due)]/30 bg-[var(--color-due-surface)] p-4 sm:p-5">
+            <h3 className="flex items-center gap-2 text-base font-bold text-[var(--color-foreground)] sm:text-lg">
+              <Pill size={18} weight="bold" className="shrink-0 text-[var(--color-due)]" />
               <span>{t("patientDetail.nutrition.rulesTitle")}</span>
-            </div>
-            <ul className="text-[11px] text-[var(--color-foreground)] space-y-1 pl-4 list-disc opacity-90">
+            </h3>
+            <ul className="max-w-4xl list-disc space-y-1.5 pl-5 text-[var(--color-foreground)] opacity-90">
               <li>
                 <strong>{t("patientDetail.nutrition.rule1.title")}</strong> {t("patientDetail.nutrition.rule1.body")}
               </li>
@@ -218,27 +212,27 @@ export function NutritionDietModal({
         </div>
 
         {/* Footer Actions with WhatsApp Share */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--color-border)] bg-[var(--color-surface-1)] px-5 py-3">
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] text-[var(--color-charcoal)] font-medium">{t("patientDetail.nutrition.waLang")}</span>
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-[var(--color-border)] bg-[var(--color-surface-1)] px-4 py-3 sm:px-6 lg:px-8">
+          <label className="flex flex-wrap items-center gap-2 text-sm font-medium text-[var(--color-charcoal)]">
+            <span>{t("patientDetail.nutrition.waLang")}</span>
             <select
               value={lang}
               onChange={(e) => setLang(e.target.value as "en" | "hi" | "mr")}
-              className="text-[11px] rounded-[var(--radius-buttons)] border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2 py-1 font-semibold text-[var(--color-foreground)]"
+              className="rounded-[var(--radius-buttons)] border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2 py-1 font-semibold text-[var(--color-foreground)]"
             >
               <option value="hi">हिंदी</option>
               <option value="mr">मराठी</option>
               <option value="en">English</option>
             </select>
-          </div>
+          </label>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {whatsappUrl ? (
               <a
                 href={whatsappUrl}
                 target="_blank"
                 rel="noreferrer"
-                className={`${buttonPrimary} min-h-8 px-3 text-[12px]`}
+                className={buttonPrimary}
               >
                 <WhatsappLogo size={14} weight="bold" />
                 <span>{t("patientDetail.nutrition.send")}</span>
@@ -250,7 +244,7 @@ export function NutritionDietModal({
                   navigator.clipboard.writeText(generateWhatsAppMessage());
                   alert(t("patientDetail.nutrition.copied"));
                 }}
-                className={`${buttonPrimary} min-h-8 px-3 text-[12px]`}
+                className={buttonPrimary}
               >
                 <WhatsappLogo size={14} weight="bold" />
                 <span>{t("patientDetail.nutrition.copy")}</span>
@@ -259,13 +253,13 @@ export function NutritionDietModal({
             <button
               type="button"
               onClick={onClose}
-              className={`${buttonSecondary} min-h-8 px-3 text-[12px]`}
+              className={buttonSecondary}
             >
               {t("common.close")}
             </button>
           </div>
         </div>
       </div>
-    </div>
+    </PatientDetailDialog>
   );
 }

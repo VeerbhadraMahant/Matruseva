@@ -114,17 +114,28 @@ test("batch reminders are logged without increasing successful contacts", async 
   await expect(stats).toHaveText(`${before[0]} of ${before[1] + 1} reached`);
 });
 
-test("Today puts work first and wraps worklist filters on mobile", async ({ page }) => {
-  await page.setViewportSize({ width: 320, height: 740 });
-  const main = page.getByRole("main");
-  const worklist = main.getByRole("heading", { name: /^Worklist/ });
-  const hero = main.getByRole("region", { name: "Patients due today" });
-  const filters = main.getByRole("group", { name: "Filter worklist" });
-  await expect(worklist).toBeInViewport();
-  expect((await worklist.boundingBox())!.y).toBeLessThan((await hero.boundingBox())!.y);
-  expect(await filters.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
-  await expect(filters.getByRole("button", { name: /^Due today/ })).toBeInViewport({ ratio: 1 });
-});
+for (const viewport of [{ width: 320, height: 740 }, { width: 1440, height: 900 }]) {
+  test(`Today puts the week and summary first at ${viewport.width}px`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    const main = page.getByRole("main");
+    const welcome = main.getByRole("heading", { level: 1, name: /^Welcome back,/i });
+    const week = main.getByRole("group", { name: "Choose a day" });
+    const hero = main.getByRole("region", { name: "Patients due today" });
+    const worklist = main.getByRole("heading", { name: /^Worklist/ });
+
+    expect((await welcome.boundingBox())!.y).toBeLessThan((await week.boundingBox())!.y);
+    expect((await week.boundingBox())!.y).toBeLessThan((await hero.boundingBox())!.y);
+    expect((await hero.boundingBox())!.y).toBeLessThan((await worklist.boundingBox())!.y);
+    await expect(week).toBeInViewport({ ratio: 1 });
+    await expect(hero).toBeInViewport({ ratio: 1 });
+
+    const filters = main.getByRole("group", { name: "Filter worklist" });
+    expect(await filters.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+    const due = filters.getByRole("button", { name: /^Due today/ });
+    await due.scrollIntoViewIfNeeded();
+    await expect(due).toBeInViewport({ ratio: 1 });
+  });
+}
 
 test("Today counters render their final value before JavaScript and expose it once", async ({ page, browser }) => {
   const context = await browser.newContext({ storageState: await page.context().storageState() });

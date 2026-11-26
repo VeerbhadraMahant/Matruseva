@@ -18,6 +18,86 @@ test("Record visit is the primary patient action and More reveals secondary acti
   await expect(main.getByRole("link", { name: "1-Page Report" })).toBeVisible();
 });
 
+const patientDialogs = [
+  {
+    trigger: "AI voice counselling",
+    title: "AI regional-language audio counselling",
+    action: "Copy counselling text",
+  },
+  {
+    trigger: "Nutrition & diet plan",
+    title: "Personalised nutrition & anaemia care plan",
+    action: "Send via WhatsApp",
+  },
+  {
+    trigger: "Edit patient & dating",
+    title: "Edit patient & pregnancy dating",
+    action: "Save & recalculate",
+  },
+];
+
+for (const { trigger, title, action } of patientDialogs) {
+  test(`${trigger} opens a wide patient dialog above the site header`, async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 600 });
+    await page.goto("/patients/p1-pooja-deshmukh");
+    await page.getByText("More", { exact: true }).click();
+    const open = page.getByRole("button", { name: trigger, exact: true });
+    await open.click();
+
+    const dialog = page.getByRole("dialog");
+    const heading = dialog.getByRole("heading", { name: title, exact: true });
+    const close = dialog.getByRole("button", { name: "Close", exact: true }).first();
+    await expect(heading).toBeInViewport({ ratio: 1 });
+    await expect.poll(() => heading.evaluate((element) => {
+      const { x, y, height } = element.getBoundingClientRect();
+      return element.contains(document.elementFromPoint(x + 2, y + height / 2));
+    })).toBe(true);
+    expect((await close.boundingBox())!.x - (await heading.boundingBox())!.x).toBeGreaterThan(800);
+
+    await page.setViewportSize({ width: 320, height: 600 });
+    const footerAction = dialog.getByRole("button", { name: action, exact: true })
+      .or(dialog.getByRole("link", { name: action, exact: true }));
+    await footerAction.scrollIntoViewIfNeeded();
+    await expect(footerAction).toBeInViewport({ ratio: 1 });
+    await expect(heading).toBeInViewport({ ratio: 1 });
+    await expect(close).toBeInViewport({ ratio: 1 });
+    await close.click();
+    await expect(dialog).toBeHidden();
+    await expect(open).toBeFocused();
+
+    await open.click();
+    await expect(dialog).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+  });
+}
+
+test("the diet plan uses most of a wide screen and keeps the text readable on a phone", async ({ page }) => {
+  const desktop = { width: 1920, height: 900 };
+  await page.setViewportSize(desktop);
+  await page.goto("/patients/p1-pooja-deshmukh");
+  await page.getByText("More", { exact: true }).click();
+  await page.getByRole("button", { name: "Nutrition & diet plan", exact: true }).click();
+
+  const dialog = page.getByRole("dialog", { name: "Personalised nutrition and anaemia plan" });
+  const panel = dialog.locator(":scope > div");
+  await expect(panel).toBeInViewport({ ratio: 1 });
+  const size = (await panel.boundingBox())!;
+  expect(size.width).toBeGreaterThanOrEqual(desktop.width * 0.8);
+  expect(size.height).toBeGreaterThanOrEqual(desktop.height * 0.9);
+
+  const goal = dialog.getByText("Clinical goal:", { exact: true });
+  await expect(goal).toHaveCSS("font-size", "16px");
+
+  await page.setViewportSize({ width: 320, height: 600 });
+  await expect(panel).toBeInViewport({ ratio: 1 });
+  await expect(goal).toHaveCSS("font-size", "14px");
+  const rules = dialog.getByText("3 essential iron tablet rules (counselling for the mother)", { exact: true });
+  await rules.scrollIntoViewIfNeeded();
+  await expect(rules).toBeInViewport({ ratio: 1 });
+  await expect(dialog.getByRole("link", { name: "Send via WhatsApp" })).toBeInViewport({ ratio: 1 });
+});
+
 test("visit entry rejects blank and extreme readings and saves a valid visit", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/patients/p3-kavita-patel");

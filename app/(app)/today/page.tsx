@@ -78,18 +78,21 @@ export default async function TodayPage() {
           </h1>
         </header>
 
-        {/* Mobile: one column in priority order. Desktop: worklist left, overview right. */}
+        {/* Mobile stacks the dashboard. Desktop places the clinic overview alongside the worklist. */}
         <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] lg:items-start">
           <div className="contents lg:flex lg:flex-col lg:gap-5">
             <div className="order-1">
-              <TodayWorklist days={worklist.days} rows={worklist.rows} />
-            </div>
-            <div className="order-2">
-              <HeroCard
-                dueToday={worklist.days[0]?.entries.filter((entry) => entry.scheduled).length ?? 0}
-                overdue={overdueCount}
-                atRisk={atRiskCount}
-                totalActive={totalActive}
+              <TodayWorklist
+                days={worklist.days}
+                rows={worklist.rows}
+                summary={
+                  <HeroCard
+                    dueToday={worklist.days[0]?.entries.filter((entry) => entry.scheduled).length ?? 0}
+                    overdue={overdueCount}
+                    atRisk={atRiskCount}
+                    totalActive={totalActive}
+                  />
+                }
               />
             </div>
           </div>

@@ -9,6 +9,7 @@ import { eddFromLmp, formatGALocalized, gestationalAge, trimester } from "@/lib/
 import { useT } from "@/lib/i18n/provider";
 import { SubmitButton } from "@/components/SubmitButton";
 import { withSuccessToast } from "@/components/Toaster";
+import { PatientDetailDialog } from "@/components/PatientDetailDialog";
 
 
 const initialState: ActionResult = { error: null };
@@ -76,15 +77,6 @@ export function EditPatientModal({
     prevPendingRef.current = isPending;
   }, [isPending, state.error, onClose]);
 
-  // Handle escape key
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
-
   const lmpChanged = Boolean(patient.lmp && lmp && patient.lmp !== lmp);
   const rhChanged = patient.rhNegative !== rhNegative;
 
@@ -99,20 +91,12 @@ export function EditPatientModal({
   }, [lmp, t]);
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={t("patients.edit.dialogLabel")}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs overflow-y-auto"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="relative my-8 w-full max-w-2xl rounded-2xl bg-[var(--color-background)] shadow-2xl overflow-hidden border border-[var(--color-border)]">
+    <PatientDetailDialog label={t("patients.edit.dialogLabel")} onClose={onClose}>
+      <div className="relative flex max-h-full w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-background)] shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface-1)] px-5 py-3.5">
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[var(--color-border)] bg-[var(--color-surface-1)] px-5 py-3.5">
           <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-primary)] text-white">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary)] text-white">
               <NotePencil size={16} weight="bold" />
             </div>
             <div>
@@ -135,7 +119,7 @@ export function EditPatientModal({
         {/* Form Body */}
         <form
           action={formAction}
-          className="p-5 space-y-4 max-h-[80vh] overflow-y-auto"
+          className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-5 sm:px-6"
         >
           {state.error && (
             <div className="flex items-start gap-2 rounded-lg bg-[var(--color-overdue-surface)] border border-[var(--color-overdue)] p-2.5 text-xs text-[var(--color-overdue)]">
@@ -146,9 +130,9 @@ export function EditPatientModal({
 
           {/* Section 1: Dating & Schedule Recalculation */}
           <div className="rounded-xl border-2 border-[var(--color-primary)]/20 bg-[var(--color-surface-1)] p-4 space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="text-[12px] font-bold text-[var(--color-primary)] flex items-center gap-1.5">
-                <Calendar size={15} weight="bold" />
+                <Calendar size={15} weight="bold" className="shrink-0" />
                 {t("patients.edit.sectionDating")}
               </span>
               {datingPreview && (
@@ -158,7 +142,7 @@ export function EditPatientModal({
               )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
                 <label htmlFor="eddSource" className={labelClass}>
                   {t("patients.edit.datingBasis")}
@@ -223,8 +207,8 @@ export function EditPatientModal({
               {t("patients.edit.sectionDemographics")}
             </span>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="sm:col-span-2">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="md:col-span-2">
                 <label htmlFor="name" className={labelClass}>
                   {t("patients.edit.fullName")}
                 </label>
@@ -245,7 +229,7 @@ export function EditPatientModal({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
                 <label htmlFor="phone" className={labelClass}>
                   {t("patients.edit.primaryMobile")}
@@ -311,7 +295,7 @@ export function EditPatientModal({
               {t("patients.edit.sectionObstetric")}
             </span>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 items-end">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
               <div>
                 <label htmlFor="gravida" className={labelClass}>
                   {t("patients.edit.gravida")}
@@ -389,6 +373,6 @@ export function EditPatientModal({
           </div>
         </form>
       </div>
-    </div>
+    </PatientDetailDialog>
   );
 }
