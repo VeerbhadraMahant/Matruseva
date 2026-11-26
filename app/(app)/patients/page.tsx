@@ -43,7 +43,7 @@ export default async function PatientsPage({ searchParams }: { searchParams: Pro
         actions={
           <div className="flex items-center gap-2">
             <ScanQRCardButton />
-            <Link href="/patients/new" className={`${buttonPrimary} hidden md:inline-flex`}>
+            <Link href="/patients/new" className={`${buttonPrimary} max-md:hidden`}>
               <Plus size={15} weight="bold" aria-hidden /> {t("patients.newPatient")}
             </Link>
           </div>

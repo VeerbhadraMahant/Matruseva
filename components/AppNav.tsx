@@ -367,7 +367,7 @@ export function AppTopBar({
           </button>
           {!onNewPatient && (
             <>
-              <Link href="/patients/new" className={`${buttonSecondary} hidden md:inline-flex`}>
+              <Link href="/patients/new" className={`${buttonSecondary} max-md:hidden`}>
                 <UserPlus size={18} aria-hidden />
                 {t("patients.newPatient")}
               </Link>
