@@ -48,11 +48,24 @@
   --space-28: 16px;
   --space-21: 14px;
 
-  --radius-nav: 10px;
-  --radius-cards: 18px;
-  --radius-buttons: 12px;
+  --radius-nav: 8px;
+  --radius-cards: 14px;
+  --radius-buttons: 10px;
   --radius-badges: 999px;
-  --radius-sections: 22px;
+  --radius-sections: 16px;
+
+  /* Elevation: one level for resting surfaces, one for overlays. */
+  --shadow-card: 0 1px 2px rgb(34 27 43 / 0.05), 0 4px 14px -8px rgb(62 42 92 / 0.14);
+  --shadow-overlay: 0 2px 6px rgb(34 27 43 / 0.08), 0 24px 48px -16px rgb(62 42 92 / 0.32);
+
+  /* Motion: short, ease-out, never on keyboard-driven toggles. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --dur-fast: 140ms;
+  --dur: 200ms;
+
+  /* Layout: sticky bars that pages must clear. */
+  --topbar-height: 3.5rem;
 }
 
 @theme inline {
@@ -91,8 +104,22 @@ body::before {
   mask-image: linear-gradient(to bottom, #000 0%, rgb(0 0 0 / 0.55) 45%, transparent 90%);
 }
 
+/* The app screens are work surfaces: no texture behind the worklist. */
+body:has(.app-shell)::before { display: none; }
+
 @media print {
   body::before { display: none; }
+}
+
+::selection {
+  background: var(--color-pc-lilac-strong);
+  color: var(--color-pc-ink);
+}
+
+/* Thin, palette-tinted scrollbars (tables, sheets, long forms). */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-surface-4) transparent;
 }
 
 h1, h2, h3, h4 {
@@ -123,6 +150,36 @@ h1, h2, h3, h4 {
 :focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+
+a {
+  text-underline-offset: 3px;
+}
+
+/* Press feedback for anything styled as a button (ui.tsx classes add .press). */
+.press {
+  transition-property: background-color, border-color, color, box-shadow, transform;
+  transition-duration: var(--dur-fast);
+  transition-timing-function: var(--ease-out);
+}
+.press:active:not(:disabled):not([aria-disabled="true"]) {
+  transform: scale(0.97);
+}
+
+/* Overlay entry (modals, sheets): scale + fade from an already-near state. */
+@keyframes pc-pop {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+.pc-pop {
+  animation: pc-pop var(--dur) var(--ease-out) both;
+}
+@keyframes pc-sheet {
+  from { transform: translateY(100%); }
+  to { transform: none; }
+}
+.pc-sheet {
+  animation: pc-sheet 260ms var(--ease-out) both;
 }
 
 /* Soft corners by default; in the base layer so rounded-* utilities still win. */
@@ -230,7 +287,8 @@ h1, h2, h3, h4 {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pc-rise, .pc-skeleton { animation: none; }
+  .pc-rise, .pc-skeleton, .pc-pop, .pc-sheet { animation: none; }
+  .press:active:not(:disabled) { transform: none; }
   *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
   .skeleton { animation: none; }
 }
