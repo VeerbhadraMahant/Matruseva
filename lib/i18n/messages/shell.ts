@@ -34,6 +34,8 @@ export const shell = defineArea({
     "shell.nav.role.doctor": "Doctor",
     "shell.nav.role.staff": "Staff",
     "shell.nav.signOut": "Sign out",
+    "shell.nav.more": "More",
+    "shell.skipToContent": "Skip to main content",
 
     "shell.palette.ariaLabel": "Find patient or page",
     "shell.palette.placeholder": "Name, phone number, or page…",
@@ -113,6 +115,8 @@ export const shell = defineArea({
     "shell.nav.role.doctor": "डॉक्टर",
     "shell.nav.role.staff": "स्टाफ़",
     "shell.nav.signOut": "साइन आउट करें",
+    "shell.nav.more": "और",
+    "shell.skipToContent": "मुख्य सामग्री पर जाएँ",
 
     "shell.palette.ariaLabel": "मरीज़ या पेज खोजें",
     "shell.palette.placeholder": "नाम, फ़ोन नंबर या पेज…",
@@ -193,6 +197,8 @@ export const shell = defineArea({
     "shell.nav.role.doctor": "डॉक्टर",
     "shell.nav.role.staff": "कर्मचारी",
     "shell.nav.signOut": "साइन आउट करा",
+    "shell.nav.more": "अधिक",
+    "shell.skipToContent": "मुख्य मजकुराकडे जा",
 
     "shell.palette.ariaLabel": "रुग्ण किंवा पेज शोधा",
     "shell.palette.placeholder": "नाव, फोन नंबर किंवा पेज…",

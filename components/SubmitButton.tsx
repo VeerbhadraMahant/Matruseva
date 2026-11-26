@@ -1,7 +1,9 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
+import { CircleNotch } from "@phosphor-icons/react";
 import { useT } from "@/lib/i18n/provider";
+import { buttonPrimary } from "@/components/ui";
 
 export function SubmitButton({ children, pending: actionPending }: { children: React.ReactNode; pending?: boolean }) {
   const { pending: formPending } = useFormStatus();
@@ -9,11 +11,8 @@ export function SubmitButton({ children, pending: actionPending }: { children: R
   const t = useT();
 
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="min-h-11 w-full rounded-[var(--radius-buttons)] bg-[var(--color-primary)] px-4 text-[15px] font-semibold text-[var(--color-primary-foreground)] shadow-[0_8px_18px_-10px_rgb(62_42_92/0.7)] transition-colors hover:bg-[var(--color-primary-hover)] disabled:cursor-wait disabled:opacity-60"
-    >
+    <button type="submit" disabled={pending} aria-busy={pending} className={`${buttonPrimary} w-full ${pending ? "!cursor-wait" : ""}`}>
+      {pending && <CircleNotch size={18} className="animate-spin" aria-hidden />}
       {pending ? t("common.saving") : children}
     </button>
   );

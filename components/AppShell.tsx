@@ -3,6 +3,8 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
 import { SIDEBAR_COOKIE } from "@/lib/sidebar";
+import { useT } from "@/lib/i18n/provider";
+import { buttonPrimary } from "@/components/ui";
 
 interface SidebarCtx {
   collapsed: boolean;
@@ -13,6 +15,19 @@ const SidebarContext = createContext<SidebarCtx>({ collapsed: false, toggle: () 
 
 export function useSidebar() {
   return useContext(SidebarContext);
+}
+
+/** First tab stop: jumps past the nav to <main id="main-content">. */
+export function SkipLink() {
+  const t = useT();
+  return (
+    <a
+      href="#main-content"
+      className={`${buttonPrimary} sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[80]`}
+    >
+      {t("shell.skipToContent")}
+    </a>
+  );
 }
 
 function writeCookie(collapsed: boolean) {

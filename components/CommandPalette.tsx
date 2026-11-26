@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MagnifyingGlass, ArrowRight, UserPlus } from "@phosphor-icons/react";
+import { MagnifyingGlass, ArrowRight, UserPlus, KeyReturn } from "@phosphor-icons/react";
 import { createClient } from "@/lib/supabase/client";
 import { useT } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/messages";
@@ -47,6 +47,7 @@ export function CommandPalette({ isDemo = false }: { isDemo?: boolean }) {
   const patients = isDemo ? NO_PATIENTS : fetched;
   const [cursor, setCursor] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
 
   const show = useCallback(() => {
     setOpen(true);
@@ -113,14 +114,19 @@ export function CommandPalette({ isDemo = false }: { isDemo?: boolean }) {
     router.push(item.href);
   };
 
+  // Keep the highlighted row visible while arrowing through a long list.
+  useEffect(() => {
+    if (open) listRef.current?.querySelector("[aria-selected=true]")?.scrollIntoView({ block: "nearest" });
+  }, [open, cursor]);
+
   if (!open) return null;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-[rgb(34_27_43/0.35)] px-4 pt-[12vh] backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-[rgb(34_27_43/0.35)] px-4 pt-[12vh]"
       onMouseDown={(e) => e.target === e.currentTarget && setOpen(false)}
     >
-      <div role="dialog" aria-modal="true" aria-label={t("shell.palette.ariaLabel")} className="w-full max-w-xl overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-background)] shadow-[0_30px_60px_-20px_rgb(62_42_92/0.45)]">
+      <div role="dialog" aria-modal="true" aria-label={t("shell.palette.ariaLabel")} className="w-full max-w-xl overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-background)] shadow-[var(--shadow-overlay)]">
         <div className="flex items-center gap-2 border-b border-[var(--color-border)] px-4">
           <MagnifyingGlass size={18} className="text-[var(--color-charcoal)]" aria-hidden />
           <input
@@ -142,19 +148,24 @@ export function CommandPalette({ isDemo = false }: { isDemo?: boolean }) {
             }}
             placeholder={t("shell.palette.placeholder")}
             aria-label={t("common.search")}
+            role="combobox"
+            aria-expanded="true"
+            aria-controls="palette-list"
+            aria-activedescendant={items[cursor] ? `palette-${items[cursor].id}` : undefined}
             className="min-h-14 flex-1 rounded-none border-0 bg-transparent text-[16px] shadow-none outline-none focus:shadow-none"
           />
           <kbd className="rounded-md num border border-[var(--color-border)] px-1 text-[10px] text-[var(--color-charcoal)]">Esc</kbd>
         </div>
-        <ul className="max-h-[50vh] overflow-y-auto p-2" role="listbox">
+        <ul ref={listRef} id="palette-list" className="max-h-[50vh] overflow-y-auto p-2" role="listbox">
           {patients === null && <li className="px-3 py-2 text-[13px] text-[var(--color-charcoal)]">{t("shell.palette.loading")}</li>}
           {items.map((item, i) => (
-            <li key={item.id} role="option" aria-selected={i === cursor}>
+            <li key={item.id} id={`palette-${item.id}`} role="option" aria-selected={i === cursor}>
               <button
                 type="button"
                 onMouseEnter={() => setCursor(i)}
                 onClick={() => go(item)}
-                className={`flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left ${i === cursor ? "bg-[var(--color-primary-surface)] text-[var(--color-primary)]" : ""}`}
+                tabIndex={-1}
+                className={`flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left ${i === cursor ? "bg-[var(--color-primary-surface)] font-semibold text-[var(--color-primary)]" : ""}`}
               >
                 {item.kind === "action" ? (
                   <UserPlus size={16} aria-hidden />
@@ -162,7 +173,8 @@ export function CommandPalette({ isDemo = false }: { isDemo?: boolean }) {
                   <ArrowRight size={16} className={item.kind === "page" ? "" : "opacity-0"} aria-hidden />
                 )}
                 <span className="flex-1 text-[14px]">{item.label}</span>
-                <span className="num text-[12px] text-[var(--color-charcoal)]">{item.hint}</span>
+                <span className="num text-[12px] font-normal text-[var(--color-charcoal)]">{item.hint}</span>
+                {i === cursor && <KeyReturn size={16} aria-hidden className="hidden md:block" />}
               </button>
             </li>
           ))}

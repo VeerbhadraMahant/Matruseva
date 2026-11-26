@@ -323,9 +323,9 @@ a {
 /* Desktop sidebar width follows the AppShell data attribute (no layout shift on first paint). */
 .app-shell { --sb-w: 16rem; }
 .app-shell[data-sidebar="collapsed"] { --sb-w: 4rem; }
-.app-sidebar { width: var(--sb-w); transition: width 200ms ease; }
+.app-sidebar { width: var(--sb-w); transition: width var(--dur) var(--ease-out); }
 @media (min-width: 768px) {
-  .app-shell { padding-left: var(--sb-w); transition: padding-left 200ms ease; }
+  .app-shell { padding-left: var(--sb-w); transition: padding-left var(--dur) var(--ease-out); }
 }
 @media print {
   .app-shell { padding-left: 0 !important; }

@@ -32,8 +32,35 @@ export function withSuccessToast<S extends { error: string | null }>(
   };
 }
 
-export function Toaster() {
+/** Rises in from the bottom: a mount-time transition, no keyframes. */
+function ToastItem({ message, onDismiss }: { message: string; onDismiss: () => void }) {
   const t = useT();
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setShown(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  return (
+    <div
+      className={`pointer-events-auto flex items-center gap-3 rounded-2xl bg-[var(--color-pc-ink)] py-2.5 pl-3.5 pr-2 text-[14px] font-medium text-white shadow-[var(--shadow-overlay)] transition-[opacity,transform] duration-[var(--dur)] ease-[var(--ease-out)] ${
+        shown ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"
+      }`}
+    >
+      <CheckCircle size={20} weight="fill" className="shrink-0 text-[var(--color-pc-active-soft)]" aria-hidden />
+      {message}
+      <button
+        type="button"
+        onClick={onDismiss}
+        className="flex h-11 w-11 items-center justify-center rounded-lg text-white/70 hover:bg-white/10 hover:text-white focus-visible:outline-[var(--color-pc-lilac)] md:h-8 md:w-8"
+        aria-label={t("shell.toast.dismiss")}
+      >
+        <X size={16} aria-hidden />
+      </button>
+    </div>
+  );
+}
+
+export function Toaster() {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   useEffect(() => {
@@ -60,24 +87,11 @@ export function Toaster() {
     <div
       role="status"
       aria-live="polite"
-      className="pointer-events-none fixed inset-x-0 bottom-24 z-[60] flex flex-col items-center gap-2 px-4 md:bottom-6"
+      aria-atomic="false"
+      className="pointer-events-none fixed inset-x-0 bottom-[calc(var(--mobile-nav-height)+5rem)] z-[60] flex flex-col items-center gap-2 px-4 md:bottom-6"
     >
       {toasts.map((toast) => (
-        <div
-          key={toast.id}
-          className="pc-rise pointer-events-auto flex items-center gap-3 rounded-2xl bg-[var(--color-pc-ink)] py-2.5 pl-3.5 pr-2 text-[14px] font-medium text-white shadow-[0_18px_40px_-12px_rgb(34_27_43/0.55)]"
-        >
-          <CheckCircle size={20} weight="fill" className="shrink-0 text-[#9fd9b4]" aria-hidden />
-          {toast.message}
-          <button
-            type="button"
-            onClick={() => setToasts((list) => list.filter((x) => x.id !== toast.id))}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-white/70 hover:bg-white/10 hover:text-white"
-            aria-label={t("shell.toast.dismiss")}
-          >
-            <X size={16} aria-hidden />
-          </button>
-        </div>
+        <ToastItem key={toast.id} message={toast.message} onDismiss={() => setToasts((list) => list.filter((x) => x.id !== toast.id))} />
       ))}
     </div>
   );

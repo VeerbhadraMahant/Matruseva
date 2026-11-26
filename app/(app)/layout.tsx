@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { cookies } from "next/headers";
 import { getCurrentUser } from "@/lib/auth";
 import { AppTopBar, AppBottomNav } from "@/components/AppNav";
-import { AppShell } from "@/components/AppShell";
+import { AppShell, SkipLink } from "@/components/AppShell";
 import { SIDEBAR_COOKIE } from "@/lib/sidebar";
 import { CallQueueBadge } from "@/components/CallQueueBadge";
 import { CommandPalette } from "@/components/CommandPalette";
@@ -19,6 +19,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <AppI18nProvider locale={locale} messages={messages[locale]}>
     <AppShell initialCollapsed={collapsed}>
+      <SkipLink />
       <AppTopBar
         clinicName={me.clinicName}
         userName={me.fullName}
@@ -29,7 +30,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </Suspense>
         }
       />
-      <main className="min-w-0 flex-1 pb-[var(--mobile-nav-height)] md:pb-0">{children}</main>
+      <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 pb-[var(--mobile-nav-height)] outline-none md:pb-0">{children}</main>
       <AppBottomNav />
       <CommandPalette isDemo={me.isDemo} />
       <Toaster />
