@@ -1,10 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useId, useMemo, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import { ArrowRight, CaretDown, CheckCircle, Phone, Warning } from "@phosphor-icons/react";
 import { useT } from "@/lib/i18n/provider";
-import { Badge, STATUS_BADGE } from "./StatusBadge";
+import {
+  Panel,
+  StatusDot,
+  Tag,
+  TONE_DOT,
+  buttonSecondary,
+  chipClass,
+  chipCountClass,
+  iconButton,
+  rowLink,
+  type Tone,
+} from "@/components/ui";
+import { STATUS_BADGE } from "./StatusBadge";
 import type { DayEntry, WorklistDay, WorklistItem, WorklistRow } from "./types";
 
 type Filter = "all" | "atRisk" | "overdue" | "scheduled";
@@ -24,6 +36,7 @@ function matches(filter: Filter, entry: DayEntry, row: WorklistRow): boolean {
   }
 }
 
+/** Day picker: compact segmented row, 7 days. */
 function WeekStrip({
   days,
   selected,
@@ -35,7 +48,7 @@ function WeekStrip({
 }) {
   const t = useT();
   return (
-    <div role="group" aria-label={t("today.week.choose")} className="pc-glass grid grid-cols-7 gap-1 rounded-[24px] p-1.5 sm:gap-2 sm:p-2">
+    <div role="group" aria-label={t("today.week.choose")} className="grid grid-cols-7 gap-1 border-t border-[var(--color-border)]/70 p-2">
       {days.map((d) => {
         const active = d.iso === selected;
         const count = d.entries.length;
@@ -51,26 +64,17 @@ function WeekStrip({
               count,
             })}
             onClick={() => onSelect(d.iso)}
-            className={`relative mx-auto flex min-h-[84px] w-full max-w-16 flex-col items-center justify-center gap-1 rounded-full px-1 py-2 transition-[background-color,color,box-shadow,transform] duration-200 ${
+            className={`press flex min-h-14 flex-col items-center justify-center rounded-[var(--radius-buttons)] px-1 py-1.5 text-[12px] transition-colors duration-150 ${
               active
-                ? "bg-pc-plum text-white shadow-[0_10px_24px_-10px_rgb(62_42_92/0.7)]"
-                : "text-pc-muted hover:bg-pc-card/80 motion-safe:hover:-translate-y-0.5"
+                ? "bg-[var(--color-primary)] text-white"
+                : "text-[var(--color-charcoal)] hover:bg-[var(--color-surface-2)]"
             }`}
           >
-            <span className="text-[12px] font-medium">{d.isToday ? t("today.week.today") : d.weekday}</span>
-            <span className={`text-[19px] font-semibold leading-none tabular-nums ${active ? "" : "text-pc-ink"}`}>
+            <span className="font-medium">{d.isToday ? t("today.week.today") : d.weekday}</span>
+            <span className={`num text-[15px] font-semibold leading-5 ${active ? "" : "text-[var(--color-foreground)]"}`}>
               {d.dayOfMonth}
             </span>
-            <span
-              aria-hidden
-              className={`min-w-6 rounded-full px-1.5 text-center text-[11px] font-semibold leading-[18px] tabular-nums ${
-                count === 0
-                  ? "invisible"
-                  : active
-                    ? "bg-white text-pc-plum"
-                    : "bg-pc-lilac text-pc-plum"
-              }`}
-            >
+            <span aria-hidden className={`num text-[11px] leading-4 ${count === 0 ? "invisible" : active ? "text-white/90" : ""}`}>
               {count}
             </span>
           </button>
@@ -83,9 +87,9 @@ function WeekStrip({
 function Detail({ label, value, sub }: { label: string; value: string; sub: string | null }) {
   return (
     <div className="min-w-0">
-      <dt className="text-[12px] text-pc-muted">{label}</dt>
-      <dd className="mt-0.5 text-[14px] font-medium tabular-nums">{value}</dd>
-      {sub && <dd className="text-[12px] text-pc-muted">{sub}</dd>}
+      <dt className="text-[12px] text-[var(--color-charcoal)]">{label}</dt>
+      <dd className="num mt-0.5 text-[14px] font-medium">{value}</dd>
+      {sub && <dd className="text-[12px] text-[var(--color-charcoal)]">{sub}</dd>}
     </div>
   );
 }
@@ -96,68 +100,76 @@ function Row({
   items,
   expanded,
   onToggle,
-  index,
 }: {
   row: WorklistRow;
   reason: string;
   items: WorklistItem[];
   expanded: boolean;
   onToggle: () => void;
-  index: number;
 }) {
   const t = useT();
   const panelId = useId();
   const badge = STATUS_BADGE[row.status];
   const hasCritical = row.alerts.some((a) => a.critical);
+  const late = row.status === "overdue" || row.status === "lost";
 
   return (
-    <li
-      className={`pc-rise border-b border-pc-line/70 last:border-0 transition-colors duration-200 ${expanded ? "bg-pc-lilac/45" : ""}`}
-      style={{ animationDelay: `${Math.min(index, 8) * 35}ms` }}
-    >
-      <button
-        type="button"
-        aria-expanded={expanded}
-        aria-controls={panelId}
-        onClick={onToggle}
-        className="flex min-h-[68px] w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-pc-lilac/30 sm:px-5"
-      >
-        <span
-          aria-hidden
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-pc-lilac text-[13px] font-semibold text-pc-plum"
-        >
-          {row.initials}
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-1.5">
-            <span className="truncate text-[15px] font-semibold">{row.name}</span>
-            {hasCritical && (
-              <Warning size={15} weight="fill" className="shrink-0 text-pc-overdue" aria-label={t("today.worklist.clinicalAlert")} />
-            )}
+    <li className={expanded ? "bg-[var(--color-surface-1)]" : ""}>
+      <div className="flex items-center">
+        <Link href={`/patients/${row.id}`} className={`${rowLink} min-w-0 flex-1 items-start`}>
+          <span className="pt-0.5">
+            <StatusDot tone={badge.tone} label={t(badge.label)} />
           </span>
-          <span className="line-clamp-2 block text-[13px] text-pc-muted">
-            <span className="tabular-nums">{row.meta}</span>
-            <span aria-hidden> · </span>
-            {reason}
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-1.5">
+              <span className="truncate text-[15px] font-semibold">{row.name}</span>
+              {hasCritical && (
+                <Warning size={15} weight="fill" className="shrink-0 text-[var(--color-overdue)]" aria-label={t("today.worklist.clinicalAlert")} />
+              )}
+            </span>
+            <span
+              className={`num mt-0.5 line-clamp-2 block text-[13px] ${late ? "font-medium text-[var(--color-overdue)]" : "text-[var(--color-foreground)]"}`}
+            >
+              {reason}
+            </span>
+            <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-[var(--color-charcoal)]">
+              <span className="num">{row.meta}</span>
+              {row.isAtRisk && <Tag tone={badge.tone}>{t(badge.label)}</Tag>}
+            </span>
           </span>
-        </span>
-        <Badge tone={badge.tone}>{t(badge.label)}</Badge>
-        <CaretDown
-          size={16}
-          aria-hidden
-          className={`shrink-0 text-pc-muted transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
-        />
-      </button>
+        </Link>
+        <div className="flex shrink-0 items-center pr-2">
+          {row.telHref && (
+            <a href={row.telHref} aria-label={t("today.worklist.call", { phone: row.phone ?? "" })} className={`${iconButton} text-[var(--color-primary)]`}>
+              <Phone size={20} aria-hidden />
+            </a>
+          )}
+          <button
+            type="button"
+            aria-expanded={expanded}
+            aria-controls={panelId}
+            aria-label={t("today.worklist.details", { name: row.name })}
+            onClick={onToggle}
+            className={iconButton}
+          >
+            <CaretDown
+              size={18}
+              aria-hidden
+              className={`transition-transform duration-200 ease-[var(--ease-out)] ${expanded ? "rotate-180" : ""}`}
+            />
+          </button>
+        </div>
+      </div>
 
       <div
         id={panelId}
         inert={!expanded}
-        className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${
+        className={`grid transition-[grid-template-rows,opacity] duration-200 ease-[var(--ease-out)] ${
           expanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
         }`}
       >
         <div className="overflow-hidden">
-          <div className="space-y-4 px-4 pb-5 pt-1 sm:px-5 sm:pl-[72px]">
+          <div className="space-y-3 px-4 pb-4 pt-1 sm:pl-11">
             <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
               <Detail label={t("today.worklist.lastVisit")} value={row.lastVisit} sub={row.lastVisitRelative} />
               <Detail label={t("today.worklist.nextAnc")} value={row.nextAnc} sub={row.nextAncDetail} />
@@ -167,34 +179,28 @@ function Row({
             {(row.alerts.length > 0 || items.length > 0) && (
               <div className="flex flex-wrap gap-1.5">
                 {row.alerts.map((a) => (
-                  <Badge key={a.label} tone={a.critical ? "overdue" : "risk"}>
+                  <Tag key={a.label} tone={a.critical ? "critical" : "warning"}>
                     {a.label}
-                  </Badge>
+                  </Tag>
                 ))}
                 {items.map((item) => (
-                  <Badge key={`${item.name}-${item.closes}`} tone={item.status === "overdue" ? "overdue" : "plum"}>
+                  <Tag key={`${item.name}-${item.closes}`} tone={item.status === "overdue" ? "critical" : "info"}>
                     {t(item.status === "overdue" ? "today.worklist.itemWasDue" : "today.worklist.itemBy", {
                       name: item.name,
                       date: item.closes,
                     })}
-                  </Badge>
+                  </Tag>
                 ))}
               </div>
             )}
 
             <div className="flex flex-wrap gap-2">
               {row.telHref && (
-                <a
-                  href={row.telHref}
-                  className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-pc-plum px-4 text-[14px] font-semibold text-white transition-colors hover:bg-pc-plum-hover"
-                >
-                  <Phone size={16} aria-hidden /> {t("today.worklist.call", { phone: row.phone ?? "" })}
+                <a href={row.telHref} className={buttonSecondary}>
+                  <Phone size={16} aria-hidden /> <span className="num">{t("today.worklist.call", { phone: row.phone ?? "" })}</span>
                 </a>
               )}
-              <Link
-                href={`/patients/${row.id}`}
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-pc-line bg-pc-card px-4 text-[14px] font-medium transition-colors hover:border-pc-plum"
-              >
+              <Link href={`/patients/${row.id}`} className={buttonSecondary}>
                 {t("today.worklist.openRecord")} <ArrowRight size={14} aria-hidden />
               </Link>
             </div>
@@ -211,6 +217,7 @@ export function TodayWorklist({ days, rows }: { days: WorklistDay[]; rows: Workl
   const [filter, setFilter] = useState<Filter>("all");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const listRef = useRef<HTMLDivElement>(null);
 
   const rowById = useMemo(() => new Map(rows.map((r) => [r.id, r])), [rows]);
   const day = days.find((d) => d.iso === selected) ?? days[0];
@@ -224,16 +231,18 @@ export function TodayWorklist({ days, rows }: { days: WorklistDay[]; rows: Workl
     [day, rowById],
   );
 
-  const chips: { id: Filter; label: string }[] = [
-    { id: "all", label: t("today.worklist.filter.all") },
-    { id: "atRisk", label: t("today.worklist.filter.atRisk") },
-    { id: "overdue", label: t("today.worklist.filter.overdue") },
+  // Severity order: overdue, due, high risk, then everyone.
+  const chips: { id: Filter; label: string; tone: Tone | null }[] = [
+    { id: "overdue", label: t("today.worklist.filter.overdue"), tone: "critical" },
     {
       id: "scheduled",
       label: day?.isToday
         ? t("today.worklist.filter.dueToday")
         : t("today.worklist.filter.dueDay", { weekday: day?.weekday ?? "" }),
+      tone: "info",
     },
+    { id: "atRisk", label: t("today.worklist.filter.atRisk"), tone: "warning" },
+    { id: "all", label: t("today.worklist.filter.all"), tone: null },
   ];
 
   const visible = pairs.filter(({ entry, row }) => matches(filter, entry, row));
@@ -248,6 +257,7 @@ export function TodayWorklist({ days, rows }: { days: WorklistDay[]; rows: Workl
     setFilter(f);
     setExpanded(null);
     setShowAll(false);
+    listRef.current?.scrollIntoView({ block: "nearest" });
   };
 
   const dayTitle = day
@@ -257,58 +267,41 @@ export function TodayWorklist({ days, rows }: { days: WorklistDay[]; rows: Workl
     : "";
 
   return (
-    <section aria-labelledby="worklist-title" className="space-y-4">
-      <div className="pc-glass overflow-hidden rounded-[24px]">
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 pb-3 pt-4 sm:px-5">
-          <h2 id="worklist-title" className="text-[17px] font-semibold">
-            {t("today.worklist.title")} <span className="font-normal text-pc-muted">· {dayTitle}</span>
-          </h2>
-          <Link
-            href="/calls"
-            className="inline-flex min-h-9 items-center gap-1 text-[13px] font-semibold text-pc-plum hover:underline"
-          >
-            {t("today.worklist.openCallQueue")} <ArrowRight size={13} aria-hidden />
-          </Link>
-        </div>
+    <Panel
+      title={`${t("today.worklist.title")} · ${dayTitle}`}
+      action={
+        <Link
+          href="/calls"
+          className="inline-flex min-h-11 items-center gap-1 text-[13px] font-semibold text-[var(--color-primary)] hover:underline md:min-h-9"
+        >
+          {t("today.worklist.openCallQueue")} <ArrowRight size={13} aria-hidden />
+        </Link>
+      }
+    >
+      <div role="group" aria-label={t("today.worklist.filterLabel")} className="flex flex-wrap gap-2 px-4 py-3">
+        {chips.map((c) => {
+          const count = pairs.filter(({ entry, row }) => matches(c.id, entry, row)).length;
+          const active = filter === c.id;
+          return (
+            <button key={c.id} type="button" aria-pressed={active} onClick={() => selectFilter(c.id)} className={chipClass(active)}>
+              {c.tone && <span aria-hidden className={`h-2 w-2 rounded-full ${active ? "bg-white" : TONE_DOT[c.tone]}`} />}
+              {c.label}
+              <span className={chipCountClass(active)}>{count}</span>
+            </button>
+          );
+        })}
+      </div>
 
-        <div role="group" aria-label={t("today.worklist.filterLabel")} className="flex flex-wrap gap-2 px-4 pb-4 sm:px-5">
-          {chips.map((c) => {
-            const count = pairs.filter(({ entry, row }) => matches(c.id, entry, row)).length;
-            const active = filter === c.id;
-            return (
-              <button
-                key={c.id}
-                type="button"
-                aria-pressed={active}
-                onClick={() => selectFilter(c.id)}
-                className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border px-4 text-[14px] font-medium transition-colors duration-200 ${
-                  active
-                    ? "border-pc-plum bg-pc-plum text-white"
-                    : "border-pc-line bg-pc-card/80 text-pc-ink hover:border-pc-plum"
-                }`}
-              >
-                {c.label}
-                <span
-                  className={`rounded-full px-1.5 text-[12px] font-semibold leading-5 tabular-nums ${
-                    active ? "bg-white/20 text-white" : "bg-pc-lilac text-pc-plum"
-                  }`}
-                >
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+      <div aria-live="polite" className="sr-only">
+        {t("today.worklist.shown", { count: visible.length })}
+      </div>
 
-        <div aria-live="polite" className="sr-only">
-          {t("today.worklist.shown", { count: visible.length })}
-        </div>
-
+      <div ref={listRef} className="scroll-mt-16">
         {visible.length === 0 ? (
-          <div key={`${selected}-${filter}-empty`} className="pc-rise flex flex-col items-center gap-2 border-t border-pc-line/70 px-6 py-12 text-center">
-            <CheckCircle size={32} weight="duotone" className="text-pc-active" aria-hidden />
+          <div className="flex flex-col items-center gap-2 border-t border-[var(--color-border)]/70 px-6 py-10 text-center">
+            <CheckCircle size={28} weight="duotone" className="text-[var(--color-on-track)]" aria-hidden />
             <p className="text-[15px] font-medium">{t("today.worklist.emptyTitle")}</p>
-            <p className="max-w-xs text-[13px] text-pc-muted">
+            <p className="max-w-xs text-[13px] text-[var(--color-charcoal)]">
               {filter === "all"
                 ? day?.isToday
                   ? t("today.worklist.emptyToday")
@@ -317,32 +310,32 @@ export function TodayWorklist({ days, rows }: { days: WorklistDay[]; rows: Workl
             </p>
           </div>
         ) : (
-          <ul key={`${selected}-${filter}`} className="border-t border-pc-line/70">
-            {shown.map(({ entry, row }, i) => (
+          <ul key={`${selected}-${filter}`} className="divide-y divide-[var(--color-border)]/70 border-t border-[var(--color-border)]/70">
+            {shown.map(({ entry, row }) => (
               <Row
                 key={row.id}
                 row={row}
                 reason={entry.reasons.join(" · ") || row.summary}
                 items={day?.isToday ? row.openItems : entry.items}
-                index={i}
                 expanded={expanded === row.id}
                 onToggle={() => setExpanded((cur) => (cur === row.id ? null : row.id))}
               />
             ))}
           </ul>
         )}
-
-        {visible.length > PAGE_SIZE && (
-          <button
-            type="button"
-            onClick={() => setShowAll((v) => !v)}
-            className="flex min-h-12 w-full items-center justify-center border-t border-pc-line/70 text-[14px] font-semibold text-pc-plum transition-colors hover:bg-pc-lilac/40"
-          >
-            {showAll ? t("today.worklist.showFewer") : t("today.worklist.showMore", { count: visible.length - PAGE_SIZE })}
-          </button>
-        )}
       </div>
+
+      {visible.length > PAGE_SIZE && (
+        <button
+          type="button"
+          onClick={() => setShowAll((v) => !v)}
+          className="flex min-h-12 w-full items-center justify-center border-t border-[var(--color-border)]/70 text-[14px] font-semibold text-[var(--color-primary)] transition-colors hover:bg-[var(--color-surface-1)]"
+        >
+          {showAll ? t("today.worklist.showFewer") : t("today.worklist.showMore", { count: visible.length - PAGE_SIZE })}
+        </button>
+      )}
+
       <WeekStrip days={days} selected={selected} onSelect={selectDay} />
-    </section>
+    </Panel>
   );
 }
