@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { completeOnboarding, type ActionResult } from "../actions";
 import { SubmitButton } from "@/components/SubmitButton";
 import { AuthShell } from "@/components/auth/AuthShell";
+import { FormError, TextField } from "@/components/auth/AuthFields";
 import { useT } from "@/lib/i18n/provider";
 
 const initialState: ActionResult = { error: null };
@@ -14,50 +15,19 @@ export default function OnboardingPage() {
 
   return (
     <AuthShell>
-      <div>
-        <h1 className="mb-1 text-[24px] font-semibold tracking-tight text-[var(--color-foreground)]">
-          {t("auth.onboarding.title")}
-        </h1>
-        <p className="mb-6 text-[14px] text-[var(--color-charcoal)]">
-          {t("auth.onboarding.subtitle")}
-        </p>
+      <h1 className="mb-1 text-[24px] font-semibold tracking-tight text-[var(--color-foreground)]">
+        {t("auth.onboarding.title")}
+      </h1>
+      <p className="mb-6 text-[14px] text-[var(--color-charcoal)]">{t("auth.onboarding.subtitle")}</p>
 
-        <form action={formAction} className="space-y-4" noValidate>
-          <div>
-            <label htmlFor="clinicName" className="mb-1.5 block text-[13px] font-medium text-[var(--color-charcoal)]">
-              {t("auth.onboarding.clinicName")}
-            </label>
-            <input
-              id="clinicName"
-              name="clinicName"
-              type="text"
-              required
-              className="min-h-11 w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 text-[15px]"
-            />
-          </div>
-          <div>
-            <label htmlFor="doctorFullName" className="mb-1.5 block text-[13px] font-medium text-[var(--color-charcoal)]">
-              {t("auth.onboarding.yourName")}
-            </label>
-            <input
-              id="doctorFullName"
-              name="doctorFullName"
-              type="text"
-              autoComplete="name"
-              required
-              className="min-h-11 w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 text-[15px]"
-            />
-          </div>
+      <form action={formAction} className="space-y-4" noValidate>
+        <TextField id="clinicName" name="clinicName" label={t("auth.onboarding.clinicName")} required />
+        <TextField id="doctorFullName" name="doctorFullName" label={t("auth.onboarding.yourName")} autoComplete="name" required />
 
-          {state.error && (
-            <p role="alert" className="text-sm text-[var(--color-overdue)]">
-              {state.error}
-            </p>
-          )}
+        <FormError message={state.error} />
 
-          <SubmitButton>{t("auth.onboarding.submit")}</SubmitButton>
-        </form>
-      </div>
+        <SubmitButton>{t("auth.onboarding.submit")}</SubmitButton>
+      </form>
     </AuthShell>
   );
 }

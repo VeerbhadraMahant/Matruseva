@@ -4,6 +4,12 @@ import { defineArea } from "../define";
 export const settings = defineArea({
   en: {
     "settings.title": "Settings",
+
+    "settings.nav.label": "Settings sections",
+    "settings.nav.signoff": "Protocol sign-off",
+    "settings.help.clinic": "Shown on reminders and reports. Changes apply to the whole clinic.",
+    "settings.help.staff": "Doctors can add front-desk and nursing staff. Staff cannot open settings.",
+    "settings.help.thresholds": "How many days a patient can be overdue before she shows as at risk, then lost.",
     "settings.demo.title": "Settings need a live clinic account",
     "settings.demo.readOnly": "Demo clinic settings are read-only.",
     "settings.demo.body":
@@ -115,6 +121,12 @@ export const settings = defineArea({
   },
   hi: {
     "settings.title": "सेटिंग्स",
+
+    "settings.nav.label": "सेटिंग्स के भाग",
+    "settings.nav.signoff": "प्रोटोकॉल साइन-ऑफ़",
+    "settings.help.clinic": "रिमाइंडर और रिपोर्ट में दिखता है। बदलाव पूरे क्लिनिक पर लागू होते हैं।",
+    "settings.help.staff": "डॉक्टर फ़्रंट-डेस्क और नर्सिंग स्टाफ़ जोड़ सकते हैं। स्टाफ़ सेटिंग्स नहीं खोल सकता।",
+    "settings.help.thresholds": "मरीज़ कितने दिन विलंबित रहने पर जोखिम में, फिर खोई हुई दिखती है।",
     "settings.demo.title": "सेटिंग्स के लिए लाइव क्लिनिक खाता ज़रूरी है",
     "settings.demo.readOnly": "डेमो क्लिनिक की सेटिंग्स केवल देखने के लिए हैं।",
     "settings.demo.body":
@@ -226,6 +238,12 @@ export const settings = defineArea({
   },
   mr: {
     "settings.title": "सेटिंग्ज",
+
+    "settings.nav.label": "सेटिंग्जचे विभाग",
+    "settings.nav.signoff": "प्रोटोकॉल साइन-ऑफ",
+    "settings.help.clinic": "रिमाइंडर आणि अहवालांमध्ये दिसते. बदल संपूर्ण क्लिनिकला लागू होतात.",
+    "settings.help.staff": "डॉक्टर फ्रंट-डेस्क व नर्सिंग स्टाफ जोडू शकतात. स्टाफ सेटिंग्ज उघडू शकत नाही.",
+    "settings.help.thresholds": "रुग्ण किती दिवस उशिरा असल्यास जोखमीत, नंतर गमावलेली दिसते.",
     "settings.demo.title": "सेटिंग्जसाठी लाइव्ह क्लिनिक खाते आवश्यक आहे",
     "settings.demo.readOnly": "डेमो क्लिनिकची सेटिंग्ज फक्त पाहता येतात.",
     "settings.demo.body":

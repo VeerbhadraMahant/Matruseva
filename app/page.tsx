@@ -14,16 +14,11 @@ import {
 import { isDemoModeEnabled } from "@/lib/demo";
 import { loginDemo } from "./(auth)/actions";
 import { getT } from "@/lib/i18n/server";
+import type { Translator } from "@/lib/i18n/translate-client";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Reveal } from "@/components/marketing/Reveal";
-import {
-  HeroBackdrop,
-  FeatureBackdrop,
-  ShowcaseBackdrop,
-  TrustBackdrop,
-  CtaBackdrop,
-  WaveDivider,
-} from "@/components/marketing/Backdrops";
+import { HeroBackdrop, TrustBackdrop, CtaBackdrop } from "@/components/marketing/Backdrops";
+import { Tag, StatusDot, buttonPrimary, buttonSecondary, card, type Tone } from "@/components/ui";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getT();
@@ -46,34 +41,27 @@ const SHOWCASE = [
   { src: "/marketing/screenshot-patients-720.webp", key: "patients" },
 ] as const;
 
+const ctaPrimary = `${buttonPrimary} min-h-12! px-6 text-[16px]`;
+const ctaSecondary = `${buttonSecondary} min-h-12! px-6 text-[16px]`;
+
 export default async function LandingPage() {
   const { t } = await getT();
+  const demo = isDemoModeEnabled();
   return (
-    <div
-      className="bg-[#faf6ec] text-[#221b2b]"
-    >
-      {/* Nav */}
-      <header className="sticky top-0 z-40 border-b border-[#221b2b]/10 bg-[#faf6ec]/90 backdrop-blur-sm">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-          <div className="flex items-center gap-2.5">
+    <div className="bg-[var(--color-pc-canvas)] text-[var(--color-foreground)]">
+      <header className="sticky top-0 z-40 border-b border-[var(--color-border)] bg-[var(--color-pc-canvas)]/90 backdrop-blur-sm">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 px-4 sm:px-6">
+          <Link href="/" className="flex items-center gap-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo-80.jpg" alt="MatruSetu" width={36} height={36} className="h-9 w-9 rounded-xl object-cover shadow-[0_2px_8px_rgba(62,42,92,0.15)]" />
-            <span className="text-[20px] font-bold tracking-tight">
-              MatruSetu
-            </span>
-          </div>
-          <nav className="flex items-center gap-2 sm:gap-3">
+            <img src="/logo-80.jpg" alt="" width={36} height={36} className="h-9 w-9 rounded-xl border border-[var(--color-border)] object-cover" />
+            <span className="text-[20px] font-bold tracking-tight">MatruSetu</span>
+          </Link>
+          <nav className="flex items-center gap-1 sm:gap-2">
             <LanguageSwitcher variant="pill" placement="bottom" align="end" />
-            <Link
-              href="/login"
-              className="rounded-full px-4 py-2 text-[14px] font-medium text-[#221b2b] transition-colors hover:bg-[#221b2b]/5"
-            >
+            <Link href="/login" className={`${buttonSecondary} border-transparent! bg-transparent! px-3 sm:px-4`}>
               {t("landing.nav.signIn")}
             </Link>
-            <Link
-              href="/signup"
-              className="rounded-full bg-[#3e2a5c] px-5 py-2 text-[14px] font-semibold text-white shadow-[0_8px_16px_0_rgba(62,42,92,0.28)] transition-colors hover:bg-[#2e1f46]"
-            >
+            <Link href="/signup" className={`${buttonPrimary} px-3 sm:px-4`}>
               {t("landing.nav.getStarted")}
             </Link>
           </nav>
@@ -81,39 +69,30 @@ export default async function LandingPage() {
       </header>
 
       <main>
-        {/* Hero */}
-        <section className="relative mx-auto max-w-6xl px-4 pt-16 pb-20 sm:px-6 sm:pt-24 sm:pb-28">
+        {/* Hero: what it is, for whom, one hard fact, the product itself */}
+        <section className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 pb-16 pt-12 sm:px-6 sm:pt-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)] lg:gap-14 lg:pb-24 lg:pt-20">
           <HeroBackdrop />
-          <div className="mx-auto max-w-3xl text-center">
-            <span className="inline-flex items-center rounded-full bg-[#ebe1f1] px-4 py-1.5 text-[13px] font-semibold text-[#3e2a5c]">
-              {t("landing.hero.badge")}
-            </span>
-            <h1 className="mt-6 text-[36px] font-bold leading-[1.1] tracking-tight sm:text-[48px] lg:text-[56px]">
-              {t("landing.hero.title")}
-              <span className="text-[#3e2a5c]">{t("landing.hero.titleAccent")}</span>
+          <div>
+            <h1 className="text-balance text-[34px] font-bold leading-[1.1] tracking-tight sm:text-[44px] lg:text-[52px]">
+              {t("landing.hero.heading")}
             </h1>
-            <p className="mx-auto mt-6 max-w-2xl text-[16px] leading-[1.6] text-[#4a4354] sm:text-[18px]">
+            <p className="mt-5 max-w-xl text-[16px] leading-[1.6] text-[var(--color-charcoal)] sm:text-[18px]">
               {t("landing.hero.body")}
             </p>
-            <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Link
-                href="/signup"
-                className="w-full rounded-full bg-[#3e2a5c] px-7 py-3.5 text-center text-[16px] font-semibold text-white shadow-[0_12px_24px_0_rgba(62,42,92,0.28)] transition-colors hover:bg-[#2e1f46] sm:w-auto"
-              >
+            <p className="mt-6 flex max-w-xl items-start gap-2.5 text-[15px] font-semibold">
+              <CalendarCheck size={22} weight="bold" className="mt-px shrink-0 text-[var(--color-primary)]" aria-hidden />
+              {t("landing.hero.fact")}
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <Link href="/signup" className={ctaPrimary}>
                 {t("landing.cta.create")}
               </Link>
-              <Link
-                href="/login"
-                className="w-full rounded-full border border-[#221b2b]/15 bg-white px-7 py-3.5 text-center text-[16px] font-semibold text-[#221b2b] transition-colors hover:bg-[#221b2b]/5 sm:w-auto"
-              >
+              <Link href="/login" className={ctaSecondary}>
                 {t("landing.cta.signIn")}
               </Link>
-              {isDemoModeEnabled() && (
-                <form action={loginDemo} className="w-full sm:w-auto">
-                  <button
-                    type="submit"
-                    className="w-full rounded-full border border-[#221b2b]/15 bg-white px-7 py-3.5 text-center text-[16px] font-semibold text-[#221b2b] transition-colors hover:bg-[#221b2b]/5"
-                  >
+              {demo && (
+                <form action={loginDemo} className="contents">
+                  <button type="submit" className={ctaSecondary}>
                     {t("landing.cta.demo")}
                   </button>
                 </form>
@@ -121,76 +100,44 @@ export default async function LandingPage() {
             </div>
           </div>
 
-          {/* Hero product shot */}
-          <Reveal delay={150} className="mx-auto mt-16 max-w-4xl">
-            <BrowserFrame>
-              <Image
-                src="/marketing/screenshot-today-958.webp"
-                alt={t("landing.hero.imageAlt")}
-                width={958}
-                height={958}
-                priority
-                className="w-full"
-              />
-            </BrowserFrame>
+          <Reveal delay={120}>
+            <WorklistMock t={t} />
           </Reveal>
         </section>
 
-        {/* Feature grid */}
-        <section
-          id="features"
-          className="relative border-t border-[#221b2b]/10 bg-white py-20 sm:py-28"
-        >
-          <FeatureBackdrop />
+        {/* Features */}
+        <section id="features" className="border-t border-[var(--color-border)] bg-[var(--color-background)] py-16 sm:py-24">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
-            <Reveal className="mx-auto max-w-2xl text-center">
-              <h2 className="text-[28px] font-bold tracking-tight sm:text-[32px]">
-                {t("landing.features.title")}
-              </h2>
-              <p className="mt-4 text-[16px] leading-[1.6] text-[#4a4354]">
-                {t("landing.features.body")}
-              </p>
-            </Reveal>
+            <div className="max-w-2xl">
+              <h2 className="text-balance text-[28px] font-bold tracking-tight sm:text-[32px]">{t("landing.features.title")}</h2>
+              <p className="mt-4 text-[16px] leading-[1.6] text-[var(--color-charcoal)]">{t("landing.features.body")}</p>
+            </div>
 
-            <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {FEATURES.map(({ icon: Icon, key }, i) => (
-                <Reveal key={key} delay={(i % 3) * 80}>
-                  <div className="h-full rounded-2xl border border-[#221b2b]/10 bg-[#faf6ec] p-8 shadow-[rgba(62,42,92,0.05)_0px_4px_4px_0px,rgba(62,42,92,0.08)_0px_32px_16px_0px]">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#3e2a5c]/10 text-[#3e2a5c]">
-                      <Icon size={22} weight="bold" aria-hidden />
-                    </div>
-                    <h3 className="mt-5 text-[18px] font-semibold tracking-tight">
-                      {t(`landing.feature.${key}.title`)}
-                    </h3>
-                    <p className="mt-2 text-[14px] leading-[1.6] text-[#4a4354]">
-                      {t(`landing.feature.${key}.body`)}
-                    </p>
-                  </div>
-                </Reveal>
+            <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
+              {FEATURES.map(({ icon: Icon, key }) => (
+                <div key={key} className={`${card} h-full bg-[var(--color-pc-canvas)] p-6`}>
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-primary-surface)] text-[var(--color-primary)]">
+                    <Icon size={22} weight="bold" aria-hidden />
+                  </span>
+                  <h3 className="mt-4 text-[18px] font-semibold tracking-tight">{t(`landing.feature.${key}.title`)}</h3>
+                  <p className="mt-2 text-[14px] leading-[1.6] text-[var(--color-charcoal)]">{t(`landing.feature.${key}.body`)}</p>
+                </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* Product showcase */}
-        <section
-          id="product"
-          className="relative border-t border-[#221b2b]/10 py-20 sm:py-28"
-        >
-          <ShowcaseBackdrop />
+        {/* Product showcase: real screens */}
+        <section id="product" className="border-t border-[var(--color-border)] py-16 sm:py-24">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
-            <Reveal className="mx-auto max-w-2xl text-center">
-              <h2 className="text-[28px] font-bold tracking-tight sm:text-[32px]">
-                {t("landing.showcase.title")}
-              </h2>
-              <p className="mt-4 text-[16px] leading-[1.6] text-[#4a4354]">
-                {t("landing.showcase.body")}
-              </p>
-            </Reveal>
+            <div className="max-w-2xl">
+              <h2 className="text-balance text-[28px] font-bold tracking-tight sm:text-[32px]">{t("landing.showcase.title")}</h2>
+              <p className="mt-4 text-[16px] leading-[1.6] text-[var(--color-charcoal)]">{t("landing.showcase.body")}</p>
+            </div>
 
-            <div className="mt-14 grid grid-cols-1 gap-16 lg:grid-cols-2 lg:gap-x-10 lg:gap-y-20">
-              {SHOWCASE.map((item, i) => (
-                <Reveal key={item.key} delay={(i % 2) * 120} className="flex flex-col">
+            <Reveal className="mt-12 grid grid-cols-1 gap-x-10 gap-y-14 lg:grid-cols-2">
+              {SHOWCASE.map((item) => (
+                <figure key={item.key} className="flex flex-col">
                   <BrowserFrame>
                     <Image
                       src={item.src}
@@ -201,94 +148,47 @@ export default async function LandingPage() {
                       className="w-full"
                     />
                   </BrowserFrame>
-                  <h3 className="mt-6 text-[18px] font-semibold tracking-tight">
-                    {t(`landing.showcase.${item.key}.title`)}
-                  </h3>
-                  <p className="mt-2 text-[14px] leading-[1.6] text-[#4a4354]">
-                    {t(`landing.showcase.${item.key}.caption`)}
-                  </p>
-                </Reveal>
+                  <h3 className="mt-5 text-[18px] font-semibold tracking-tight">{t(`landing.showcase.${item.key}.title`)}</h3>
+                  <p className="mt-2 text-[14px] leading-[1.6] text-[var(--color-charcoal)]">{t(`landing.showcase.${item.key}.caption`)}</p>
+                </figure>
+              ))}
+            </Reveal>
+          </div>
+        </section>
+
+        {/* Trust strip */}
+        <section className="relative isolate overflow-hidden bg-[var(--color-pc-plum)] py-16 text-white sm:py-20">
+          <TrustBackdrop />
+          <div className="mx-auto max-w-6xl px-4 sm:px-6">
+            <div className="grid grid-cols-1 gap-10 sm:grid-cols-3">
+              {(
+                [
+                  { icon: MagnifyingGlass, key: "schedule" },
+                  { icon: ShieldWarning, key: "safety" },
+                  { icon: DeviceMobile, key: "pwa" },
+                ] as const
+              ).map(({ icon: Icon, key }) => (
+                <div key={key}>
+                  <Icon size={28} weight="bold" className="text-[var(--color-pc-lilac-strong)]" aria-hidden />
+                  <h3 className="mt-4 text-[18px] font-semibold">{t(`landing.trust.${key}.title`)}</h3>
+                  <p className="mt-2 text-[14px] leading-[1.6] text-[var(--color-rail-text)]">{t(`landing.trust.${key}.body`)}</p>
+                </div>
               ))}
             </div>
           </div>
         </section>
 
-        <WaveDivider from="#faf6ec" to="#3e2a5c" />
-
-        {/* Trust / how it works strip */}
-        <section className="relative bg-[#3e2a5c] py-20 text-white sm:py-24">
-          <TrustBackdrop />
-          <div className="mx-auto max-w-6xl px-4 sm:px-6">
-            <div className="grid grid-cols-1 gap-10 sm:grid-cols-3">
-              <Reveal>
-                <MagnifyingGlass
-                  size={28}
-                  weight="bold"
-                  className="text-[#8c78b3]"
-                  aria-hidden
-                />
-                <h3 className="mt-4 text-[18px] font-semibold">
-                  {t("landing.trust.schedule.title")}
-                </h3>
-                <p className="mt-2 text-[14px] leading-[1.6] text-white/70">
-                  {t("landing.trust.schedule.body")}
-                </p>
-              </Reveal>
-              <Reveal delay={80}>
-                <ShieldWarning
-                  size={28}
-                  weight="bold"
-                  className="text-[#8c78b3]"
-                  aria-hidden
-                />
-                <h3 className="mt-4 text-[18px] font-semibold">
-                  {t("landing.trust.safety.title")}
-                </h3>
-                <p className="mt-2 text-[14px] leading-[1.6] text-white/70">
-                  {t("landing.trust.safety.body")}
-                </p>
-              </Reveal>
-              <Reveal delay={160}>
-                <DeviceMobile
-                  size={28}
-                  weight="bold"
-                  className="text-[#8c78b3]"
-                  aria-hidden
-                />
-                <h3 className="mt-4 text-[18px] font-semibold">
-                  {t("landing.trust.pwa.title")}
-                </h3>
-                <p className="mt-2 text-[14px] leading-[1.6] text-white/70">
-                  {t("landing.trust.pwa.body")}
-                </p>
-              </Reveal>
-            </div>
-          </div>
-        </section>
-
-        <WaveDivider from="#3e2a5c" to="#faf6ec" />
-
         {/* Final CTA */}
-        <section className="relative py-20 sm:py-28">
+        <section className="relative isolate overflow-hidden py-20 sm:py-28">
           <CtaBackdrop />
           <Reveal className="mx-auto max-w-3xl px-4 text-center sm:px-6">
-            <h2 className="text-[28px] font-bold tracking-tight sm:text-[32px]">
-              {t("landing.final.title")}
-            </h2>
-            <p className="mt-4 text-[16px] leading-[1.6] text-[#4a4354]">
-              {t("landing.final.body")}
-            </p>
-            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Link
-                href="/signup"
-                className="w-full rounded-full bg-[#3e2a5c] px-7 py-3.5 text-center text-[16px] font-semibold text-white shadow-[0_12px_24px_0_rgba(62,42,92,0.28)] transition-colors hover:bg-[#2e1f46] sm:w-auto"
-              >
+            <h2 className="text-balance text-[28px] font-bold tracking-tight sm:text-[32px]">{t("landing.final.title")}</h2>
+            <p className="mt-4 text-[16px] leading-[1.6] text-[var(--color-charcoal)]">{t("landing.final.body")}</p>
+            <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+              <Link href="/signup" className={ctaPrimary}>
                 {t("landing.cta.create")}
               </Link>
-              <Link
-                href="/login"
-                className="w-full rounded-full border border-[#221b2b]/15 bg-white px-7 py-3.5 text-center text-[16px] font-semibold text-[#221b2b] transition-colors hover:bg-[#221b2b]/5 sm:w-auto"
-              >
+              <Link href="/login" className={ctaSecondary}>
                 {t("landing.cta.signIn")}
               </Link>
             </div>
@@ -296,10 +196,8 @@ export default async function LandingPage() {
         </section>
       </main>
 
-      <footer className="border-t border-[#221b2b]/10 py-8">
-        <div className="mx-auto max-w-6xl px-4 text-[13px] text-[#4a4354] sm:px-6">
-          {t("landing.footer")}
-        </div>
+      <footer className="border-t border-[var(--color-border)] py-8">
+        <div className="mx-auto max-w-6xl px-4 text-[13px] text-[var(--color-charcoal)] sm:px-6">{t("landing.footer")}</div>
       </footer>
     </div>
   );
@@ -307,13 +205,57 @@ export default async function LandingPage() {
 
 function BrowserFrame({ children }: { children: React.ReactNode }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-[#221b2b]/10 bg-white shadow-[rgba(62,42,92,0.1)_0px_12px_24px_0px,rgba(62,42,92,0.1)_0px_48px_48px_0px]">
-      <div className="flex items-center gap-1.5 border-b border-[#221b2b]/10 bg-[#faf6ec] px-4 py-3">
-        <span className="h-2.5 w-2.5 rounded-full bg-[#d9c9e6]" />
-        <span className="h-2.5 w-2.5 rounded-full bg-[#c9b8dc]" />
-        <span className="h-2.5 w-2.5 rounded-full bg-[#8c78b3]" />
+    <div className="overflow-hidden rounded-[var(--radius-cards)] border border-[var(--color-border)] bg-[var(--color-background)] shadow-[var(--shadow-overlay)]">
+      <div aria-hidden className="flex items-center gap-1.5 border-b border-[var(--color-border)] bg-[var(--color-pc-canvas)] px-4 py-3">
+        <span className="h-2.5 w-2.5 rounded-full bg-[var(--color-pc-lilac-strong)]" />
+        <span className="h-2.5 w-2.5 rounded-full bg-[var(--color-pc-lilac-strong)]" />
+        <span className="h-2.5 w-2.5 rounded-full bg-[var(--color-pc-plum-mid)]" />
       </div>
       {children}
+    </div>
+  );
+}
+
+/**
+ * Styled HTML stand-in for the Today worklist: sample patients, same primitives
+ * (StatusDot, Tag) as the signed-in app. Decorative, so it is one image to screen readers.
+ */
+function WorklistMock({ t }: { t: Translator }) {
+  const rows: { name: string; weeks: number; days: number; detail: string; tone: Tone; tag: string }[] = [
+    { name: "Pooja Deshmukh", weeks: 24, days: 3, detail: t("landing.mock.row.anomaly"), tone: "critical", tag: t("landing.mock.tag.overdue") },
+    { name: "Sunita Verma", weeks: 30, days: 0, detail: t("landing.mock.row.td2"), tone: "warning", tag: t("landing.mock.tag.due") },
+    { name: "Rekha Patil", weeks: 19, days: 5, detail: t("landing.mock.row.contact"), tone: "info", tag: t("landing.mock.tag.atRisk") },
+    { name: "Anita Joshi", weeks: 12, days: 2, detail: t("landing.mock.row.ontrack"), tone: "ok", tag: t("landing.mock.tag.onTrack") },
+  ];
+  return (
+    <div
+      role="img"
+      aria-label={t("landing.mock.aria")}
+      className={`${card} select-none overflow-hidden shadow-[var(--shadow-overlay)]`}
+    >
+      <div className="flex min-h-12 items-center justify-between border-b border-[var(--color-border)]/70 px-4">
+        <span className="text-[15px] font-semibold">{t("landing.showcase.today.title")}</span>
+        <span className="num rounded-full bg-[var(--color-primary-surface)] px-2 text-[12px] font-semibold leading-5 text-[var(--color-primary)]">
+          {rows.length}
+        </span>
+      </div>
+      <ul className="divide-y divide-[var(--color-border)]/70">
+        {rows.map((r) => (
+          <li key={r.name} className="flex min-h-16 items-center gap-3 px-4 py-3">
+            <StatusDot tone={r.tone} />
+            <div className="min-w-0 flex-1">
+              <p className="flex flex-wrap items-baseline gap-x-2 text-[15px] font-semibold">
+                {r.name}
+                <span className="num text-[12px] font-medium text-[var(--color-charcoal)]">
+                  {t("landing.mock.ga", { weeks: r.weeks, days: r.days })}
+                </span>
+              </p>
+              <p className="mt-0.5 text-[13px] text-[var(--color-charcoal)]">{r.detail}</p>
+            </div>
+            <Tag tone={r.tone}>{r.tag}</Tag>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

@@ -14,12 +14,13 @@ import {
 } from "@/lib/whatsapp";
 import { withSuccessToast } from "@/components/Toaster";
 import { useT } from "@/lib/i18n/provider";
+import { buttonGhost, errorClass } from "@/components/ui";
 import type { Translator } from "@/lib/i18n/translate-client";
 
 const initialState: ActionResult = { error: null };
 const textareaClass =
-  "w-full border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 py-2 text-[13px] leading-relaxed focus:border-[var(--color-primary)] outline-none";
-const labelClass = "mb-1 block text-[12px] font-medium text-[var(--color-charcoal)]";
+  "w-full rounded-[var(--radius-buttons)] border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 py-2 text-[16px] leading-relaxed md:text-[14px]";
+const labelClass = "mb-1 block text-[13px] font-medium text-[var(--color-charcoal)]";
 
 type MsgKey = Parameters<Translator>[0];
 
@@ -60,14 +61,14 @@ export function MessageTemplatesForm({ templates, readOnly = false }: { template
   return (
     <form action={formAction} className="space-y-4">
       {/* Clinical Lead Review & Certification Status */}
-      <div className="rounded-xl border border-[#128C7E]/40 bg-[#E7F8EE]/60 p-3 text-[12px]">
+      <div className="rounded-xl border border-[var(--color-on-track)]/40 bg-[var(--color-on-track-surface)] p-3 text-[13px]">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <ShieldCheck size={18} weight="fill" className="text-[#128C7E]" />
+            <ShieldCheck size={18} weight="fill" className="text-[var(--color-on-track)]" />
             <span className="font-semibold text-[var(--color-foreground)]">
               {t("settings.templates.certTitle")}
             </span>
-            <span className="rounded-xl flex items-center gap-1 bg-white px-2 py-0.5 text-[10px] font-bold text-[#128C7E] border border-[#128C7E]/30">
+            <span className="rounded-xl flex items-center gap-1 bg-[var(--color-background)] px-2 py-0.5 text-[12px] font-semibold text-[var(--color-on-track)] border border-[var(--color-on-track)]/30">
               <CheckCircle size={12} weight="fill" />
               {t("settings.templates.certBadge")}
             </span>
@@ -86,17 +87,17 @@ export function MessageTemplatesForm({ templates, readOnly = false }: { template
                 }
               });
             }}
-            className="flex items-center gap-1 text-[11px] font-semibold text-[#128C7E] hover:underline cursor-pointer"
+            className={`${buttonGhost} !text-[var(--color-on-track)] hover:!bg-[var(--color-background)]`}
           >
             <ArrowCounterClockwise size={13} className={isResetting ? "animate-spin" : ""} />
             <span>{t("settings.templates.reset")}</span>
           </button>
         </div>
-        <p className="mt-1 text-[11px] text-[var(--color-charcoal)] leading-relaxed">
+        <p className="mt-1 text-[12px] text-[var(--color-charcoal)] leading-relaxed">
           {t("settings.templates.certBody")}
         </p>
         {resetNotice && (
-          <p className="mt-1 text-[11px] font-medium text-[#166534]">{resetNotice}</p>
+          <p className="mt-1 text-[12px] font-medium text-[var(--color-on-track)]">{resetNotice}</p>
         )}
       </div>
 
@@ -117,12 +118,12 @@ export function MessageTemplatesForm({ templates, readOnly = false }: { template
       </div>
 
       {/* Clinic Default Language Selector */}
-      <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] p-3 flex flex-wrap items-center justify-between gap-3">
+      <div className="rounded-[var(--radius-buttons)] border border-[var(--color-border)] bg-[var(--color-surface-1)] p-3 flex flex-wrap items-center justify-between gap-3">
         <div>
           <label htmlFor="defaultLangSelect" className="text-[12px] font-semibold text-[var(--color-foreground)] block">
             {t("settings.templates.defaultLang")}
           </label>
-          <p className="text-[11px] text-[var(--color-charcoal)]">
+          <p className="text-[12px] text-[var(--color-charcoal)]">
             {t("settings.templates.defaultLangHint")}
           </p>
         </div>
@@ -131,7 +132,7 @@ export function MessageTemplatesForm({ templates, readOnly = false }: { template
           id="defaultLangSelect"
           name="defaultLang"
           defaultValue={templates.default_lang ?? "en"}
-          className="rounded-xl min-h-8 border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2 text-[13px] font-medium"
+          className="rounded-[var(--radius-buttons)] min-h-11 md:min-h-10 border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2 text-[13px] font-medium"
         >
           {SUPPORTED_LANGUAGES.map((l) => (
             <option key={l.code} value={l.code}>
@@ -151,10 +152,10 @@ export function MessageTemplatesForm({ templates, readOnly = false }: { template
               role="tab"
               aria-selected={activeLang === lang.code}
               onClick={() => setActiveLang(lang.code)}
-              className={`px-4 py-2 text-[13px] font-medium transition-colors border-t border-x -mb-px ${
+              className={`min-h-11 px-4 text-[13px] font-medium transition-colors border-t border-x -mb-px md:min-h-10 ${
                 activeLang === lang.code
                   ? "border-[var(--color-border-strong)] border-b-transparent bg-[var(--color-background)] font-semibold text-[var(--color-foreground)]"
-                  : "border-transparent text-[var(--color-charcoal)] hover:text-black hover:bg-[var(--color-surface-1)]"
+                  : "border-transparent text-[var(--color-charcoal)] hover:text-[var(--color-foreground)] hover:bg-[var(--color-surface-1)]"
               }`}
             >
               {langLabel(lang)}
@@ -177,7 +178,7 @@ export function MessageTemplatesForm({ templates, readOnly = false }: { template
                 <label htmlFor={`template-${activeLang}-${field.name}`} className={labelClass}>
                   {t(field.labelKey)}
                 </label>
-                <span className="text-[11px] text-[var(--color-charcoal)]">
+                <span className="text-[12px] text-[var(--color-charcoal)]">
                   {t(field.descKey)}
                 </span>
               </div>
@@ -190,7 +191,7 @@ export function MessageTemplatesForm({ templates, readOnly = false }: { template
                 placeholder={defaultVal}
                 className={textareaClass}
               />
-              <p className="mt-1 text-[11px] text-[var(--color-charcoal)] italic">
+              <p className="mt-1 text-[12px] text-[var(--color-charcoal)] italic">
                 {t("settings.templates.default", { text: defaultVal })}
               </p>
             </div>
@@ -198,7 +199,7 @@ export function MessageTemplatesForm({ templates, readOnly = false }: { template
         })}
       </div>
 
-      {state.error && <p className="text-[13px] text-[var(--color-overdue)]">{state.error}</p>}
+      {state.error && <p role="alert" className={errorClass}>{state.error}</p>}
 
       <div className="pt-2">
         {!readOnly && <SubmitButton>{t("settings.templates.save", { language: t(LANG_NAME_KEY[activeLang]) })}</SubmitButton>}
