@@ -222,8 +222,8 @@ function BrowserFrame({ children }: { children: React.ReactNode }) {
  */
 function WorklistMock({ t }: { t: Translator }) {
   const rows: { name: string; weeks: number; days: number; detail: string; tone: Tone; tag: string }[] = [
-    { name: "Pooja Deshmukh", weeks: 24, days: 3, detail: t("landing.mock.row.anomaly"), tone: "critical", tag: t("landing.mock.tag.overdue") },
-    { name: "Sunita Verma", weeks: 30, days: 0, detail: t("landing.mock.row.td2"), tone: "warning", tag: t("landing.mock.tag.due") },
+    { name: "Pooja Deshmukh", weeks: 22, days: 5, detail: t("landing.mock.row.anomaly"), tone: "critical", tag: t("landing.mock.tag.overdue") },
+    { name: "Sunita Verma", weeks: 27, days: 4, detail: t("landing.mock.row.td2"), tone: "warning", tag: t("landing.mock.tag.due") },
     { name: "Rekha Patil", weeks: 19, days: 5, detail: t("landing.mock.row.contact"), tone: "info", tag: t("landing.mock.tag.atRisk") },
     { name: "Anita Joshi", weeks: 12, days: 2, detail: t("landing.mock.row.ontrack"), tone: "ok", tag: t("landing.mock.tag.onTrack") },
   ];

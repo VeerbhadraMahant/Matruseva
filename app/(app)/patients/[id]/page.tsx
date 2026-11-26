@@ -286,6 +286,11 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
         <>
           {formatDate(eddIso, locale)}
           {eddIso && <span className="ml-1.5 text-[12px] font-normal text-[var(--color-charcoal)]">{relativeDays(eddIso, today, locale)}</span>}
+          {patient.lmp && (
+            <span className="block text-[12px] font-normal text-[var(--color-charcoal)]">
+              {t("patientDetail.fact.lmp")} {formatDate(patient.lmp, locale)}
+            </span>
+          )}
         </>
       ),
     },
@@ -548,7 +553,12 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
               title={t("patientDetail.panel.schedule")}
               count={events.length}
               action={
-                openCount > 0 ? <Tag tone="critical">{t("patientDetail.fact.scheduleOverdue", { count: openCount })}</Tag> : undefined
+                <span className="flex items-center gap-2">
+                  <span className="num text-[12px] text-[var(--color-charcoal)]">
+                    {t("patientDetail.fact.scheduleDone", { done: events.filter((e) => e.status === "done").length, total: events.length })}
+                  </span>
+                  {openCount > 0 && <Tag tone="critical">{t("patientDetail.fact.scheduleOverdue", { count: openCount })}</Tag>}
+                </span>
               }
             >
               {events.length === 0 ? (

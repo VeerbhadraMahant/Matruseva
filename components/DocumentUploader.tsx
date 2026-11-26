@@ -156,7 +156,9 @@ export function DocumentUploader({
         e.preventDefault();
         setDragging(true);
       }}
-      onDragLeave={() => setDragging(false)}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragging(false);
+      }}
       onDrop={(e) => {
         e.preventDefault();
         setDragging(false);
@@ -172,34 +174,34 @@ export function DocumentUploader({
         <UploadSimple size={28} className="text-[var(--color-primary)]" aria-hidden />
         <p className="text-[14px] font-medium">{dragging ? t("documents.uploader.dropActive") : t("documents.uploader.drop")}</p>
 
-        <input
-          id={`${fileInputId}-camera`}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          onChange={(e) => {
-            void handleFiles(e.target.files);
-            e.target.value = ""; // FileList was copied synchronously; allows re-taking the same photo
-          }}
-          className="peer/cam sr-only"
-        />
-        <input
-          ref={inputRef}
-          id={fileInputId}
-          type="file"
-          accept="image/*,application/pdf"
-          multiple
-          onChange={(e) => handleFiles(e.target.files)}
-          className="peer/file sr-only"
-        />
         <div className="flex w-full flex-wrap justify-center gap-2">
+          <input
+            id={`${fileInputId}-camera`}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={(e) => {
+              void handleFiles(e.target.files);
+              e.target.value = ""; // FileList was copied synchronously; allows re-taking the same photo
+            }}
+            className="peer/cam sr-only"
+          />
           <label
             htmlFor={`${fileInputId}-camera`}
             className={`${buttonPrimary} cursor-pointer max-sm:flex-1 peer-focus-visible/cam:outline-2`}
           >
             <Camera size={20} weight="regular" aria-hidden /> {t("documents.uploader.camera")}
           </label>
-          <label htmlFor={fileInputId} className={`${buttonSecondary} cursor-pointer max-sm:flex-1`}>
+          <input
+            ref={inputRef}
+            id={fileInputId}
+            type="file"
+            accept="image/*,application/pdf"
+            multiple
+            onChange={(e) => handleFiles(e.target.files)}
+            className="peer/file sr-only"
+          />
+          <label htmlFor={fileInputId} className={`${buttonSecondary} cursor-pointer max-sm:flex-1 peer-focus-visible/file:outline-2`}>
             <Files size={20} weight="regular" aria-hidden /> {t("documents.uploader.choose")}
           </label>
         </div>

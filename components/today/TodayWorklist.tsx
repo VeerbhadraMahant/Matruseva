@@ -211,7 +211,7 @@ function Row({
   );
 }
 
-export function TodayWorklist({ days, rows }: { days: WorklistDay[]; rows: WorklistRow[] }) {
+export function TodayWorklist({ days, rows, overdueCount = 0 }: { days: WorklistDay[]; rows: WorklistRow[]; overdueCount?: number }) {
   const t = useT();
   const [selected, setSelected] = useState(days[0]?.iso ?? "");
   const [filter, setFilter] = useState<Filter>("all");
@@ -271,7 +271,7 @@ export function TodayWorklist({ days, rows }: { days: WorklistDay[]; rows: Workl
       title={`${t("today.worklist.title")} · ${dayTitle}`}
       action={
         <Link
-          href="/calls"
+          href={filter === "overdue" ? "/calls?f=overdue" : filter === "atRisk" ? "/calls?f=at_risk" : "/calls"}
           className="inline-flex min-h-11 items-center gap-1 text-[13px] font-semibold text-[var(--color-primary)] hover:underline md:min-h-9"
         >
           {t("today.worklist.openCallQueue")} <ArrowRight size={13} aria-hidden />
@@ -291,6 +291,16 @@ export function TodayWorklist({ days, rows }: { days: WorklistDay[]; rows: Workl
           );
         })}
       </div>
+
+      {!day?.isToday && overdueCount > 0 && (
+        <button
+          type="button"
+          onClick={() => selectDay(days[0]?.iso ?? "")}
+          className="block w-full border-t border-[var(--color-border)]/70 px-4 py-2 text-left text-[13px] font-medium text-[var(--color-overdue)] hover:underline"
+        >
+          {t("today.worklist.overdueElsewhere", { count: overdueCount })}
+        </button>
+      )}
 
       <div aria-live="polite" className="sr-only">
         {t("today.worklist.shown", { count: visible.length })}

@@ -81,7 +81,7 @@ export default async function TodayPage() {
       <div className={`${pageBody} pb-24 md:pb-12`}>
         {/* Phone: worklist first, then deliveries, then analytics. Desktop: worklist main, side column. */}
         <div className="grid grid-cols-[minmax(0,1fr)] gap-4 md:gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] lg:items-start">
-          <TodayWorklist days={worklist.days} rows={worklist.rows} />
+          <TodayWorklist days={worklist.days} rows={worklist.rows} overdueCount={overdueCount} />
           <div className="space-y-4 md:space-y-5">
             <UpcomingDeliveries items={deliveries.slice(0, 5)} total={deliveries.length} />
             <ClinicAnalyticsSummary

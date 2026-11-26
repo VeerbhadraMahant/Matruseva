@@ -12,7 +12,7 @@ export const landing = defineArea({
     "landing.nav.getStarted": "Get started",
 
     "landing.hero.heading": "Antenatal care tracking for OB-GYN clinics",
-    "landing.hero.fact": "12 ANC milestones scheduled automatically from a single LMP entry.",
+    "landing.hero.fact": "The full FOGSI/MoHFW ANC schedule, generated automatically from a single LMP entry.",
     "landing.mock.aria": "Illustration of the Today worklist with sample patients",
     "landing.mock.ga": "{weeks}w {days}d",
     "landing.mock.row.anomaly": "Anomaly scan, 5 days late",
@@ -102,7 +102,7 @@ export const landing = defineArea({
     "landing.nav.getStarted": "शुरू करें",
 
     "landing.hero.heading": "OB-GYN क्लिनिक के लिए प्रसवपूर्व देखभाल ट्रैकिंग",
-    "landing.hero.fact": "एक बार LMP दर्ज करने पर 12 ANC पड़ाव अपने आप तय हो जाते हैं।",
+    "landing.hero.fact": "पूरा FOGSI/MoHFW ANC शेड्यूल, केवल एक बार LMP दर्ज करने से अपने आप बन जाता है।",
     "landing.mock.aria": "नमूना मरीज़ों के साथ आज की कार्य-सूची का चित्रण",
     "landing.mock.ga": "{weeks} सप्ताह {days} दिन",
     "landing.mock.row.anomaly": "एनोमली स्कैन, 5 दिन देरी",
@@ -192,7 +192,7 @@ export const landing = defineArea({
     "landing.nav.getStarted": "सुरू करा",
 
     "landing.hero.heading": "OB-GYN क्लिनिकसाठी प्रसूतीपूर्व काळजी ट्रॅकिंग",
-    "landing.hero.fact": "एकदा LMP नोंदवल्यावर 12 ANC टप्पे आपोआप ठरतात.",
+    "landing.hero.fact": "संपूर्ण FOGSI/MoHFW ANC वेळापत्रक, फक्त एकदा LMP नोंदवल्यावर आपोआप तयार होते.",
     "landing.mock.aria": "नमुना रुग्णांसह आजच्या कार्य-यादीचे चित्रण",
     "landing.mock.ga": "{weeks} आठवडे {days} दिवस",
     "landing.mock.row.anomaly": "अॅनोमली स्कॅन, 5 दिवस उशीर",

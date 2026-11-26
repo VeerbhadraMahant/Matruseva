@@ -102,7 +102,7 @@ export function PasswordField({
           type="button"
           onClick={() => setVisible((v) => !v)}
           aria-pressed={visible}
-          aria-label={t(visible ? "auth.reset.hidePassword" : "auth.reset.showPassword")}
+          aria-label={t("auth.reset.showPassword")}
           className="absolute inset-y-0 right-0 min-w-14 rounded-r-[var(--radius-buttons)] px-3 text-[13px] font-medium text-[var(--color-primary)] hover:bg-[var(--color-primary-surface)]"
         >
           {t(visible ? "auth.reset.hide" : "auth.reset.show")}
