@@ -3,31 +3,21 @@
 import Link from "next/link";
 import { CheckCircle } from "@phosphor-icons/react/dist/ssr";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { TrustBackdrop } from "@/components/marketing/Backdrops";
 import { useT } from "@/lib/i18n/provider";
 
 const POINTS = ["auth.shell.point1", "auth.shell.point2", "auth.shell.point3"] as const;
 
-/** Split-screen frame for sign-in, sign-up and onboarding. Decorative shapes only, no imagery. */
+/**
+ * Split layout for sign-in, sign-up and onboarding: brand panel on desktop,
+ * a single column on phones. The form sits straight on the canvas, no card.
+ */
 export function AuthShell({ children }: { children: React.ReactNode }) {
   const t = useT();
   return (
     <main className="flex min-h-dvh">
-      <aside className="relative isolate hidden w-[42%] max-w-[520px] flex-col justify-between overflow-hidden bg-[linear-gradient(160deg,var(--color-pc-plum)_0%,var(--color-pc-plum-hover)_100%)] px-12 py-12 text-white md:flex">
-        <svg
-          aria-hidden
-          viewBox="0 0 200 200"
-          className="absolute -bottom-24 -right-24 -z-10 h-[420px] w-[420px] text-white opacity-[0.08]"
-          fill="none"
-          stroke="currentColor"
-        >
-          <circle cx="100" cy="100" r="96" strokeWidth="1" />
-          <circle cx="100" cy="100" r="72" strokeWidth="1" />
-          <circle cx="100" cy="100" r="48" strokeWidth="1" />
-        </svg>
-        <div
-          aria-hidden
-          className="absolute -left-20 -top-20 -z-10 h-72 w-72 rounded-full bg-[var(--color-pc-plum-mid)] opacity-30 blur-3xl"
-        />
+      <aside className="relative isolate hidden w-[42%] max-w-[560px] shrink-0 flex-col justify-between overflow-hidden bg-[var(--color-pc-plum)] px-12 py-12 text-white md:flex">
+        <TrustBackdrop />
 
         <Link href="/" className="flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -35,21 +25,21 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
             src="/logo-120.jpg"
             width={44}
             height={44}
-            alt="MatruSetu"
-            className="h-11 w-11 shrink-0 rounded-2xl object-cover shadow-[0_4px_16px_rgba(0,0,0,0.2)] border border-white/25"
+            alt=""
+            className="h-11 w-11 shrink-0 rounded-xl border border-white/25 object-cover"
           />
           <span className="text-[20px] font-bold tracking-tight">MatruSetu</span>
         </Link>
 
         <div>
-          <h2 className="text-[30px] font-semibold leading-tight tracking-[-0.02em]">
+          <p className="text-balance text-[30px] font-semibold leading-tight tracking-[-0.02em]">
             {t("auth.shell.headline1")}
             <br />
             {t("auth.shell.headline2")}
-          </h2>
+          </p>
           <ul className="mt-8 space-y-3">
             {POINTS.map((p) => (
-              <li key={p} className="flex items-start gap-3 text-[14px] text-[#e6ddef]">
+              <li key={p} className="flex items-start gap-3 text-[14px] text-[var(--color-rail-text)]">
                 <CheckCircle size={18} weight="fill" className="mt-0.5 shrink-0 text-[var(--color-pc-lilac-strong)]" aria-hidden />
                 {t(p)}
               </li>
@@ -57,39 +47,28 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
           </ul>
         </div>
 
-        <p className="text-[12px] text-[#e6ddef]/80">{t("auth.shell.tagline")}</p>
+        <p className="text-[13px] text-[var(--color-rail-text)]">{t("auth.shell.tagline")}</p>
       </aside>
 
-      <div className="relative flex flex-1 flex-col items-center justify-center px-4 py-10">
+      <div className="relative flex min-w-0 flex-1 flex-col items-center justify-center px-4 py-20 md:px-10">
         <div className="absolute right-4 top-4">
           <LanguageSwitcher variant="pill" placement="bottom" align="end" />
         </div>
-        <Link href="/" className="mb-6 flex items-center gap-2.5 md:hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/logo-80.jpg"
-            width={40}
-            height={40}
-            alt="MatruSetu"
-            className="h-10 w-10 shrink-0 rounded-xl object-cover shadow-sm border border-[var(--color-border)]"
-          />
-          <span className="text-[18px] font-bold tracking-tight">MatruSetu</span>
-        </Link>
-        <div className="w-full max-w-md rounded-[var(--radius-sections)] border border-[var(--color-border)] bg-[var(--color-background)] p-8 shadow-[0_1px_2px_rgb(34_27_43/0.04),0_24px_48px_-24px_rgb(62_42_92/0.25)]">
-          <div className="mb-6 flex items-center gap-3 border-b border-[var(--color-border)] pb-4">
+        <div className="w-full max-w-sm">
+          <Link href="/" className="mb-8 flex items-center gap-2.5 md:hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/logo-120.jpg"
-              width={48}
-              height={48}
-              alt="MatruSetu"
-              className="h-12 w-12 shrink-0 rounded-2xl object-cover shadow-[0_4px_12px_rgba(62,42,92,0.15)] border border-[var(--color-border)]"
+              src="/logo-80.jpg"
+              width={40}
+              height={40}
+              alt=""
+              className="h-10 w-10 shrink-0 rounded-xl border border-[var(--color-border)] object-cover"
             />
-            <div>
-              <p className="text-[17px] font-bold tracking-tight text-[var(--color-foreground)]">MatruSetu</p>
-              <p className="text-[12px] text-[var(--color-charcoal)]">{t("auth.shell.subtitle")}</p>
-            </div>
-          </div>
+            <span>
+              <span className="block text-[18px] font-bold leading-tight tracking-tight">MatruSetu</span>
+              <span className="block text-[12px] text-[var(--color-charcoal)]">{t("auth.shell.subtitle")}</span>
+            </span>
+          </Link>
           {children}
         </div>
       </div>

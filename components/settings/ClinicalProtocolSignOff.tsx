@@ -18,6 +18,7 @@ import {
 import { useT, useLocale } from "@/lib/i18n/provider";
 import { formatDate } from "@/lib/format";
 import { careEventName } from "@/lib/clinicalLabels";
+import { buttonPrimary } from "@/components/ui";
 
 export function ClinicalProtocolSignOff() {
   const t = useT();
@@ -49,10 +50,10 @@ export function ClinicalProtocolSignOff() {
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h4 className="text-[13px] font-semibold text-[var(--color-foreground)]">
+                <h3 className="text-[13px] font-semibold text-[var(--color-foreground)]">
                   {t("settings.signoff.title")}
-                </h4>
-                <span className="rounded-xl flex items-center gap-1 bg-white px-2 py-0.5 text-[11px] font-bold text-[var(--color-primary)] border border-[var(--color-primary)]/30">
+                </h3>
+                <span className="rounded-xl flex items-center gap-1 bg-[var(--color-background)] px-2 py-0.5 text-[12px] font-semibold text-[var(--color-primary)] border border-[var(--color-primary)]/30">
                   <WarningCircle size={13} weight="fill" />
                   {t("settings.signoff.statusPending")}
                 </span>
@@ -60,7 +61,7 @@ export function ClinicalProtocolSignOff() {
               <p className="mt-1 text-[12px] leading-relaxed text-[var(--color-foreground)]">
                 {t("settings.signoff.accredited")}
               </p>
-              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[var(--color-charcoal)]">
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-[var(--color-charcoal)]">
                 <span>
                   <strong>{t("settings.signoff.standard")}</strong> {CLINICAL_SIGN_OFF_METADATA.version}
                 </span>
@@ -79,7 +80,7 @@ export function ClinicalProtocolSignOff() {
             type="button"
             disabled={isPending}
             onClick={handleApplyCertifiedSchedule}
-            className="rounded-xl flex items-center gap-1.5 border border-[var(--color-primary)] bg-[var(--color-primary)] px-3 py-1.5 text-[12px] font-semibold text-white shadow-xs hover:bg-[var(--color-primary-hover)] disabled:opacity-50 transition-colors cursor-pointer"
+            className={buttonPrimary}
           >
             <ArrowsClockwise size={14} className={isPending ? "animate-spin" : ""} />
             <span>{t("settings.signoff.apply")}</span>
@@ -87,7 +88,7 @@ export function ClinicalProtocolSignOff() {
         </div>
 
         {statusMessage && (
-          <div className="rounded-xl mt-3 border border-[#16a34a]/30 bg-[#F0FDF4] p-2 text-[12px] font-medium text-[#166534]">
+          <div className="rounded-xl mt-3 border border-[var(--color-on-track)]/30 bg-[var(--color-on-track-surface)] p-2 text-[13px] font-medium text-[var(--color-on-track)]">
             {statusMessage}
           </div>
         )}
@@ -100,7 +101,7 @@ export function ClinicalProtocolSignOff() {
             <CalendarCheck size={15} className="text-[var(--color-primary)]" />
             <span>{t("settings.signoff.governanceTitle")}</span>
           </div>
-          <p className="text-[11px] text-[var(--color-charcoal)] leading-relaxed">
+          <p className="text-[12px] text-[var(--color-charcoal)] leading-relaxed">
             {t("settings.signoff.governanceBody")}
           </p>
         </div>
@@ -110,7 +111,7 @@ export function ClinicalProtocolSignOff() {
             <Stethoscope size={15} className="text-[var(--color-primary)]" />
             <span>{t("settings.signoff.riskTitle")}</span>
           </div>
-          <p className="text-[11px] text-[var(--color-charcoal)] leading-relaxed">
+          <p className="text-[12px] text-[var(--color-charcoal)] leading-relaxed">
             {t("settings.signoff.riskBody", {
               atRisk: CLINICAL_RISK_THRESHOLDS.atRiskDays,
               lost: CLINICAL_RISK_THRESHOLDS.lostDays,
@@ -124,13 +125,13 @@ export function ClinicalProtocolSignOff() {
         <button
           type="button"
           onClick={() => setShowRationales((v) => !v)}
-          className="flex w-full items-center justify-between p-2.5 text-left text-[12px] font-semibold text-[var(--color-foreground)] hover:bg-[var(--color-surface-1)]"
+          className="flex min-h-11 w-full items-center justify-between p-2.5 text-left text-[12px] font-semibold text-[var(--color-foreground)] hover:bg-[var(--color-surface-1)]"
         >
           <span className="flex items-center gap-1.5">
             <FileText size={15} className="text-[var(--color-primary)]" />
             <span>{t("settings.signoff.rationales")}</span>
           </span>
-          <span className="text-[11px] text-[var(--color-charcoal)]">
+          <span className="text-[12px] text-[var(--color-charcoal)]">
             {showRationales ? t("settings.signoff.hide") : t("settings.signoff.show")}
           </span>
         </button>
@@ -143,11 +144,11 @@ export function ClinicalProtocolSignOff() {
                   <span className="font-semibold text-[var(--color-foreground)]">
                     {careEventName(item.name, t)}
                   </span>
-                  <span className="num font-mono text-[11px] font-medium text-[var(--color-primary)]">
+                  <span className="num font-mono text-[12px] font-medium text-[var(--color-primary)]">
                     {t("settings.signoff.weeks", { start: item.windowStartWeek, end: item.windowEndWeek })}
                   </span>
                 </div>
-                <p className="mt-0.5 text-[11px] leading-relaxed text-[var(--color-charcoal)]">
+                <p className="mt-0.5 text-[12px] leading-relaxed text-[var(--color-charcoal)]">
                   {item.clinicalRationale}
                 </p>
               </div>

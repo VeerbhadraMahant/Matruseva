@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/client";
 import { useT } from "@/lib/i18n/provider";
+import { buttonSecondary } from "@/components/ui";
 
 export function GoogleSignInButton() {
   const t = useT();
@@ -14,11 +15,7 @@ export function GoogleSignInButton() {
   };
 
   return (
-    <button
-      type="button"
-      onClick={handleClick}
-      className="rounded-xl flex min-h-11 w-full items-center justify-center gap-2 border border-[var(--color-border)] bg-[var(--color-background)] px-3 text-[15px] font-medium text-[var(--color-foreground)] transition-colors hover:border-[var(--color-primary)]"
-    >
+    <button type="button" onClick={handleClick} className={`${buttonSecondary} w-full`}>
       <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
         <path
           fill="#4285F4"
