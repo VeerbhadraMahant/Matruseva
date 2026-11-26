@@ -23,35 +23,56 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
   const me = await getCurrentUser();
   const supabase = me.isDemo ? null : await createClient();
 
-  const [{ f }, { rows, today }, { data: clinic }, { data: contacts }] = await Promise.all([
+  const [{ f }, { rows, today }, { data: clinic }] = await Promise.all([
     searchParams,
     getClinicSnapshot(),
     supabase
       ? supabase.from("clinics").select("name, message_templates").eq("id", me.clinicId).single()
       : { data: null },
-    supabase
-      ? supabase
-          .from("contact_log")
-          .select("patient_id, outcome, channel, created_at")
-          .order("created_at", { ascending: false })
-          .limit(2000)
-      : { data: null },
   ]);
+
+  // Only the queued patients' summaries, chunked: PostgREST caps responses
+  // (max-rows) and long .in() lists overflow the URL.
+  const followUpIds = rows.filter(needsFollowUp).map((r) => r.id);
+  const contacts = [];
+  if (supabase) {
+    for (let i = 0; i < followUpIds.length; i += 150) {
+      const { data } = await supabase
+        .from("patient_contact_summary")
+        .select("patient_id, last_outcome, last_channel, last_contact_at, attempts_30d")
+        .in("patient_id", followUpIds.slice(i, i + 150));
+      contacts.push(...(data ?? []));
+    }
+  }
   const templates = (clinic?.message_templates ?? {}) as MessageTemplates;
   const defaultLang = templates.default_lang ?? "en";
 
-  const contactsBy = new Map<string, { outcome: string; channel: string; createdAt: string }[]>();
+  type ContactSummary = {
+    lastContact: { outcome: string; channel: string; createdAt: string } | null;
+    attempts30d: number;
+  };
+  const summaryBy = new Map<string, ContactSummary>();
   if (me.isDemo) {
+    // Demo contacts arrive newest first per patient; same rule as the DB view.
+    const demoBy = new Map<string, { outcome: string; channel: string; createdAt: string }[]>();
     for (const dc of getDemoContacts()) {
-      const list = contactsBy.get(dc.patientId) ?? [];
+      const list = demoBy.get(dc.patientId) ?? [];
       list.push({ outcome: dc.outcome, channel: dc.channel, createdAt: dc.createdAt });
-      contactsBy.set(dc.patientId, list);
+      demoBy.set(dc.patientId, list);
+    }
+    for (const [pid, list] of demoBy) {
+      summaryBy.set(pid, {
+        lastContact: list[0],
+        attempts30d: list.filter((h) => daysBetween(new Date(h.createdAt), today) <= 30).length,
+      });
     }
   }
-  for (const c of contacts ?? []) {
-    const list = contactsBy.get(c.patient_id) ?? [];
-    list.push({ outcome: c.outcome, channel: c.channel, createdAt: c.created_at });
-    contactsBy.set(c.patient_id, list);
+  for (const c of contacts) {
+    if (!c.patient_id || !c.last_contact_at) continue;
+    summaryBy.set(c.patient_id, {
+      lastContact: { outcome: c.last_outcome ?? "", channel: c.last_channel ?? "", createdAt: c.last_contact_at },
+      attempts30d: c.attempts_30d ?? 0,
+    });
   }
 
   const queue: CallRow[] = rows
@@ -66,8 +87,8 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
         hi: r.phone ? whatsAppLink(r.phone, messagesByLang.hi) : null,
         mr: r.phone ? whatsAppLink(r.phone, messagesByLang.mr) : null,
       };
-      const history = contactsBy.get(r.id) ?? [];
-      const last = history[0];
+      const summary = summaryBy.get(r.id);
+      const last = summary?.lastContact;
       const lastDate = last ? new Date(last.createdAt) : null;
       const lastDaysAgo = lastDate
         ? daysBetween(parseLocalDate(lastDate.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" })), today)
@@ -83,7 +104,7 @@ export default async function CallsPage({ searchParams }: { searchParams: Promis
         overdueDays: daysOverdue(r, today),
         flags: r.flags.filter((fl) => fl.severity !== "info"),
         noAnswerStreak: r.noAnswerStreak,
-        attempts30d: history.filter((h) => daysBetween(new Date(h.createdAt), today) <= 30).length,
+        attempts30d: summary?.attempts30d ?? 0,
         lastContact: last
           ? { outcome: last.outcome as ContactOutcome, channel: last.channel, daysAgo: lastDaysAgo ?? 0 }
           : null,
