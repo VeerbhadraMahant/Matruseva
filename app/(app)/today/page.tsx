@@ -4,10 +4,10 @@ import { intlLocale } from "@/lib/i18n/intl";
 import { getCurrentUser, isDemoActive } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getClinicSnapshot } from "@/lib/snapshot";
-import { hasOverdueItems, isAtRisk } from "@/lib/followUp";
+import { hasOverdueItems } from "@/lib/followUp";
 import { trimester } from "@/lib/pregnancy";
 import { ClinicAnalyticsSummary } from "@/components/ClinicAnalyticsSummary";
-import { HeroCard } from "@/components/today/HeroCard";
+import { ActionBar, PageHeader, pageBody } from "@/components/ui";
 import { QuickActions } from "@/components/today/QuickActions";
 import { TodayWorklist } from "@/components/today/TodayWorklist";
 import { UpcomingDeliveries } from "@/components/today/UpcomingDeliveries";
@@ -19,7 +19,6 @@ export default async function TodayPage() {
 
   const worklist = buildWorklist(rows, today, t, locale);
   const overdueCount = rows.filter((r) => hasOverdueItems(r.overdue.length)).length;
-  const atRiskCount = rows.filter((r) => isAtRisk(r.risk)).length;
   const deliveries = upcomingDeliveries(rows, today, locale);
 
   const cookieStore = await cookies();
@@ -69,54 +68,41 @@ export default async function TodayPage() {
   const dateLabel = today.toLocaleDateString(intlLocale(locale), { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
   return (
-    <div className="pc-scope min-h-dvh px-4 pb-12 pt-6 md:px-8 md:pt-9">
-      <div className="mx-auto max-w-6xl space-y-6">
-        <header>
-          <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-pc-muted">{dateLabel}</p>
-          <h1 className="mt-1 text-[26px] font-semibold leading-tight tracking-[-0.02em] md:text-[32px]">
-            {t("today.welcome", { name: me.fullName })}
-          </h1>
-        </header>
-
-        {/* Mobile: one column in priority order. Desktop: worklist left, overview right. */}
-        <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] lg:items-start">
-          <div className="contents lg:flex lg:flex-col lg:gap-5">
-            <div className="order-1">
-              <TodayWorklist days={worklist.days} rows={worklist.rows} />
-            </div>
-            <div className="order-2">
-              <HeroCard
-                dueToday={worklist.days[0]?.entries.filter((entry) => entry.scheduled).length ?? 0}
-                overdue={overdueCount}
-                atRisk={atRiskCount}
-                totalActive={totalActive}
-              />
-            </div>
+    <>
+      <PageHeader
+        title={t("today.welcome", { name: me.fullName })}
+        meta={<span className="num">{dateLabel}</span>}
+        actions={
+          <div className="hidden gap-2 md:flex">
+            <QuickActions />
           </div>
-
-          <div className="contents lg:flex lg:flex-col lg:gap-5">
-            <div className="order-3">
-              <QuickActions />
-            </div>
-            <div className="order-4">
-              <ClinicAnalyticsSummary
-                totalActive={totalActive}
-                compliantCount={compliantCount}
-                complianceRate={complianceRate}
-                trimester={trimesterCounts}
-                contactsAttempted={contactsAttempted}
-                contactsReached={contactsReached}
-                contactSuccessRate={contactSuccessRate}
-                overdueCount={overdueCount}
-                deliveriesThisMonth={deliveriesThisMonth}
-              />
-            </div>
-            <div className="order-5">
-              <UpcomingDeliveries items={deliveries.slice(0, 5)} total={deliveries.length} />
-            </div>
+        }
+      />
+      <div className={`${pageBody} pb-24 md:pb-12`}>
+        {/* Phone: worklist first, then deliveries, then analytics. Desktop: worklist main, side column. */}
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-4 md:gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] lg:items-start">
+          <TodayWorklist days={worklist.days} rows={worklist.rows} />
+          <div className="space-y-4 md:space-y-5">
+            <UpcomingDeliveries items={deliveries.slice(0, 5)} total={deliveries.length} />
+            <ClinicAnalyticsSummary
+              totalActive={totalActive}
+              compliantCount={compliantCount}
+              complianceRate={complianceRate}
+              trimester={trimesterCounts}
+              contactsAttempted={contactsAttempted}
+              contactsReached={contactsReached}
+              contactSuccessRate={contactSuccessRate}
+              overdueCount={overdueCount}
+              deliveriesThisMonth={deliveriesThisMonth}
+            />
           </div>
         </div>
       </div>
-    </div>
+      <div className="md:hidden">
+        <ActionBar>
+          <QuickActions />
+        </ActionBar>
+      </div>
+    </>
   );
 }

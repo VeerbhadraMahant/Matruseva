@@ -60,6 +60,7 @@ export const today = defineArea({
     "today.worklist.edd": "EDD",
     "today.worklist.call": "Call {phone}",
     "today.worklist.openRecord": "Open record",
+    "today.worklist.details": "Details for {name}",
     "today.worklist.itemWasDue": "{name} · was due {date}",
     "today.worklist.itemBy": "{name} · by {date}",
 
@@ -164,6 +165,7 @@ export const today = defineArea({
     "today.worklist.edd": "EDD",
     "today.worklist.call": "{phone} पर कॉल करें",
     "today.worklist.openRecord": "रिकॉर्ड खोलें",
+    "today.worklist.details": "{name} का विवरण",
     "today.worklist.itemWasDue": "{name} · देय तिथि {date}",
     "today.worklist.itemBy": "{name} · {date} तक",
 
@@ -266,6 +268,7 @@ export const today = defineArea({
     "today.worklist.edd": "EDD",
     "today.worklist.call": "{phone} वर कॉल करा",
     "today.worklist.openRecord": "नोंद उघडा",
+    "today.worklist.details": "{name} चा तपशील",
     "today.worklist.itemWasDue": "{name} · देय तारीख {date}",
     "today.worklist.itemBy": "{name} · {date} पर्यंत",
 

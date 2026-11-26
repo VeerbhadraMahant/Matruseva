@@ -61,7 +61,7 @@ export default async function OpdRegisterPage({ searchParams }: { searchParams: 
           title={searching ? t("opd.results", { query: q ?? "" }) : t("opd.panel")}
           count={list.length}
           action={
-            <form action="/opd" className="flex items-center rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-background)] focus-within:border-[var(--color-primary)]">
+            <form action="/opd" className="flex items-center rounded-[var(--radius-buttons)] border border-[var(--color-border-strong)] bg-[var(--color-background)] focus-within:border-[var(--color-primary)]">
               <MagnifyingGlass size={15} className="ml-2 text-[var(--color-charcoal)]" aria-hidden />
               <input
                 type="search"
@@ -69,7 +69,7 @@ export default async function OpdRegisterPage({ searchParams }: { searchParams: 
                 defaultValue={q ?? ""}
                 placeholder={t("opd.search.placeholder")}
                 aria-label={t("opd.search.aria")}
-                className="min-h-9 w-52 border-0 bg-transparent px-2 text-[13px] shadow-none outline-none focus:shadow-none"
+                className="min-h-11 w-40 border-0 sm:w-52 md:min-h-9 bg-transparent px-2 text-[13px] shadow-none outline-none focus:shadow-none"
               />
             </form>
           }
@@ -92,7 +92,7 @@ export default async function OpdRegisterPage({ searchParams }: { searchParams: 
                     const url = me.isDemo ? ((p as { data_url?: string | null }).data_url ?? null) : (urlByPath.get(p.storage_path) ?? null);
                     const status = OCR_STATUS[(p.ocr_status ?? "pending") as keyof typeof OCR_STATUS] ?? OCR_STATUS.pending;
                     return (
-                      <li key={p.id} className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-background)]">
+                      <li key={p.id} className="overflow-hidden rounded-[var(--radius-buttons)] border border-[var(--color-border)] bg-[var(--color-background)]">
     <DocumentPreview
       url={url} path={p.storage_path} title={documentTypeLabel(p.doc_type, t)}
       text={p.ocr_text} className="h-40"

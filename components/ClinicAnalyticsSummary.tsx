@@ -1,5 +1,5 @@
-import { ChartPieSlice, CheckCircle, ClipboardText, PhoneCall, Users } from "@phosphor-icons/react/dist/ssr";
 import { getT } from "@/lib/i18n/server";
+import { Empty, Panel } from "@/components/ui";
 
 /**
  * =========================================================================
@@ -36,46 +36,14 @@ export interface ClinicAnalyticsProps {
   deliveriesThisMonth: number;
 }
 
-function Ring({ pct, colorClass, label }: { pct: number; colorClass: string; label: string }) {
-  const r = 22;
-  const c = 2 * Math.PI * r;
-  const clamped = Math.max(0, Math.min(100, pct));
+function Row({ label, value, detail }: { label: string; value: React.ReactNode; detail?: React.ReactNode }) {
   return (
-    <svg viewBox="0 0 56 56" className="h-14 w-14 -rotate-90" role="img" aria-label={label}>
-      <circle cx="28" cy="28" r={r} fill="none" strokeWidth="6" className="stroke-pc-lilac" />
-      <circle
-        cx="28"
-        cy="28"
-        r={r}
-        fill="none"
-        strokeWidth="6"
-        strokeLinecap="round"
-        strokeDasharray={c}
-        strokeDashoffset={c * (1 - clamped / 100)}
-        className={`${colorClass} transition-[stroke-dashoffset] duration-700 ease-out`}
-      />
-    </svg>
-  );
-}
-
-function Card({
-  title,
-  icon,
-  children,
-}: {
-  title: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="pc-glass flex min-h-[148px] flex-col justify-between gap-3 rounded-[22px] p-4 transition-[transform,box-shadow] duration-200 hover:shadow-[0_18px_40px_-20px_rgb(62_42_92/0.35)] motion-safe:hover:-translate-y-0.5">
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="text-[12px] font-semibold uppercase tracking-[0.1em] text-pc-muted">{title}</h3>
-        <span aria-hidden className="text-pc-plum">
-          {icon}
-        </span>
-      </div>
-      {children}
+    <div className="flex items-baseline justify-between gap-3 px-4 py-3">
+      <dt className="text-[13px] text-[var(--color-charcoal)]">{label}</dt>
+      <dd className="num text-right text-[15px] font-semibold">
+        {value}
+        {detail && <span className="block text-[12px] font-normal text-[var(--color-charcoal)]">{detail}</span>}
+      </dd>
     </div>
   );
 }
@@ -97,94 +65,70 @@ export async function ClinicAnalyticsSummary({
   const t3Pct = totalActive > 0 ? Math.max(0, 100 - t1Pct - t2Pct) : 0;
 
   return (
-    <section aria-labelledby="analytics-title" className="space-y-3">
-      <h2 id="analytics-title" className="px-1 text-[17px] font-semibold">
-        {t("today.overview.title")}
-      </h2>
-
+    <Panel title={t("today.overview.title")}>
       {totalActive === 0 ? (
-        <div className="pc-glass rounded-[22px] p-6 text-center">
-          <Users size={28} className="mx-auto mb-2 text-pc-muted" aria-hidden />
-          <p className="text-[15px] font-medium">{t("today.overview.emptyTitle")}</p>
-          <p className="mx-auto mt-1 max-w-sm text-[13px] text-pc-muted">
-            {t("today.overview.emptyBody")}
-          </p>
-        </div>
+        <Empty>
+          <span className="block text-[15px] font-medium text-[var(--color-foreground)]">{t("today.overview.emptyTitle")}</span>
+          {t("today.overview.emptyBody")}
+        </Empty>
       ) : (
-        <div className="grid grid-cols-2 gap-3">
-          <Card title={t("today.overview.compliance")} icon={<CheckCircle size={18} />}>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-              <Ring pct={complianceRate} colorClass="stroke-pc-plum" label={t("today.overview.complianceRing", { pct: complianceRate })} />
-              <div>
-                <p className="text-[28px] font-semibold leading-none tabular-nums">
-                  {complianceRate}%
-                </p>
-                <p className="mt-1 text-[12px] text-pc-muted">
-                  {t("today.overview.complianceCount", { done: compliantCount, total: totalActive })}
-                </p>
-              </div>
-            </div>
-          </Card>
-
-          <Card title={t("today.overview.contact")} icon={<PhoneCall size={18} />}>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-              <Ring pct={contactSuccessRate} colorClass="stroke-pc-active" label={t("today.overview.contactRing", { pct: contactSuccessRate })} />
-              <div>
-                <p className="text-[28px] font-semibold leading-none tabular-nums">
-                  {contactSuccessRate}%
-                </p>
-                <p className="mt-1 text-[12px] text-pc-muted">
-                  {t("today.overview.contactCount", { reached: contactsReached, attempted: contactsAttempted })}
-                </p>
-              </div>
-            </div>
-          </Card>
-
-          <Card title={t("today.overview.cohort")} icon={<ChartPieSlice size={18} />}>
-            <div>
-              <p className="text-[28px] font-semibold leading-none tabular-nums">
+        <dl className="divide-y divide-[var(--color-border)]/70">
+          <Row
+            label={t("today.overview.compliance")}
+            value={<span aria-label={t("today.overview.complianceRing", { pct: complianceRate })}>{complianceRate}%</span>}
+            detail={t("today.overview.complianceCount", { done: compliantCount, total: totalActive })}
+          />
+          <Row
+            label={t("today.overview.contact")}
+            value={<span aria-label={t("today.overview.contactRing", { pct: contactSuccessRate })}>{contactSuccessRate}%</span>}
+            detail={t("today.overview.contactCount", { reached: contactsReached, attempted: contactsAttempted })}
+          />
+          <div className="px-4 py-3">
+            <div className="flex items-baseline justify-between gap-3">
+              <dt className="text-[13px] text-[var(--color-charcoal)]">{t("today.overview.cohort")}</dt>
+              <dd className="num text-[15px] font-semibold">
                 {totalActive}
-                <span className="ml-1.5 text-[13px] font-normal text-pc-muted">{t("today.overview.mothers", { count: totalActive })}</span>
-              </p>
-              <div
-                className="mt-3 flex h-2 overflow-hidden rounded-full bg-pc-lilac"
-                role="img"
-                aria-label={t("today.overview.trimesterAria", { t1: trimester.t1, t2: trimester.t2, t3: trimester.t3 })}
-              >
-                <div style={{ width: `${t1Pct}%` }} className="bg-pc-lilac-strong" />
-                <div style={{ width: `${t2Pct}%` }} className="bg-pc-plum-mid" />
-                <div style={{ width: `${t3Pct}%` }} className="bg-pc-plum" />
-              </div>
-              <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-pc-muted">
-                <li className="flex items-center gap-1.5">
-                  <span aria-hidden className="h-2 w-2 rounded-full bg-pc-lilac-strong" />
-                  {t("today.overview.t1")} <span className="font-semibold text-pc-ink tabular-nums">{trimester.t1}</span>
-                </li>
-                <li className="flex items-center gap-1.5">
-                  <span aria-hidden className="h-2 w-2 rounded-full bg-pc-plum-mid" />
-                  {t("today.overview.t2")} <span className="font-semibold text-pc-ink tabular-nums">{trimester.t2}</span>
-                </li>
-                <li className="flex items-center gap-1.5">
-                  <span aria-hidden className="h-2 w-2 rounded-full bg-pc-plum" />
-                  {t("today.overview.t3")} <span className="font-semibold text-pc-ink tabular-nums">{trimester.t3}</span>
-                </li>
-              </ul>
+                <span className="ml-1.5 text-[12px] font-normal text-[var(--color-charcoal)]">
+                  {t("today.overview.mothers", { count: totalActive })}
+                </span>
+              </dd>
             </div>
-          </Card>
-
-          <Card title={t("today.overview.deliveries")} icon={<ClipboardText size={18} />}>
-            <div>
-              <p className="text-[28px] font-semibold leading-none tabular-nums">
+            <div
+              className="mt-2 flex h-2 overflow-hidden rounded-full bg-[var(--color-pc-lilac)]"
+              role="img"
+              aria-label={t("today.overview.trimesterAria", { t1: trimester.t1, t2: trimester.t2, t3: trimester.t3 })}
+            >
+              <div style={{ width: `${t1Pct}%` }} className="bg-[var(--color-pc-lilac-strong)]" />
+              <div style={{ width: `${t2Pct}%` }} className="bg-[var(--color-pc-plum-mid)]" />
+              <div style={{ width: `${t3Pct}%` }} className="bg-[var(--color-pc-plum)]" />
+            </div>
+            <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-[var(--color-charcoal)]">
+              {(
+                [
+                  ["today.overview.t1", trimester.t1, "bg-[var(--color-pc-lilac-strong)]"],
+                  ["today.overview.t2", trimester.t2, "bg-[var(--color-pc-plum-mid)]"],
+                  ["today.overview.t3", trimester.t3, "bg-[var(--color-pc-plum)]"],
+                ] as const
+              ).map(([key, n, dot]) => (
+                <li key={key} className="flex items-center gap-1.5">
+                  <span aria-hidden className={`h-2 w-2 rounded-full ${dot}`} />
+                  {t(key)} <span className="num font-semibold text-[var(--color-foreground)]">{n}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <Row
+            label={t("today.overview.deliveries")}
+            value={
+              <>
                 {deliveriesThisMonth}
-                <span className="ml-1.5 text-[13px] font-normal text-pc-muted">{t("today.overview.delivered")}</span>
-              </p>
-              <p className="mt-2 text-[12px] text-pc-muted">
-                {overdueCount > 0 ? t("today.overview.withOverdue", { count: overdueCount }) : t("today.overview.allOnTrack")}
-              </p>
-            </div>
-          </Card>
-        </div>
+                <span className="ml-1.5 text-[12px] font-normal text-[var(--color-charcoal)]">{t("today.overview.delivered")}</span>
+              </>
+            }
+            detail={overdueCount > 0 ? t("today.overview.withOverdue", { count: overdueCount }) : t("today.overview.allOnTrack")}
+          />
+        </dl>
       )}
-    </section>
+    </Panel>
   );
 }
