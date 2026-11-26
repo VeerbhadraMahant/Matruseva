@@ -114,41 +114,46 @@ export async function createPatient(_prev: ActionResult, formData: FormData): Pr
     const lmpDate = new Date(y, m - 1, d);
     const calculatedEdd = toISODate(eddFromLmp(lmpDate));
 
-    const { data: patient, error: insertError } = await supabase
-      .from("patients")
-      .insert({
-        clinic_id: profile.clinic_id,
-        name: input.name,
-        clinic_patient_no: input.clinicPatientNo || null,
-        phone: input.phone || null,
-        alt_phone: input.altPhone || null,
-        age: input.age ?? null,
-        address: input.address || null,
-        gravida: input.gravida ?? null,
-        para: input.para ?? null,
-        blood_group: input.bloodGroup || null,
-        rh_negative: input.rhNegative,
-        lmp: input.lmp,
-        edd: calculatedEdd,
-        edd_source: "lmp",
-        created_by: me.userId,
-        obstetric_questionnaire: questionnaireData as unknown as import("@/lib/supabase/types").Json,
-      })
-      .select("id")
-      .single();
-
-    if (insertError || !patient) {
-      return { error: insertError?.message ?? t("patients.error.createFailed") };
-    }
-
-    await generateScheduleForPatient(supabase, {
+    const schedule = await buildScheduleRows(supabase, {
       clinicId: profile.clinic_id,
-      patientId: patient.id,
       lmp: input.lmp,
       rhNegative: input.rhNegative,
     });
+    if (schedule.error) {
+      return { error: schedule.error };
+    }
 
-    createdPatientId = patient.id;
+    // Patient + care events are inserted in one DB transaction.
+    const { data: patientId, error: insertError } = await supabase.rpc(
+      "create_patient_with_schedule",
+      {
+        p_patient: {
+          clinic_id: profile.clinic_id,
+          name: input.name,
+          clinic_patient_no: input.clinicPatientNo || null,
+          phone: input.phone || null,
+          alt_phone: input.altPhone || null,
+          age: input.age ?? null,
+          address: input.address || null,
+          gravida: input.gravida ?? null,
+          para: input.para ?? null,
+          blood_group: input.bloodGroup || null,
+          rh_negative: input.rhNegative,
+          lmp: input.lmp,
+          edd: calculatedEdd,
+          edd_source: "lmp",
+          created_by: me.userId,
+          obstetric_questionnaire: (questionnaireData ?? null) as unknown as import("@/lib/supabase/types").Json,
+        },
+        p_care_events: schedule.rows,
+      }
+    );
+
+    if (insertError || !patientId) {
+      return { error: insertError?.message ?? t("patients.error.createFailed") };
+    }
+
+    createdPatientId = patientId;
   } catch (err: unknown) {
     console.error("createPatient error:", err);
     return {
@@ -169,25 +174,27 @@ export async function createPatient(_prev: ActionResult, formData: FormData): Pr
   return { error: t("patients.error.createFailedFinal") };
 }
 
-async function generateScheduleForPatient(
+async function buildScheduleRows(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  params: { clinicId: string; patientId: string; lmp: string; rhNegative: boolean }
-) {
-  const { data: template } = await supabase
+  params: { clinicId: string; lmp: string; rhNegative: boolean }
+): Promise<{ rows: import("@/lib/supabase/types").Json[]; error: string | null }> {
+  const { data: template, error: templateError } = await supabase
     .from("schedule_templates")
     .select("id")
     .eq("clinic_id", params.clinicId)
     .eq("is_default", true)
     .maybeSingle();
 
-  if (!template) return;
+  if (templateError) return { rows: [], error: templateError.message };
+  if (!template) return { rows: [], error: null };
 
-  const { data: items } = await supabase
+  const { data: items, error: itemsError } = await supabase
     .from("schedule_template_items")
     .select("id, code, name, kind, window_start_week, window_end_week, condition, is_critical")
     .eq("template_id", template.id);
 
-  if (!items || items.length === 0) return;
+  if (itemsError) return { rows: [], error: itemsError.message };
+  if (!items || items.length === 0) return { rows: [], error: null };
 
   const scheduleItems: ScheduleTemplateItem[] = items.map((i) => ({
     id: i.id,
@@ -213,7 +220,6 @@ async function generateScheduleForPatient(
 
   const rows = careEvents.map((ce) => ({
     clinic_id: params.clinicId,
-    patient_id: params.patientId,
     template_item_id: ce.templateItemId,
     name: ce.name,
     kind: ce.kind,
@@ -222,5 +228,5 @@ async function generateScheduleForPatient(
     skipped_reason: ce.skippedReason,
   }));
 
-  await supabase.from("care_events").insert(rows);
+  return { rows, error: null };
 }
