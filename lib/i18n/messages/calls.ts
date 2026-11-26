@@ -66,6 +66,10 @@ export const calls = defineArea({
     "calls.card.botTitle": "Test 2-way automated WhatsApp Bot for this patient",
     "calls.card.botAria": "Open WhatsApp bot simulator for {name}",
     "calls.card.logOutcome": "Log outcome",
+    "calls.card.contactedToday": "Contacted today",
+    "calls.card.lastLabel": "Last contact",
+    "calls.log.channelLegend": "Channel",
+    "calls.log.outcomeLegend": "Outcome",
 
     "calls.quick.titleCall": "Log call with {name}",
     "calls.quick.titleWhatsapp": "Log WhatsApp with {name}",
@@ -205,6 +209,10 @@ export const calls = defineArea({
     "calls.card.botTitle": "इस मरीज़ के लिए दो-तरफ़ा स्वचालित WhatsApp बॉट जाँचें",
     "calls.card.botAria": "{name} के लिए WhatsApp बॉट सिम्युलेटर खोलें",
     "calls.card.logOutcome": "परिणाम दर्ज करें",
+    "calls.card.contactedToday": "आज संपर्क हुआ",
+    "calls.card.lastLabel": "अंतिम संपर्क",
+    "calls.log.channelLegend": "माध्यम",
+    "calls.log.outcomeLegend": "परिणाम",
 
     "calls.quick.titleCall": "{name} के साथ कॉल दर्ज करें",
     "calls.quick.titleWhatsapp": "{name} के साथ WhatsApp संपर्क दर्ज करें",
@@ -344,6 +352,10 @@ export const calls = defineArea({
     "calls.card.botTitle": "या रुग्णासाठी दुतर्फा स्वयंचलित WhatsApp बॉट तपासा",
     "calls.card.botAria": "{name} यांच्यासाठी WhatsApp बॉट सिम्युलेटर उघडा",
     "calls.card.logOutcome": "निकाल नोंदवा",
+    "calls.card.contactedToday": "आज संपर्क झाला",
+    "calls.card.lastLabel": "शेवटचा संपर्क",
+    "calls.log.channelLegend": "माध्यम",
+    "calls.log.outcomeLegend": "परिणाम",
 
     "calls.quick.titleCall": "{name} यांच्याशी झालेला कॉल नोंदवा",
     "calls.quick.titleWhatsapp": "{name} यांच्याशी झालेला WhatsApp संपर्क नोंदवा",

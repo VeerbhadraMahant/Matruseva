@@ -1,5 +1,45 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
 import { PdfThumbnail } from "@/components/PdfThumbnail";
-import { FilePdf, FileText, ImageSquare } from "@phosphor-icons/react/dist/ssr";
+import { FilePdf, FileText, ImageSquare, X, ArrowSquareOut } from "@phosphor-icons/react";
+import { useT } from "@/lib/i18n/provider";
+import { buttonSecondary, iconButton } from "@/components/ui";
+
+function PreviewOverlay({ src, title, href, onClose }: { src: string; title: string; href: string; onClose: () => void }) {
+  const t = useT();
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = ref.current;
+    dialog?.showModal();
+    return () => dialog?.close();
+  }, []);
+  return (
+    <dialog
+      ref={ref}
+      aria-label={title}
+      onCancel={onClose}
+      onClick={(e) => e.target === ref.current && onClose()}
+      className="pc-pop fixed inset-0 m-auto max-h-[92dvh] w-[calc(100%-1.5rem)] max-w-3xl overflow-hidden rounded-[var(--radius-sections)] border border-[var(--color-border)] bg-[var(--color-background)] p-0 text-[var(--color-foreground)] shadow-[var(--shadow-overlay)] backdrop:bg-[var(--color-pc-ink)]/50"
+    >
+      <div className="flex min-h-14 items-center justify-between gap-2 border-b border-[var(--color-border)] px-4">
+        <h2 className="truncate text-[15px] font-semibold">{title}</h2>
+        <div className="flex items-center gap-1">
+          <a href={href} target="_blank" rel="noreferrer" className={buttonSecondary}>
+            <ArrowSquareOut size={16} aria-hidden /> {t("documents.preview.open")}
+          </a>
+          <button type="button" onClick={onClose} aria-label={t("common.close")} className={iconButton}>
+            <X size={18} aria-hidden />
+          </button>
+        </div>
+      </div>
+      <div className="max-h-[calc(92dvh-3.5rem)] overflow-auto bg-[var(--color-surface-1)]">
+        {/* eslint-disable-next-line @next/next/no-img-element -- short-lived private storage URL */}
+        <img src={src} alt={title} className="mx-auto block max-w-full" />
+      </div>
+    </dialog>
+  );
+}
 
 export function DocumentPreview({
   url, path, title, text, className,
@@ -10,6 +50,7 @@ export function DocumentPreview({
   text: string | null;
   className: string;
 }) {
+  const [open, setOpen] = useState(false);
   const isImage = /\.(jpe?g|png|webp)$/i.test(path);
   const isPdf = /\.pdf$/i.test(path);
   const isRasterPreview = Boolean(url?.startsWith("data:image/"));
@@ -26,9 +67,19 @@ export function DocumentPreview({
     </div>
   );
   if (!url || (isPdf && isRasterPreview)) return preview;
+  if (!isImage && !isRasterPreview) {
+    return (
+      <a href={url} target="_blank" rel="noreferrer" className="block">
+        {isPdf ? <PdfThumbnail url={url} title={title} className={className}>{preview}</PdfThumbnail> : preview}
+      </a>
+    );
+  }
   return (
-    <a href={url} target="_blank" rel="noreferrer" className="block">
-      {isPdf ? <PdfThumbnail url={url} title={title} className={className}>{preview}</PdfThumbnail> : preview}
-    </a>
+    <>
+      <button type="button" onClick={() => setOpen(true)} aria-label={title} className="block w-full text-left">
+        {preview}
+      </button>
+      {open && <PreviewOverlay src={url} title={title} href={url} onClose={() => setOpen(false)} />}
+    </>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Camera } from "@phosphor-icons/react";
+import { Camera, Files, UploadSimple } from "@phosphor-icons/react";
 import { createClient } from "@/lib/supabase/client";
 import { preprocessImage, recognizeImage, extractPdfText, renderPdfPreview } from "@/lib/ocr";
 import type { DocSource, DocType } from "@/lib/supabase/enums";
@@ -10,6 +10,7 @@ import { useT } from "@/lib/i18n/provider";
 import { createUuid } from "@/lib/uuid";
 import { todayInClinicTimezone, toISODate } from "@/lib/today";
 import { uploadDemoDocumentAction } from "@/app/(app)/documents/actions";
+import { Tag, buttonPrimary, buttonSecondary, inputClass } from "@/components/ui";
 
 interface UploadItem {
   fileName: string;
@@ -145,76 +146,127 @@ export function DocumentUploader({
     if (inputRef.current) inputRef.current.value = "";
   }
 
+  const [dragging, setDragging] = useState(false);
+  const finished = items.filter((it) => it.status === "done" || it.status === "failed").length;
+  const STATUS_TONE = { uploading: "neutral", ocr: "info", done: "ok", failed: "critical" } as const;
+
   return (
-    <div className="rounded-[var(--radius-cards)] border border-dashed border-[var(--color-border-strong)] bg-[var(--color-surface-1)]/60 p-5">
-      <div className="mb-3 flex flex-wrap items-center gap-4">
-        {!fixedDocType && (
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium" htmlFor="doc-source">
-              {t("documents.uploader.source")}
-            </label>
-            <select
-              id="doc-source"
-              value={source}
-              onChange={(e) => setSource(e.target.value as DocSource)}
-              className="min-h-10 rounded-[var(--radius-buttons)] border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2 py-1.5 text-sm"
-            >
-              <option value="camera">{t("documents.uploader.sourceCamera")}</option>
-              <option value="whatsapp">{t("documents.uploader.sourceWhatsapp")}</option>
-              <option value="paper">{t("documents.uploader.sourcePaper")}</option>
-            </select>
-          </div>
-        )}
-        {showDateInput && (
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium" htmlFor="doc-date">
-              {t("documents.uploader.date")}
-            </label>
-            <input
-              id="doc-date"
-              type="date"
-              value={docDate}
-              onChange={(e) => setDocDate(e.target.value)}
-              className="min-h-10 rounded-[var(--radius-buttons)] border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2 py-1.5 text-sm"
-            />
-          </div>
-        )}
+    <div
+      onDragOver={(e) => {
+        e.preventDefault();
+        setDragging(true);
+      }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDragging(false);
+        void handleFiles(e.dataTransfer.files);
+      }}
+      className={`rounded-[var(--radius-cards)] border-2 border-dashed p-5 transition-colors duration-150 ${
+        dragging
+          ? "border-[var(--color-primary)] bg-[var(--color-primary-surface)]"
+          : "border-[var(--color-border-strong)] bg-[var(--color-surface-1)]/60"
+      }`}
+    >
+      <div className="flex flex-col items-center gap-3 text-center">
+        <UploadSimple size={28} className="text-[var(--color-primary)]" aria-hidden />
+        <p className="text-[14px] font-medium">{dragging ? t("documents.uploader.dropActive") : t("documents.uploader.drop")}</p>
+
+        <input
+          id={`${fileInputId}-camera`}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={(e) => {
+            void handleFiles(e.target.files);
+            e.target.value = ""; // FileList was copied synchronously; allows re-taking the same photo
+          }}
+          className="peer/cam sr-only"
+        />
+        <input
+          ref={inputRef}
+          id={fileInputId}
+          type="file"
+          accept="image/*,application/pdf"
+          multiple
+          onChange={(e) => handleFiles(e.target.files)}
+          className="peer/file sr-only"
+        />
+        <div className="flex w-full flex-wrap justify-center gap-2">
+          <label
+            htmlFor={`${fileInputId}-camera`}
+            className={`${buttonPrimary} cursor-pointer max-sm:flex-1 peer-focus-visible/cam:outline-2`}
+          >
+            <Camera size={20} weight="regular" aria-hidden /> {t("documents.uploader.camera")}
+          </label>
+          <label htmlFor={fileInputId} className={`${buttonSecondary} cursor-pointer max-sm:flex-1`}>
+            <Files size={20} weight="regular" aria-hidden /> {t("documents.uploader.choose")}
+          </label>
+        </div>
+        <p className="max-w-md text-[12px] text-[var(--color-charcoal)]">
+          {t(fixedDocType === "register_page" ? "opd.capture.hint" : "documents.uploader.hint")}
+        </p>
       </div>
 
-      <input
-        ref={inputRef}
-        id={fileInputId}
-        type="file"
-        accept="image/*,application/pdf"
-        capture="environment"
-        multiple
-        onChange={(e) => handleFiles(e.target.files)}
-        className="sr-only"
-      />
-      <label
-        htmlFor={fileInputId}
-        className="flex min-h-10 w-full cursor-pointer flex-wrap items-center justify-center gap-2 rounded-[var(--radius-buttons)] bg-[var(--color-primary)] px-[var(--space-21)] py-[var(--space-14)] font-medium text-[var(--color-primary-foreground)] hover:bg-[var(--color-primary-hover)]"
-      >
-        <Camera size={20} weight="regular" aria-hidden /> {t("documents.uploader.button")}
-      </label>
-      <p className="mt-2 text-xs text-[var(--color-charcoal)]">
-        {t(fixedDocType === "register_page" ? "opd.capture.hint" : "documents.uploader.hint")}
-      </p>
+      {(!fixedDocType || showDateInput) && (
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-4 border-t border-[var(--color-border)]/70 pt-4">
+          {!fixedDocType && (
+            <div className="flex items-center gap-2">
+              <label className="text-[13px] font-medium text-[var(--color-charcoal)]" htmlFor="doc-source">
+                {t("documents.uploader.source")}
+              </label>
+              <select id="doc-source" value={source} onChange={(e) => setSource(e.target.value as DocSource)} className={`${inputClass} !w-auto`}>
+                <option value="camera">{t("documents.uploader.sourceCamera")}</option>
+                <option value="whatsapp">{t("documents.uploader.sourceWhatsapp")}</option>
+                <option value="paper">{t("documents.uploader.sourcePaper")}</option>
+              </select>
+            </div>
+          )}
+          {showDateInput && (
+            <div className="flex items-center gap-2">
+              <label className="text-[13px] font-medium text-[var(--color-charcoal)]" htmlFor="doc-date">
+                {t("documents.uploader.date")}
+              </label>
+              <input id="doc-date" type="date" value={docDate} onChange={(e) => setDocDate(e.target.value)} className={`${inputClass} !w-auto`} />
+            </div>
+          )}
+        </div>
+      )}
 
       {items.length > 0 && (
-        <ul className="mt-3 space-y-1 text-sm">
-          {items.map((it) => (
-            <li key={it.fileName} className="flex justify-between gap-3">
-              <span>{it.fileName}</span>
-              <span className="text-[var(--color-charcoal)]">
-                {it.status === "uploading" && t("documents.uploader.uploading")}
-                {it.status === "ocr" && t("documents.uploader.reading")}
-                {it.status === "done" && t("documents.uploader.done")}
-                {it.status === "failed" && t("documents.uploader.failed")}
-              </span>
-            </li>
-          ))}
-        </ul>
+        <div className="mt-4 space-y-2" aria-live="polite">
+          <div className="flex items-center gap-3">
+            <div
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={items.length}
+              aria-valuenow={finished}
+              aria-label={t("documents.uploader.progress", { done: finished, total: items.length })}
+              className="h-2 flex-1 overflow-hidden rounded-full bg-[var(--color-surface-3)]"
+            >
+              <div
+                className="h-full rounded-full bg-[var(--color-primary)] transition-[width] duration-200 ease-[var(--ease-out)]"
+                style={{ width: `${(finished / items.length) * 100}%` }}
+              />
+            </div>
+            <span className="num text-[12px] text-[var(--color-charcoal)]">
+              {t("documents.uploader.progress", { done: finished, total: items.length })}
+            </span>
+          </div>
+          <ul className="space-y-1.5 text-[13px]">
+            {items.map((it, idx) => (
+              <li key={`${idx}-${it.fileName}`} className="flex items-center justify-between gap-3">
+                <span className="min-w-0 truncate">{it.fileName}</span>
+                <Tag tone={STATUS_TONE[it.status]}>
+                  {it.status === "uploading" && t("documents.uploader.uploading")}
+                  {it.status === "ocr" && t("documents.uploader.reading")}
+                  {it.status === "done" && t("documents.uploader.done")}
+                  {it.status === "failed" && t("documents.uploader.failed")}
+                </Tag>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );
