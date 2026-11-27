@@ -51,6 +51,7 @@ const STATUS_KEYS: Record<string, MessageKey> = {
   upcoming: "clinical.status.upcoming",
   due: "clinical.status.due",
   overdue: "clinical.status.overdue",
+  missed: "clinical.status.missed",
 };
 /** Care-event status badge text ("due" reads "Due now"). */
 export function careStatusLabel(status: string, t: Translator): string {

@@ -264,8 +264,9 @@ export async function closePregnancy(
     .eq("id", patientId)
     .maybeSingle();
 
+  if (fetchError) console.error("closePregnancy: patient lookup failed", fetchError);
   if (fetchError || !patient) {
-    return { error: fetchError?.message || t("patientDetail.error.patientNotFound") };
+    return { error: t(fetchError ? "common.error.generic" : "patientDetail.error.patientNotFound") };
   }
 
   // Idempotent rejection: reject if already closed
@@ -309,7 +310,11 @@ export async function closePregnancy(
       BIRTH_VACCINES.map((v) => ({ birth_order: n.birth_order, vaccine: v.code })),
     ),
   });
-  if (rpcError) return { error: rpcError.message };
+  if (rpcError) {
+    console.error("closePregnancy: record_delivery failed", rpcError);
+    // A concurrent close lands here; the RPC raises "pregnancy is not active".
+    return { error: t(rpcError.message.includes("not active") ? "patientDetail.error.alreadyClosed" : "common.error.generic") };
+  }
 
   revalidatePatientViews(patientId);
   return { error: null };

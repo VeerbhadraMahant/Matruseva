@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getT } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { daysBetween, parseLocalDate } from "@/lib/format";
+import { URGENT_FLAGS } from "@/lib/postnatal";
 import type { PostnatalDueRow } from "@/lib/postnatalData";
 import { Badge } from "@/components/today/StatusBadge";
 
@@ -52,7 +53,7 @@ export async function PostnatalDueCard({ rows, todayIso }: { rows: PostnatalDueR
                   )}
                   {r.urgent && (
                     <span className="block text-[12px] font-semibold text-pc-overdue">
-                      {t("postnatalSummary.card.urgent", { flags: r.flags.map(flagLabel).join(", ") })}
+                      {t("postnatalSummary.card.urgent", { flags: r.flags.filter((f) => URGENT_FLAGS.has(f)).map(flagLabel).join(", ") })}
                     </span>
                   )}
                 </span>

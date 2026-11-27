@@ -77,6 +77,25 @@ export function postnatalVisitStatus(
   return "due";
 }
 
+export type PostnatalVisitState = ReturnType<typeof postnatalVisitStatus> | "missed";
+
+/**
+ * Status of every visit in one schedule (result is parallel to `visits`). An incomplete visit is
+ * "missed", not overdue, once a later visit in schedule order is completed or its window has opened.
+ */
+export function postnatalVisitStatuses(
+  visits: { code: PostnatalVisitCode; due_from: string; due_to: string; completed_at: string | null }[],
+  todayIso: string,
+): PostnatalVisitState[] {
+  const rank = (code: PostnatalVisitCode) => POSTNATAL_VISITS.findIndex((v) => v.code === code);
+  return visits.map((v) => {
+    const status = postnatalVisitStatus(v, todayIso);
+    if (status === "done") return status;
+    const superseded = visits.some((l) => rank(l.code) > rank(v.code) && (l.completed_at || l.due_from <= todayIso));
+    return superseded ? "missed" : status;
+  });
+}
+
 export function birthVaccineStatus(
   v: { vaccine: BirthVaccineCode; given_on: string | null; given_elsewhere: boolean },
   birthIso: string,

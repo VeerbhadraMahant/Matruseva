@@ -10,6 +10,7 @@ import { getT } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { formatDate } from "@/lib/format";
 import { POSTNATAL_VISITS } from "@/lib/postnatal";
+import { todayInClinicTimezone, toISODate } from "@/lib/today";
 import { PostnatalSummaryPrintButton } from "@/components/postnatal/PostnatalSummaryPrintButton";
 
 const CARD = "rpt-card rounded-xl border border-[var(--color-border)] bg-white p-3.5";
@@ -32,6 +33,8 @@ export default async function PostnatalSummaryPage({ params }: { params: Promise
   if (!patient) notFound();
 
   const d = (iso: string | null | undefined) => formatDate(iso, locale);
+  // completed_at is a timestamp: show the IST calendar day, not the UTC one.
+  const istDay = (ts: string) => d(toISODate(todayInClinicTimezone(new Date(ts))));
   const flag = (f: string) => t(`postnatalSummary.flag.${f}` as MessageKey);
   const visitName = (code: string) => t("postnatalSummary.visit", { day: POSTNATAL_VISITS.find((v) => v.code === code)!.day });
   const babyLabel = (i: number) => {
@@ -47,7 +50,8 @@ export default async function PostnatalSummaryPage({ params }: { params: Promise
 
   const doneVisits = pn.visits.filter((v) => v.completed_at);
   const pendingVaccines = pn.vaccines.filter((v) => v.status !== "given");
-  const pendingVisits = pn.visits.filter((v) => v.status !== "done");
+  const pendingVisits = pn.visits.filter((v) => v.status !== "done" && v.status !== "missed");
+  const missedVisits = pn.visits.filter((v) => v.status === "missed");
   const clinic = me.clinicName;
 
   return (
@@ -147,7 +151,9 @@ export default async function PostnatalSummaryPage({ params }: { params: Promise
                 <li key={v.id} className="rpt-card">
                   <span className="font-semibold">{visitName(v.code)}</span>
                   {" - "}
-                  {v.completed_at ? t("postnatalSummary.visit.done", { date: d(v.completed_at) }) : t("postnatalSummary.visit.notDone")}
+                  {v.completed_at
+                    ? t("postnatalSummary.visit.done", { date: istDay(v.completed_at) })
+                    : t(v.status === "missed" ? "postnatalSummary.visit.missed" : "postnatalSummary.visit.notDone")}
                   {parts.length > 0 && <span> · {t("postnatalSummary.visit.mother")}: {parts.join(", ")}</span>}
                   {babyParts.length > 0 && <span> · {t("postnatalSummary.visit.baby")}: {babyParts.join("; ")}</span>}
                 </li>
@@ -158,7 +164,7 @@ export default async function PostnatalSummaryPage({ params }: { params: Promise
 
         <section className={`${CARD} border-red-200`}>
           <h2 className={H2}>{t("postnatalSummary.pending")}</h2>
-          {pendingVaccines.length + pendingVisits.length === 0 ? (
+          {pendingVaccines.length + pendingVisits.length + missedVisits.length === 0 ? (
             <p className="text-[12px]">{t("postnatalSummary.pending.none")}</p>
           ) : (
             <ul className="list-disc space-y-0.5 pl-4 text-[12px]">
@@ -177,6 +183,9 @@ export default async function PostnatalSummaryPage({ params }: { params: Promise
                     window: t("postnatalSummary.visit.window", { from: d(v.due_from), to: d(v.due_to) }),
                   })}
                 </li>
+              ))}
+              {missedVisits.map((v) => (
+                <li key={v.id}>{t("postnatalSummary.pending.notSeen", { visit: visitName(v.code) })}</li>
               ))}
             </ul>
           )}

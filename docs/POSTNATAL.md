@@ -17,6 +17,17 @@ Postnatal visits (joint: mother and all babies seen together), windows counted f
 | `PNC_D14` | Day 14 check | day 13 | day 17 |
 | `PNC_D42` | 6-week check | day 40 | day 49 |
 
+Visit status (`postnatalVisitStatuses` in `lib/postnatal.ts`, used for every status in the app, real and demo):
+`done` when completed; otherwise `upcoming` before `due_from`, `due` inside the window, `overdue` after `due_to`.
+An incomplete visit is instead `missed` when a LATER visit in schedule order is completed, or a later visit's
+`due_from` is on or before today (the next check has started, so this one is no longer chased). Missed visits are not
+overdue anywhere, never put a mother on the Today card and are never the "next visit". A missed visit can still be
+recorded late; it then becomes `done`. `postnatalVisitStatus` (single visit, window rules only) is kept unchanged.
+
+Recording rules (`recordPostnatalVisit`): a visit cannot be recorded before its `due_from` (the Record button is hidden
+for upcoming visits). Re-saving a completed visit changes findings and notes only; `completed_at` and `completed_by`
+keep their original values. Dates shown from `completed_at` (a timestamp) are the IST calendar day.
+
 Birth-dose vaccines (India UIP), per baby, due from day 0:
 
 | code | label | overdue after |
@@ -113,3 +124,4 @@ Flag rules:
   record-visit form, link to the handover summary).
 - Today: a Postnatal card listing mothers with a visit due or overdue this week, pending birth doses, or urgent flags.
 - `/patients/[id]/postnatal-summary`: printable A4 handover summary for the paediatrician.
+  Missed visits show a "Missed" chip in the panel and are listed as "Not seen: ..." (not as pending) at handover.

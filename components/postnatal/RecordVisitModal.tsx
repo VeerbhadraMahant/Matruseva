@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useId, useState } from "react";
 import { Warning, X } from "@phosphor-icons/react";
 import { buttonPrimary, buttonSecondary, inputClass, labelClass } from "@/components/ui";
+import { PatientDetailDialog } from "@/components/PatientDetailDialog";
 import { recordPostnatalVisit } from "@/app/(app)/patients/[id]/postnatal-actions";
 import { useT } from "@/lib/i18n/provider";
 import { DANGER_SIGNS, FEEDING, FP_METHODS, type DangerSign } from "@/lib/postnatal";
@@ -54,10 +55,10 @@ export function RecordVisitModal({
 }) {
   const t = useT();
   const uid = useId();
-  const dialogRef = useRef<HTMLDivElement>(null);
   const { pending, error, run } = useAction();
   const isD42 = visit.code === "PNC_D42";
   const title = t(`postnatal.panel.visit.${visit.code}` as const);
+  const heading = t(visit.status === "done" ? "postnatal.panel.form.titleEdit" : "postnatal.panel.form.titleRecord", { visit: title });
 
   const m = visit.mother_findings;
   const [mother, setMother] = useState<MotherState>({
@@ -79,12 +80,6 @@ export function RecordVisitModal({
     setB(id, { danger_signs: on ? [...babies[id].danger_signs, sign] : babies[id].danger_signs.filter((s) => s !== sign) });
 
   const close = () => { if (!pending) onClose(); };
-  useEffect(() => dialogRef.current?.focus(), []);
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && !pending) onClose(); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [pending, onClose]);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,16 +94,15 @@ export function RecordVisitModal({
   };
 
   return (
-    <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby={`${uid}-title`} className="fixed inset-0 z-50 outline-none flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+    // Native <dialog> via PatientDetailDialog: traps focus, closes on Escape, returns focus to the opening button.
+    <PatientDetailDialog label={heading} onClose={close}>
       <form
         onSubmit={submit}
         className="flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col rounded-2xl border border-[var(--color-border-strong)] bg-[var(--color-background)] shadow-2xl"
       >
         <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--color-border)] px-5 py-4">
           <div className="min-w-0">
-            <h2 id={`${uid}-title`} className="text-[16px] font-bold">
-              {t(visit.status === "done" ? "postnatal.panel.form.titleEdit" : "postnatal.panel.form.titleRecord", { visit: title })}
-            </h2>
+            <h2 className="text-[16px] font-bold">{heading}</h2>
             <p className="text-[12px] text-[var(--color-charcoal)]">{motherName} · {t("postnatal.panel.form.hint")}</p>
           </div>
           <button type="button" onClick={close} disabled={pending} aria-label={t("common.close")} className="p-1 text-[var(--color-charcoal)] hover:text-[var(--color-foreground)]">
@@ -190,6 +184,6 @@ export function RecordVisitModal({
           </div>
         </div>
       </form>
-    </div>
+    </PatientDetailDialog>
   );
 }

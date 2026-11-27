@@ -20,13 +20,14 @@ import {
   latestMotherFindings,
   motherFlags,
   newbornFlags,
-  postnatalVisitStatus,
+  postnatalVisitStatuses,
   type MotherFlag,
   type NewbornFlag,
+  type PostnatalVisitState,
 } from "@/lib/postnatal";
 
 export type NewbornView = DemoNewborn & { flags: NewbornFlag[]; dayOfLife: number };
-export type PostnatalVisitView = DemoPostnatalVisit & { status: ReturnType<typeof postnatalVisitStatus> };
+export type PostnatalVisitView = DemoPostnatalVisit & { status: PostnatalVisitState };
 export type VaccineView = DemoNewbornVaccine & { status: ReturnType<typeof birthVaccineStatus> };
 
 export interface PatientPostnatal {
@@ -75,16 +76,15 @@ function buildPostnatal(
   if (babies.length === 0) return null;
   const birthBy = new Map(babies.map((n) => [n.id, n.birth_date]));
 
-  const visits = raw.visits
-    .filter((v) => v.patient_id === p.id)
-    .sort((a, b) => visitRank(a.code) - visitRank(b.code))
-    .map((v): PostnatalVisitView => ({
-      ...v,
-      // The column defaults to '{}' until the visit is completed.
-      mother_findings: v.mother_findings && Object.keys(v.mother_findings).length > 0 ? v.mother_findings : null,
-      baby_findings: v.baby_findings ?? {},
-      status: postnatalVisitStatus(v, todayIso),
-    }));
+  const own = raw.visits.filter((v) => v.patient_id === p.id).sort((a, b) => visitRank(a.code) - visitRank(b.code));
+  const statuses = postnatalVisitStatuses(own, todayIso);
+  const visits = own.map((v, i): PostnatalVisitView => ({
+    ...v,
+    // The column defaults to '{}' until the visit is completed.
+    mother_findings: v.mother_findings && Object.keys(v.mother_findings).length > 0 ? v.mother_findings : null,
+    baby_findings: v.baby_findings ?? {},
+    status: statuses[i],
+  }));
   const vaccines = raw.vaccines
     .filter((v) => birthBy.has(v.newborn_id))
     .map((v): VaccineView => ({ ...v, status: birthVaccineStatus(v, birthBy.get(v.newborn_id)!, todayIso) }));
@@ -158,7 +158,8 @@ export const getClinicPostnatalDue = cache(async (): Promise<PostnatalDueRow[]> 
     const pn = buildPostnatal(p, raw, todayIso);
     if (!pn) continue;
 
-    const nextVisit = pn.visits.find((v) => v.status !== "done") ?? null;
+    // Missed visits are history, not the next appointment.
+    const nextVisit = pn.visits.find((v) => v.status !== "done" && v.status !== "missed") ?? null;
     const visitNeeded = pn.visits.some((v) => v.status === "due" || v.status === "overdue" || (v.status === "upcoming" && v.due_from <= soonIso));
     const pendingVaccines = pn.vaccines.filter((v) => v.status !== "given").length;
     if (!visitNeeded && pendingVaccines === 0 && !pn.urgent) continue;
