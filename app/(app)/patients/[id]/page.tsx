@@ -33,6 +33,8 @@ import { DeleteDocumentButton } from "@/components/DeleteDocumentButton";
 import { Panel, Tag, Empty, SEVERITY_TONE, buttonPrimary, buttonSecondary, card, pageBody, th, td, type Tone } from "@/components/ui";
 import type { CareEventStatus, ContactOutcome, FollowUpRisk } from "@/lib/supabase/enums";
 import { getDemoPatientDetail } from "@/lib/demo-data";
+import { getPatientPostnatal } from "@/lib/postnatalData";
+import { PostnatalPanel } from "@/components/postnatal/PostnatalPanel";
 
 const STATUS_TONE: Record<CareEventStatus, Tone> = {
   done: "ok",
@@ -176,6 +178,9 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
 
   if (!patient) notFound();
 
+  const isClosed = ["delivered", "closed"].includes(patient.status) ||
+    ["delivered", "closed"].includes(patient.pregnancy_status ?? "");
+
   const docs = documents ?? [];
   const { data: signed } = (supabase && docs.length)
     ? await supabase.storage.from("documents").createSignedUrls(docs.map((d: DocRecord) => d.storage_path), 300)
@@ -218,9 +223,12 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
   ]);
   const alertFlags = localizeFlags(flags, t);
 
-  const { data: clinic } = supabase
-    ? await supabase.from("clinics").select("name, message_templates").eq("id", patient.clinic_id).single()
-    : { data: null };
+  const [{ data: clinic }, postnatal] = await Promise.all([
+    supabase
+      ? supabase.from("clinics").select("name, message_templates").eq("id", patient.clinic_id).single()
+      : { data: null },
+    isClosed ? getPatientPostnatal(id) : null,
+  ]);
 
   const clinicTemplates = (clinic?.message_templates ?? {}) as MessageTemplates;
   const defaultLang = clinicTemplates.default_lang ?? "en";
@@ -241,8 +249,6 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
     mr: patient.phone ? whatsAppLink(patient.phone, messagesByLang.mr) : null,
   };
   const wa = whatsappByLang[defaultLang];
-  const isClosed = ["delivered", "closed"].includes(patient.status) ||
-    ["delivered", "closed"].includes(patient.pregnancy_status ?? "");
   const visitWorkspace = (
     <PatientDetailInteractive
       patientId={id}
@@ -495,6 +501,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
             </div>
           </div>
         )}
+        {postnatal && <PostnatalPanel patientId={id} motherName={patient.name} data={postnatal} />}
         {flags.length > 0 && (
           <div className={`flex flex-wrap items-center gap-2 px-4 py-3 ${card}`}>
             <span className="mr-1 text-[13px] font-semibold text-[var(--color-foreground)]">{t("patientDetail.alerts.title")}</span>
