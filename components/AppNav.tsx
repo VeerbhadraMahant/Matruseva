@@ -275,7 +275,7 @@ export function AppTopBar({
 
   return (
     <>
-      <header className="pc-glass sticky top-0 z-30 flex h-16 items-center justify-between gap-3 !rounded-none !border-x-0 !border-t-0 px-3 md:justify-end md:px-6">
+      <header className="pc-glass print:hidden sticky top-0 z-30 flex h-16 items-center justify-between gap-3 !rounded-none !border-x-0 !border-t-0 px-3 md:justify-end md:px-6">
         <div className="flex min-w-0 items-center gap-3 md:hidden">
           <button
             ref={menuButtonRef}
@@ -328,7 +328,7 @@ export function AppTopBar({
       <div
         aria-hidden
         onClick={close}
-        className={`fixed inset-0 z-40 md:hidden bg-[rgb(34_27_43/0.32)] backdrop-blur-[2px] transition-opacity duration-300 ${
+        className={`fixed inset-0 z-40 md:hidden print:hidden bg-[rgb(34_27_43/0.32)] backdrop-blur-[2px] transition-opacity duration-300 ${
           open ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
       />
@@ -339,7 +339,7 @@ export function AppTopBar({
         aria-label={t("shell.nav.mainMenu")}
         aria-hidden={!open}
         inert={!open}
-        className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col md:hidden bg-[var(--color-background)] shadow-[0_24px_60px_-12px_rgb(62_42_92/0.45)] transition-transform duration-300 ease-out ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col md:hidden print:hidden bg-[var(--color-background)] shadow-[0_24px_60px_-12px_rgb(62_42_92/0.45)] transition-transform duration-300 ease-out ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -384,7 +384,7 @@ export function AppBottomNav() {
   return (
     <nav
       aria-label={t("shell.nav.primary")}
-      className="pc-glass fixed inset-x-0 bottom-0 z-20 flex h-[var(--mobile-nav-height)] !rounded-none !border-x-0 !border-b-0 px-1 pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="pc-glass print:hidden fixed inset-x-0 bottom-0 z-20 flex h-[var(--mobile-nav-height)] !rounded-none !border-x-0 !border-b-0 px-1 pb-[env(safe-area-inset-bottom)] md:hidden"
     >
       {MOBILE_NAV_ITEMS.map(({ href, label, short, icon: Icon }) => {
         const active = isActive(pathname, href);
