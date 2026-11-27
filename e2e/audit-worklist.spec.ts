@@ -74,7 +74,7 @@ test("a booked visit and task on the same day share one patient row", async ({ p
   await page.goto("/patients/p3-kavita-patel");
   const nextDate = new Date();
   nextDate.setDate(nextDate.getDate() + 4);
-  const nextDateInput = nextDate.toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" });
+  const nextDateInput = nextDate.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
   await main.locator("#nextVisitDate").fill(nextDateInput);
   const note = `Audit grouped tasks ${Date.now()}`;
   await main.locator("#notes").fill(note);
@@ -142,7 +142,7 @@ test("Today counters render their final value before JavaScript and expose it on
   try {
     await context.route(/\/_next\/static\/.*\.js(?:\?.*)?$/, (route) => route.abort());
     const ssr = await context.newPage();
-    await ssr.goto("http://localhost:3000/today");
+    await ssr.goto(new URL("/today", page.url()).toString());
     const hero = ssr.getByRole("region", { name: "Patients due today" });
     const link = hero.getByRole("link", { name: /At risk$/ });
     const count = await countIn(ssr.getByRole("group", { name: "Filter worklist" }).getByRole("button", { name: /^At risk/ }));

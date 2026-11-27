@@ -57,6 +57,21 @@ test("mocked transcript: parser fills rows and Apply fills the visit form", asyn
   await expect(page.locator("#bpDia")).toHaveValue("80");
   await expect(page.locator("#weight")).toHaveValue("58");
   await expect(page.locator("#hb")).toHaveValue("10.5");
+
+  // Applying dictation must leave the native calendar available and preserve
+  // its selection when the visit is saved and the patient record reloads.
+  const nextVisit = page.getByLabel("Next visit", { exact: true });
+  await expect(nextVisit).toHaveAttribute("type", "date");
+  const nextDate = new Date(Date.now() + 14 * 86400000).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+  await nextVisit.fill(nextDate);
+  const note = `Voice calendar regression ${Date.now()}`;
+  await page.locator("#notes").fill(note);
+  await page.getByRole("button", { name: "Save visit", exact: true }).click();
+  await expect(page.getByRole("row", { name: new RegExp(note) })).toContainText("120/80");
+  await page.reload();
+  await expect(page.getByText("Next visit", { exact: true }).and(page.locator("p")).locator("..")).toContainText(
+    new Date(`${nextDate}T12:00:00+05:30`).toLocaleDateString("en-IN", { day: "2-digit", month: "short" }),
+  );
 });
 
 test("recording never sticks on transcribing; ends in values or a clear error", async ({ page }) => {

@@ -1,7 +1,5 @@
 "use client";
 
-import { formatVisitDate } from "@/lib/visitDate";
-
 import { useState, useActionState, useEffect } from "react";
 import { toISODate, todayInClinicTimezone } from "@/lib/today";
 import {
@@ -356,9 +354,8 @@ export function SplitScreenVisitWorkspace({
                 <input
                   id="splitVisitDate"
                   name="visitDate"
-                  type="text"
-                  placeholder="DD/MM/YYYY"
-                  defaultValue={formatVisitDate(toISODate(todayInClinicTimezone()))}
+                  type="date"
+                  defaultValue={toISODate(todayInClinicTimezone())}
                   className={inputClass}
                 />
               </div>
@@ -453,8 +450,7 @@ export function SplitScreenVisitWorkspace({
                 <input
                   id="splitNextVisitDate"
                   name="nextVisitDate"
-                  type="text"
-                  placeholder="DD/MM/YYYY"
+                  type="date"
                   className={inputClass}
                 />
               </div>

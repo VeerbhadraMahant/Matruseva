@@ -1,7 +1,5 @@
 "use client";
 
-import { formatVisitDate } from "@/lib/visitDate";
-
 import { useState, useActionState } from "react";
 import type { ActionResult } from "@/app/(app)/patients/[id]/actions";
 import { saveVisitAction } from "@/components/offlineActions";
@@ -24,7 +22,7 @@ export function VisitForm({ patientId }: { patientId: string }) {
   const [isVoiceOpen, setIsVoiceOpen] = useState(false);
 
   // Controlled values for live CDSS protocol evaluation and voice auto-fill
-  const [visitDate, setVisitDate] = useState(() => formatVisitDate(toISODate(todayInClinicTimezone())));
+  const [visitDate, setVisitDate] = useState(() => toISODate(todayInClinicTimezone()));
   const [bpSys, setBpSys] = useState<string>("");
   const [bpDia, setBpDia] = useState<string>("");
   const [weight, setWeight] = useState<string>("");
@@ -150,8 +148,7 @@ export function VisitForm({ patientId }: { patientId: string }) {
           <input
             id="visitDate"
             name="visitDate"
-            type="text"
-            placeholder="DD/MM/YYYY"
+            type="date"
             value={visitDate}
             onChange={(e) => setVisitDate(e.target.value)}
             className={inputClass}
@@ -245,8 +242,7 @@ export function VisitForm({ patientId }: { patientId: string }) {
           <input
             id="nextVisitDate"
             name="nextVisitDate"
-            type="text"
-            placeholder="DD/MM/YYYY"
+            type="date"
             value={nextVisitDate}
             onChange={(e) => setNextVisitDate(e.target.value)}
             className={inputClass}

@@ -107,7 +107,8 @@ test("visit entry rejects blank and extreme readings and saves a valid visit", a
   await expect(heading).toBeInViewport();
   expect((await heading.boundingBox())?.y).toBeGreaterThanOrEqual(64);
   const visitDate = main.getByLabel("Visit date", { exact: true });
-  await expect(visitDate).toHaveValue(/^\d{2}\/\d{2}\/\d{4}$/);
+  await expect(visitDate).toHaveAttribute("type", "date");
+  await expect(visitDate).toHaveValue(/^\d{4}-\d{2}-\d{2}$/);
   const systolic = main.locator("#bpSys");
   await expect(systolic).toHaveValue("");
   await expect(systolic).not.toHaveAttribute("placeholder");
@@ -202,7 +203,7 @@ test("a past booked visit has the same date and follow-up risk across screens", 
   await page.goto("/patients/p4-priya-sharma");
   const main = page.getByRole("main");
   const bookedDate = new Date(Date.now() - 24 * 86400000);
-  await main.locator("#nextVisitDate").fill(bookedDate.toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" }));
+  await main.locator("#nextVisitDate").fill(bookedDate.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }));
   await main.getByRole("button", { name: "Save visit", exact: true }).click();
   await expect(main.getByText(/24d ago/)).toBeVisible();
   await expect(main.getByText("Lost to follow-up", { exact: true }).first()).toBeVisible();
