@@ -1,14 +1,24 @@
 import fs from "node:fs";
 import path from "node:path";
 import { todayInClinicTimezone, toISODate } from "@/lib/today";
-import { gestationalAge } from "@/lib/pregnancy";
+import { addDays, gestationalAge } from "@/lib/pregnancy";
 import { parseLocalDate } from "@/lib/format";
 import { patientFlags, vitalsFlags, sortFlags } from "@/lib/clinical";
 import { CLINICAL_RISK_THRESHOLDS } from "@/lib/clinicalProtocols";
 import { isManualContact } from "@/lib/followUp";
 import { computeFollowUpRisk } from "@/lib/risk";
 import type { PatientRow, OpenEvent, LatestVisit } from "@/lib/snapshot";
-import type { CareEventStatus, FollowUpRisk, ContactOutcome } from "@/lib/supabase/enums";
+import {
+  BIRTH_VACCINES,
+  buildPostnatalVisits,
+  dayOfLife,
+  type BabyFindings,
+  type BirthVaccineCode,
+  type MotherFindings,
+  type NewbornInput,
+  type PostnatalVisitCode,
+} from "@/lib/postnatal";
+import type { CareEventStatus, FollowUpRisk, ContactOutcome, NewbornSex } from "@/lib/supabase/enums";
 
 export interface DemoPatientRaw {
   id: string;
@@ -89,6 +99,41 @@ export interface DemoDocumentRecord {
   ocr_engine?: string | null;
 }
 
+export interface DemoNewborn {
+  id: string;
+  patient_id: string;
+  birth_order: number;
+  name: string | null;
+  sex: NewbornSex | null;
+  birth_date: string;
+  birth_weight_kg: number;
+  gestational_age_weeks: number | null;
+  nicu_admission: boolean;
+}
+
+export interface DemoPostnatalVisit {
+  id: string;
+  patient_id: string;
+  code: PostnatalVisitCode;
+  due_from: string;
+  due_to: string;
+  completed_at: string | null;
+  completed_by: string | null;
+  mother_findings: MotherFindings | null;
+  baby_findings: Record<string, BabyFindings>;
+  notes: string | null;
+}
+
+export interface DemoNewbornVaccine {
+  id: string;
+  patient_id: string;
+  newborn_id: string;
+  vaccine: BirthVaccineCode;
+  given_on: string | null;
+  given_elsewhere: boolean;
+  batch_no: string | null;
+}
+
 interface DemoDoctorProfile {
   fullName: string;
   degree: string | null;
@@ -103,6 +148,9 @@ export interface DemoStoreState {
   visits: Record<string, DemoVisitRecord[]>;
   contacts: Record<string, DemoContactRecord[]>;
   documents: DemoDocumentRecord[];
+  newborns: DemoNewborn[];
+  postnatalVisits: DemoPostnatalVisit[];
+  newbornVaccines: DemoNewbornVaccine[];
 }
 
 const STORE_FILE_PATH = process.env.MATRUSETU_DEMO_STORE_PATH ?? path.join(process.cwd(), ".matrusetu-demo-store.json");
@@ -349,14 +397,104 @@ export const INITIAL_DEMO_DOCUMENTS: DemoDocumentRecord[] = [
   },
 ];
 
+const shiftIso = (iso: string, days: number) => toISODate(addDays(parseLocalDate(iso), days));
+
+/** Newborn, visit and vaccine rows for one delivery (shared by closeDemoPregnancy and the seed). */
+function buildDemoPostnatalRows(
+  patientId: string,
+  deliveryDate: string,
+  babies: Pick<DemoNewborn, "name" | "sex" | "birth_weight_kg" | "gestational_age_weeks" | "nicu_admission">[],
+) {
+  const newborns: DemoNewborn[] = babies.map((b, i) => ({
+    ...b, id: `nb-${patientId}-${i + 1}`, patient_id: patientId, birth_order: i + 1, birth_date: deliveryDate,
+  }));
+  const visits: DemoPostnatalVisit[] = buildPostnatalVisits(deliveryDate).map((v) => ({
+    ...v, id: `pnc-${patientId}-${v.code}`, patient_id: patientId,
+    completed_at: null, completed_by: null, mother_findings: null, baby_findings: {}, notes: null,
+  }));
+  const vaccines: DemoNewbornVaccine[] = newborns.flatMap((n) => BIRTH_VACCINES.map((v) => ({
+    id: `nv-${n.id}-${v.code}`, patient_id: patientId, newborn_id: n.id, vaccine: v.code,
+    given_on: null, given_elsewhere: false, batch_no: null,
+  })));
+  return { newborns, visits, vaccines };
+}
+
+const POSTNATAL_SEED_ID = "p11-lata-bhosale";
+
+// Delivered 11 days ago so the day-7 window (days 6-9) has already closed: D7 shows overdue.
+function postnatalSeed(todayIso: string) {
+  const delivery = shiftIso(todayIso, -11);
+  const patient: DemoPatientRaw = {
+    id: POSTNATAL_SEED_ID,
+    name: "Lata Bhosale",
+    clinicPatientNo: "ANC-111",
+    phone: "9890011223",
+    address: "Hadapsar, Pune",
+    age: 25,
+    gravida: 1,
+    para: 1,
+    bloodGroup: "O+",
+    rhNegative: false,
+    weeksPregnant: 36,
+    lmp: shiftIso(delivery, -36 * 7),
+    risk: "on_track",
+    noAnswerStreak: 0,
+    status: "delivered",
+    pregnancyStatus: "delivered",
+    deliveryDate: delivery,
+    deliveryMode: "NVD",
+    birthWeightKg: 2.3,
+    closedAt: `${delivery}T09:00:00.000Z`,
+    closedBy: "Dr. Demo",
+    createdAt: "2026-03-01T08:00:00Z",
+  };
+  const rows = buildDemoPostnatalRows(patient.id, delivery, [
+    { name: null, sex: "female", birth_weight_kg: 2.3, gestational_age_weeks: 36, nicu_admission: false },
+  ]);
+  const babyId = rows.newborns[0].id;
+  for (const v of rows.visits) {
+    if (v.code !== "PNC_D3") continue;
+    v.completed_at = `${shiftIso(delivery, 3)}T06:30:00.000Z`;
+    v.completed_by = "demo-doctor-id";
+    v.mother_findings = {
+      bp_systolic: 118, bp_diastolic: 76, temperature_c: 36.8, heavy_bleeding: false, wound_problem: false,
+      breast_problem: false, low_mood: false, loss_of_interest: false, fp_method: "lam",
+    };
+    v.baby_findings = { [babyId]: { weight_kg: 2.2, feeding: "mixed", danger_signs: [] } };
+  }
+  for (const v of rows.vaccines) {
+    if (v.vaccine !== "BCG") v.given_on = delivery;
+  }
+  return { patient, ...rows };
+}
+
+/** Adds the postnatal demo patient when missing or older than 30 days (keeps D7 overdue). True if changed. */
+function applyPostnatalSeed(store: DemoStoreState): boolean {
+  const todayIso = toISODate(todayInClinicTimezone());
+  const existing = store.patients.find((p) => p.id === POSTNATAL_SEED_ID);
+  if (existing?.deliveryDate && dayOfLife(existing.deliveryDate, todayIso) <= 30) return false;
+  const seed = postnatalSeed(todayIso);
+  const other = <T extends { patient_id: string }>(rows: T[]) => rows.filter((r) => r.patient_id !== POSTNATAL_SEED_ID);
+  store.patients = [...store.patients.filter((p) => p.id !== POSTNATAL_SEED_ID), seed.patient];
+  store.newborns = [...other(store.newborns), ...seed.newborns];
+  store.postnatalVisits = [...other(store.postnatalVisits), ...seed.visits];
+  store.newbornVaccines = [...other(store.newbornVaccines), ...seed.vaccines];
+  return true;
+}
+
 function initFreshStore(): DemoStoreState {
-  return {
+  const store: DemoStoreState = {
     patients: JSON.parse(JSON.stringify(INITIAL_RAW_DEMO_PATIENTS)),
     completedEvents: {},
     visits: {},
     contacts: {},
     documents: JSON.parse(JSON.stringify(INITIAL_DEMO_DOCUMENTS)),
+    newborns: [],
+    postnatalVisits: [],
+    newbornVaccines: [],
   };
+  applyPostnatalSeed(store);
+  return store;
 }
 
 export function getDemoStore(): DemoStoreState {
@@ -372,7 +510,12 @@ export function getDemoStore(): DemoStoreState {
         if (!Array.isArray(parsed.documents)) {
           parsed.documents = JSON.parse(JSON.stringify(INITIAL_DEMO_DOCUMENTS));
         }
+        // Store files written before postnatal care have none of these keys.
+        parsed.newborns ??= [];
+        parsed.postnatalVisits ??= [];
+        parsed.newbornVaccines ??= [];
         globalThis.__matrusetu_demo_store__ = parsed;
+        if (applyPostnatalSeed(parsed)) saveDemoStore(parsed);
         return parsed;
       }
     }
@@ -688,8 +831,11 @@ export function closeDemoPregnancy(
   data: {
     deliveryDate: string;
     deliveryMode: "NVD" | "LSCS";
-    birthWeightKg: number;
+    birthWeightKg?: number;
     notes?: string;
+    /** 1-3 babies; when absent one baby is built from birthWeightKg. */
+    newborns?: NewbornInput[];
+    gestationalAgeWeeks?: number | null;
   },
   doctorName = "Dr. Demo"
 ): { error: string | null } {
@@ -703,11 +849,23 @@ export function closeDemoPregnancy(
     return { error: "This pregnancy has already been closed." };
   }
 
+  const babies = data.newborns ?? [{ birth_weight_kg: data.birthWeightKg ?? 0, nicu_admission: false }];
+  const rows = buildDemoPostnatalRows(patientId, data.deliveryDate, babies.map((b) => ({
+    name: b.name || null,
+    sex: b.sex || null,
+    birth_weight_kg: b.birth_weight_kg,
+    gestational_age_weeks: data.gestationalAgeWeeks ?? null,
+    nicu_admission: b.nicu_admission,
+  })));
+  store.newborns.push(...rows.newborns);
+  store.postnatalVisits.push(...rows.visits);
+  store.newbornVaccines.push(...rows.vaccines);
+
   patient.status = "delivered";
   patient.pregnancyStatus = "delivered";
   patient.deliveryDate = data.deliveryDate;
   patient.deliveryMode = data.deliveryMode;
-  patient.birthWeightKg = data.birthWeightKg;
+  patient.birthWeightKg = rows.newborns[0].birth_weight_kg;
   patient.closedAt = new Date().toISOString();
   patient.closedBy = doctorName;
   patient.overdueEvents = [];
@@ -1083,4 +1241,68 @@ export function deleteDemoDocument(documentId: string): { patientId: string | nu
   saveDemoStore(store);
   invalidateDemoCache();
   return { patientId: removed.patient_id ?? null, docType: removed.doc_type };
+}
+
+// --- Postnatal care (newborns, joint visits, birth vaccines) ----------------
+
+/** Delivered mothers with their postnatal rows; one mother when `patientId` is given. */
+export function getDemoPostnatalData(patientId?: string) {
+  const store = getDemoStore();
+  const mine = <T extends { patient_id: string }>(rows: T[]) =>
+    rows.filter((r) => !patientId || r.patient_id === patientId);
+  return {
+    patients: store.patients
+      .filter((p) => p.status === "delivered" && p.deliveryDate && (!patientId || p.id === patientId))
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        clinic_patient_no: p.clinicPatientNo ?? null,
+        delivery_date: p.deliveryDate!,
+        delivery_mode: p.deliveryMode ?? null,
+      })),
+    newborns: mine(store.newborns).sort((a, b) => a.birth_order - b.birth_order),
+    visits: mine(store.postnatalVisits),
+    vaccines: mine(store.newbornVaccines),
+  };
+}
+
+export function recordDemoPostnatalVisit(
+  patientId: string,
+  code: PostnatalVisitCode,
+  v: { mother: MotherFindings; babies: Record<string, BabyFindings>; notes: string | null; completedBy: string },
+): boolean {
+  const store = getDemoStore();
+  const visit = store.postnatalVisits.find((x) => x.patient_id === patientId && x.code === code);
+  if (!visit) return false;
+  Object.assign(visit, {
+    completed_at: new Date().toISOString(),
+    completed_by: v.completedBy,
+    mother_findings: v.mother,
+    baby_findings: v.babies,
+    notes: v.notes,
+  });
+  saveDemoStore(store);
+  return true;
+}
+
+export function setDemoBirthVaccine(
+  newbornId: string,
+  vaccine: BirthVaccineCode,
+  v: { given_on: string | null; given_elsewhere: boolean; batch_no: string | null },
+): boolean {
+  const store = getDemoStore();
+  const row = store.newbornVaccines.find((x) => x.newborn_id === newbornId && x.vaccine === vaccine);
+  if (!row) return false;
+  Object.assign(row, v);
+  saveDemoStore(store);
+  return true;
+}
+
+export function updateDemoNewborn(newbornId: string, patch: { name?: string | null; sex?: NewbornSex | null }): boolean {
+  const store = getDemoStore();
+  const row = store.newborns.find((x) => x.id === newbornId);
+  if (!row) return false;
+  Object.assign(row, patch);
+  saveDemoStore(store);
+  return true;
 }
