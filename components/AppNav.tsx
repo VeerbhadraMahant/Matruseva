@@ -314,13 +314,6 @@ export function AppTopBar({
           >
             <MagnifyingGlass size={21} aria-hidden />
           </button>
-          <span
-            aria-hidden
-            title={userName}
-            className="hidden h-9 w-9 items-center justify-center rounded-full bg-[var(--color-primary-surface)] text-[12px] font-semibold text-[var(--color-primary)] sm:flex"
-          >
-            {initials(userName)}
-          </span>
         </div>
       </header>
 
