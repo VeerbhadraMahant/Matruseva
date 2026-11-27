@@ -20,7 +20,7 @@ export function RemoveStaffButton({ profileId }: { profileId: string }) {
           router.refresh();
         })
       }
-      className="flex min-h-10 items-center px-2 text-sm text-[var(--color-overdue)] hover:underline disabled:opacity-50"
+      className="flex min-h-11 items-center rounded-[var(--radius-buttons)] px-3 text-[13px] font-medium text-[var(--color-overdue)] transition-colors hover:bg-[var(--color-overdue-surface)] disabled:opacity-50"
     >
       {pending ? t("settings.staff.removing") : t("settings.staff.remove")}
     </button>

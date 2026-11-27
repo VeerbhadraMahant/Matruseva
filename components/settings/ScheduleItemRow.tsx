@@ -5,10 +5,10 @@ import { useFormStatus } from "react-dom";
 import { updateScheduleItem, type ActionResult } from "@/app/(app)/settings/actions";
 import { withSuccessToast } from "@/components/Toaster";
 import { useT } from "@/lib/i18n/provider";
+import { FormError, inputClass } from "./fields";
 
 const initialState: ActionResult = { error: null };
-const inputClass =
-  "min-h-10 w-20 rounded-[var(--radius-buttons)] border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2 py-1.5 text-sm focus:border-[var(--color-primary)]";
+const weekLabelClass = "mb-1 block text-[12px] font-medium text-[var(--color-charcoal)]";
 
 export function ScheduleItemRow({
   id,
@@ -27,23 +27,48 @@ export function ScheduleItemRow({
   const [state, formAction] = useActionState(withSuccessToast(updateScheduleItem, t("settings.schedule.toast")), initialState);
 
   return (
-    <form action={formAction} className="flex flex-wrap items-center gap-3 border-b border-[var(--color-border)] py-3 last:border-0">
+    <form
+      action={formAction}
+      className="grid grid-cols-2 items-end gap-x-3 gap-y-3 px-4 py-4 sm:px-5 md:grid-cols-[minmax(0,1fr)_6rem_6rem_auto_auto] md:gap-x-4"
+    >
       <input type="hidden" name="itemId" value={id} />
-      <span className="min-w-48 flex-1 text-sm">{name}</span>
-      <label className="flex items-center gap-1 text-xs text-[var(--color-charcoal)]">
-        {t("settings.schedule.fromWeek")}
-        <input type="number" name="windowStartWeek" step="0.1" defaultValue={windowStartWeek} className={inputClass} />
-      </label>
-      <label className="flex items-center gap-1 text-xs text-[var(--color-charcoal)]">
-        {t("settings.schedule.toWeek")}
-        <input type="number" name="windowEndWeek" step="0.1" defaultValue={windowEndWeek} className={inputClass} />
-      </label>
-      <label className="flex items-center gap-1 text-xs text-[var(--color-charcoal)]">
-        <input type="checkbox" name="isCritical" defaultChecked={isCritical} className="h-4 w-4" />
+      <p className="col-span-2 text-[14px] font-medium text-[var(--color-foreground)] md:col-span-1 md:self-center">{name}</p>
+      <div>
+        <label htmlFor={`start-${id}`} className={weekLabelClass}>
+          {t("settings.schedule.fromWeek")}
+        </label>
+        <input
+          id={`start-${id}`}
+          type="number"
+          name="windowStartWeek"
+          step="0.1"
+          defaultValue={windowStartWeek}
+          className={`${inputClass} num`}
+        />
+      </div>
+      <div>
+        <label htmlFor={`end-${id}`} className={weekLabelClass}>
+          {t("settings.schedule.toWeek")}
+        </label>
+        <input
+          id={`end-${id}`}
+          type="number"
+          name="windowEndWeek"
+          step="0.1"
+          defaultValue={windowEndWeek}
+          className={`${inputClass} num`}
+        />
+      </div>
+      <label className="flex min-h-11 cursor-pointer items-center gap-2 text-[13px] text-[var(--color-foreground)]">
+        <input type="checkbox" name="isCritical" defaultChecked={isCritical} className="h-5 w-5" />
         {t("settings.schedule.critical")}
       </label>
       <SaveButton />
-      {state.error && <span className="w-full text-sm text-[var(--color-overdue)]">{state.error}</span>}
+      {state.error && (
+        <div className="col-span-2 md:col-span-5">
+          <FormError>{state.error}</FormError>
+        </div>
+      )}
     </form>
   );
 }
@@ -55,7 +80,7 @@ function SaveButton() {
     <button
       type="submit"
       disabled={pending}
-      className="min-h-10 rounded-[var(--radius-buttons)] border border-[var(--color-primary)] px-3 py-1.5 text-sm font-medium text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-[var(--color-primary-foreground)] disabled:cursor-not-allowed disabled:opacity-50"
+      className="min-h-11 rounded-[var(--radius-buttons)] border border-[var(--color-primary)] px-4 text-[13px] font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-[var(--color-primary-foreground)] disabled:cursor-not-allowed disabled:opacity-50"
     >
       {pending ? "…" : t("settings.schedule.save")}
     </button>
