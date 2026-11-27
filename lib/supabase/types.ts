@@ -315,6 +315,151 @@ export type Database = {
           },
         ]
       }
+      newborn_vaccinations: {
+        Row: {
+          batch_no: string | null
+          clinic_id: string
+          created_at: string
+          given_elsewhere: boolean
+          given_on: string | null
+          id: string
+          newborn_id: string
+          patient_id: string
+          recorded_by: string | null
+          updated_at: string
+          vaccine: string
+        }
+        Insert: {
+          batch_no?: string | null
+          clinic_id: string
+          created_at?: string
+          given_elsewhere?: boolean
+          given_on?: string | null
+          id?: string
+          newborn_id: string
+          patient_id: string
+          recorded_by?: string | null
+          updated_at?: string
+          vaccine: string
+        }
+        Update: {
+          batch_no?: string | null
+          clinic_id?: string
+          created_at?: string
+          given_elsewhere?: boolean
+          given_on?: string | null
+          id?: string
+          newborn_id?: string
+          patient_id?: string
+          recorded_by?: string | null
+          updated_at?: string
+          vaccine?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "newborn_vaccinations_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "newborn_vaccinations_newborn_id_fkey"
+            columns: ["newborn_id"]
+            isOneToOne: false
+            referencedRelation: "newborns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "newborn_vaccinations_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patient_followup_risk"
+            referencedColumns: ["patient_id"]
+          },
+          {
+            foreignKeyName: "newborn_vaccinations_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "newborn_vaccinations_recorded_by_fkey"
+            columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      newborns: {
+        Row: {
+          birth_date: string
+          birth_order: number
+          birth_weight_kg: number
+          clinic_id: string
+          created_at: string
+          gestational_age_weeks: number | null
+          id: string
+          name: string | null
+          nicu_admission: boolean
+          patient_id: string
+          sex: string | null
+          updated_at: string
+        }
+        Insert: {
+          birth_date: string
+          birth_order?: number
+          birth_weight_kg: number
+          clinic_id: string
+          created_at?: string
+          gestational_age_weeks?: number | null
+          id?: string
+          name?: string | null
+          nicu_admission?: boolean
+          patient_id: string
+          sex?: string | null
+          updated_at?: string
+        }
+        Update: {
+          birth_date?: string
+          birth_order?: number
+          birth_weight_kg?: number
+          clinic_id?: string
+          created_at?: string
+          gestational_age_weeks?: number | null
+          id?: string
+          name?: string | null
+          nicu_admission?: boolean
+          patient_id?: string
+          sex?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "newborns_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "newborns_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patient_followup_risk"
+            referencedColumns: ["patient_id"]
+          },
+          {
+            foreignKeyName: "newborns_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patients: {
         Row: {
           address: string | null
@@ -419,6 +564,83 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      postnatal_visits: {
+        Row: {
+          baby_findings: Json
+          clinic_id: string
+          code: string
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          due_from: string
+          due_to: string
+          id: string
+          mother_findings: Json
+          notes: string | null
+          patient_id: string
+          updated_at: string
+        }
+        Insert: {
+          baby_findings?: Json
+          clinic_id: string
+          code: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          due_from: string
+          due_to: string
+          id?: string
+          mother_findings?: Json
+          notes?: string | null
+          patient_id: string
+          updated_at?: string
+        }
+        Update: {
+          baby_findings?: Json
+          clinic_id?: string
+          code?: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          due_from?: string
+          due_to?: string
+          id?: string
+          mother_findings?: Json
+          notes?: string | null
+          patient_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "postnatal_visits_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "postnatal_visits_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "postnatal_visits_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patient_followup_risk"
+            referencedColumns: ["patient_id"]
+          },
+          {
+            foreignKeyName: "postnatal_visits_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
             referencedColumns: ["id"]
           },
         ]
@@ -800,6 +1022,16 @@ export type Database = {
       create_patient_with_schedule: {
         Args: { p_patient: Json; p_care_events: Json }
         Returns: string
+      }
+      record_delivery: {
+        Args: {
+          p_patient_id: string
+          p_delivery: Json
+          p_newborns: Json
+          p_visits: Json
+          p_vaccines: Json
+        }
+        Returns: undefined
       }
     }
     Enums: {
