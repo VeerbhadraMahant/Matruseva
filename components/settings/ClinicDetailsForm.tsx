@@ -9,12 +9,22 @@ import { FormError, FormFooter, inputClass, labelClass } from "./fields";
 
 const initialState: ActionResult = { error: null };
 
-export function ClinicDetailsForm({ name, city, phone }: { name: string; city: string | null; phone: string | null }) {
+export function ClinicDetailsForm({
+  name,
+  city,
+  phone,
+  readOnly = false,
+}: {
+  name: string;
+  city: string | null;
+  phone: string | null;
+  readOnly?: boolean;
+}) {
   const t = useT();
   const [state, formAction] = useActionState(withSuccessToast(updateClinicDetails, t("settings.clinic.toast")), initialState);
 
   return (
-    <form action={formAction} className="grid gap-4 sm:grid-cols-2">
+    <form action={formAction} className="grid h-full content-start gap-4 sm:grid-cols-2">
       <div className="sm:col-span-2">
         <label htmlFor="name" className={labelClass}>
           {t("settings.clinic.name")}
@@ -25,24 +35,26 @@ export function ClinicDetailsForm({ name, city, phone }: { name: string; city: s
         <label htmlFor="city" className={labelClass}>
           {t("settings.clinic.city")}
         </label>
-        <input id="city" name="city" defaultValue={city ?? ""} className={inputClass} />
+        <input id="city" name="city" defaultValue={city ?? ""} placeholder={readOnly ? t("settings.value.notSet") : undefined} className={inputClass} />
       </div>
       <div>
         <label htmlFor="phone" className={labelClass}>
           {t("settings.clinic.phone")}
         </label>
-        <input id="phone" name="phone" type="tel" defaultValue={phone ?? ""} className={inputClass} />
+        <input id="phone" name="phone" type="tel" defaultValue={phone ?? ""} placeholder={readOnly ? t("settings.value.notSet") : undefined} className={inputClass} />
       </div>
       {state.error && (
         <div className="sm:col-span-2">
           <FormError>{state.error}</FormError>
         </div>
       )}
-      <div className="sm:col-span-2">
-        <FormFooter>
-          <SubmitButton>{t("settings.clinic.save")}</SubmitButton>
-        </FormFooter>
-      </div>
+      {!readOnly && (
+        <div className="sm:col-span-2">
+          <FormFooter>
+            <SubmitButton>{t("settings.clinic.save")}</SubmitButton>
+          </FormFooter>
+        </div>
+      )}
     </form>
   );
 }

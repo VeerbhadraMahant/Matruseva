@@ -9,12 +9,12 @@ import { FormError, FormFooter, inputClass, labelClass } from "./fields";
 
 const initialState: ActionResult = { error: null };
 
-export function RiskThresholdsForm({ atRiskDays, lostDays }: { atRiskDays: number; lostDays: number }) {
+export function RiskThresholdsForm({ atRiskDays, lostDays, readOnly = false }: { atRiskDays: number; lostDays: number; readOnly?: boolean }) {
   const t = useT();
   const [state, formAction] = useActionState(withSuccessToast(updateRiskThresholds, t("settings.thresholds.toast")), initialState);
 
   return (
-    <form action={formAction} className="grid gap-4 sm:grid-cols-2">
+    <form action={formAction} className="grid h-full content-start gap-4 sm:grid-cols-2">
       <div>
         <label htmlFor="riskAtRiskDays" className={labelClass}>
           {t("settings.thresholds.atRisk")}
@@ -26,7 +26,7 @@ export function RiskThresholdsForm({ atRiskDays, lostDays }: { atRiskDays: numbe
           inputMode="numeric"
           min={1}
           defaultValue={atRiskDays}
-          className={`${inputClass} num`}
+          className={`${inputClass} num sm:max-w-28`}
           required
         />
       </div>
@@ -41,7 +41,7 @@ export function RiskThresholdsForm({ atRiskDays, lostDays }: { atRiskDays: numbe
           inputMode="numeric"
           min={1}
           defaultValue={lostDays}
-          className={`${inputClass} num`}
+          className={`${inputClass} num sm:max-w-28`}
           required
         />
       </div>
@@ -50,11 +50,13 @@ export function RiskThresholdsForm({ atRiskDays, lostDays }: { atRiskDays: numbe
           <FormError>{state.error}</FormError>
         </div>
       )}
-      <div className="sm:col-span-2">
-        <FormFooter>
-          <SubmitButton>{t("settings.thresholds.save")}</SubmitButton>
-        </FormFooter>
-      </div>
+      {!readOnly && (
+        <div className="sm:col-span-2">
+          <FormFooter>
+            <SubmitButton>{t("settings.thresholds.save")}</SubmitButton>
+          </FormFooter>
+        </div>
+      )}
     </form>
   );
 }

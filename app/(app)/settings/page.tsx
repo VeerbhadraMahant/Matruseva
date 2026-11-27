@@ -58,7 +58,7 @@ export default async function SettingsPage() {
 
   return (
     <>
-      <PageHeader title={t("settings.title")} meta={me.isDemo ? t("settings.demo.readOnly") : clinicName} />
+      <PageHeader title={t("settings.title")} />
       <div className={pageBody}>
         <SettingsSections
           clinic={{
