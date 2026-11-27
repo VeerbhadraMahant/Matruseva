@@ -1275,8 +1275,9 @@ export function recordDemoPostnatalVisit(
   const visit = store.postnatalVisits.find((x) => x.patient_id === patientId && x.code === code);
   if (!visit) return false;
   Object.assign(visit, {
-    completed_at: new Date().toISOString(),
-    completed_by: v.completedBy,
+    // Re-saving a completed visit keeps who completed it and when.
+    completed_at: visit.completed_at ?? new Date().toISOString(),
+    completed_by: visit.completed_by ?? v.completedBy,
     mother_findings: v.mother,
     baby_findings: v.babies,
     notes: v.notes,

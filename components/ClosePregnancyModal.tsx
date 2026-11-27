@@ -241,6 +241,7 @@ export function ClosePregnancyModal({
                           min="0.5"
                           max="6.5"
                           required
+                          aria-describedby={`birth-weight-warn${sfx}`}
                           value={b.weight}
                           onChange={(e) => setBaby(i, { weight: e.target.value })}
                           className={`${fieldCls} font-mono`}
@@ -251,11 +252,10 @@ export function ClosePregnancyModal({
                             {t("patientDetail.closure.birthWeightHint")}
                           </p>
                         )}
-                        {flags.length > 0 && (
-                          <p className="mt-1 text-[11px] text-[var(--color-due)]">
-                            {flags.map((f) => t(`delivery.flag.${f}`)).join(" ")}
-                          </p>
-                        )}
+                        {/* Always mounted so screen readers announce the warning when it appears. */}
+                        <p id={`birth-weight-warn${sfx}`} aria-live="polite" className="mt-1 text-[11px] text-[var(--color-due)] empty:hidden">
+                          {flags.map((f) => t(`delivery.flag.${f}`)).join(" ")}
+                        </p>
                       </div>
                       <div>
                         <label htmlFor={`baby-sex${sfx}`} className="block text-[12px] font-medium text-[var(--color-charcoal)]">

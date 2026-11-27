@@ -4,6 +4,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { Tag, buttonPrimary, buttonSecondary } from "@/components/ui";
 import { formatShortDate } from "@/lib/format";
+import { todayInClinicTimezone, toISODate } from "@/lib/today";
 import { useLocale, useT } from "@/lib/i18n/provider";
 import { careStatusLabel } from "@/lib/clinicalLabels";
 import type { NewbornView, PostnatalVisitView } from "@/lib/postnatalData";
@@ -44,19 +45,22 @@ export function VisitSchedule({
                 <Tag tone={VISIT_TONE[v.status]}>{careStatusLabel(v.status, t)}</Tag>
                 {done && v.completed_at && (
                   <span className="num text-[12px] text-[var(--color-charcoal)]">
-                    {formatShortDate(v.completed_at.slice(0, 10), locale)}
+                    {formatShortDate(toISODate(todayInClinicTimezone(new Date(v.completed_at))), locale)}
                   </span>
                 )}
-                <button
-                  type="button"
-                  className={`${v.status === "due" || v.status === "overdue" ? buttonPrimary : buttonSecondary} ${smallButton}`}
-                  onMouseEnter={() => void loadModal()}
-                  onFocus={() => void loadModal()}
-                  onClick={() => setOpenCode(v.code)}
-                >
-                  {t(done ? "postnatal.panel.visits.viewEdit" : "postnatal.panel.visits.record")}
-                  <span className="sr-only"> {name}</span>
-                </button>
+                {/* A check cannot be recorded before its window opens. */}
+                {v.status !== "upcoming" && (
+                  <button
+                    type="button"
+                    className={`${v.status === "due" || v.status === "overdue" ? buttonPrimary : buttonSecondary} ${smallButton}`}
+                    onMouseEnter={() => void loadModal()}
+                    onFocus={() => void loadModal()}
+                    onClick={() => setOpenCode(v.code)}
+                  >
+                    {t(done ? "postnatal.panel.visits.viewEdit" : "postnatal.panel.visits.record")}
+                    <span className="sr-only"> {name}</span>
+                  </button>
+                )}
               </div>
             </li>
           );

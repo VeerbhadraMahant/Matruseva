@@ -23,7 +23,10 @@ export default async function TodayPage() {
     getCurrentUser(),
     getClinicSnapshot(),
     getT(),
-    getClinicPostnatalDue().catch(() => []),
+    getClinicPostnatalDue().catch((err) => {
+      console.error("today: postnatal due card failed to load", err);
+      return [];
+    }),
   ]);
 
   const worklist = buildWorklist(rows, today, t, locale);

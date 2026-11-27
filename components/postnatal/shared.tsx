@@ -32,6 +32,7 @@ export const VISIT_TONE: Record<PostnatalVisitView["status"], Tone> = {
   due: "warning",
   overdue: "critical",
   upcoming: "neutral",
+  missed: "neutral",
 };
 
 export function FlagChips({ flags }: { flags: (NewbornFlag | MotherFlag)[] }) {
@@ -72,7 +73,8 @@ export function useAction() {
         }
         onDone?.();
         router.refresh();
-      } catch {
+      } catch (err) {
+        console.error("postnatal action failed", err);
         setError(t("common.error.generic"));
       }
     });

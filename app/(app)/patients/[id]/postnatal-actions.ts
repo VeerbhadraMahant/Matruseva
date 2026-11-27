@@ -35,7 +35,28 @@ async function loadNewborns(patientId: string, isDemo: boolean): Promise<{ id: s
   return data ?? [];
 }
 
-/** Completes (or re-saves) one joint postnatal visit: mother findings plus per-baby findings keyed by newborn id. */
+/** One scheduled visit (window start and completion), or null when the mother has no such visit. */
+async function loadVisit(
+  patientId: string,
+  code: PostnatalVisitCode,
+  isDemo: boolean,
+): Promise<{ due_from: string; completed_at: string | null } | null> {
+  if (isDemo) return getDemoPostnatalData(patientId).visits.find((v) => v.code === code) ?? null;
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("postnatal_visits")
+    .select("due_from, completed_at")
+    .eq("patient_id", patientId)
+    .eq("code", code)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Completes (or re-saves) one joint postnatal visit: mother findings plus per-baby findings keyed by newborn id.
+ * A visit cannot be recorded before its window opens; re-saving keeps the original completed_at / completed_by.
+ */
 export async function recordPostnatalVisit(
   patientId: string,
   code: PostnatalVisitCode,
@@ -56,6 +77,10 @@ export async function recordPostnatalVisit(
     if (known.size === 0) return { error: t("postnatal.error.notFound") };
     if (Object.keys(babies.data).some((id) => !known.has(id))) return { error: t("postnatal.error.unknownBaby") };
 
+    const visit = await loadVisit(patientId, code, isDemo);
+    if (!visit) return { error: t("postnatal.error.notFound") };
+    if (toISODate(todayInClinicTimezone()) < visit.due_from) return { error: t("postnatal.error.visitNotYetDue") };
+
     if (isDemo) {
       const ok = recordDemoPostnatalVisit(patientId, code, {
         mother: mother.data, babies: babies.data, notes: notes.data || null, completedBy: me.userId,
@@ -65,8 +90,7 @@ export async function recordPostnatalVisit(
       const supabase = await createClient();
       const { data, error } = await supabase.from("postnatal_visits")
         .update({
-          completed_at: new Date().toISOString(),
-          completed_by: me.userId,
+          ...(!visit.completed_at && { completed_at: new Date().toISOString(), completed_by: me.userId }),
           mother_findings: mother.data as unknown as Json,
           baby_findings: babies.data as unknown as Json,
           notes: notes.data || null,
@@ -76,13 +100,17 @@ export async function recordPostnatalVisit(
         .eq("clinic_id", me.clinicId)
         .select("id")
         .maybeSingle();
-      if (error) return { error: error.message };
+      if (error) {
+        console.error("postnatal-actions: write failed", error);
+        return { error: t("common.error.generic") };
+      }
       if (!data) return { error: t("postnatal.error.notFound") };
     }
 
     revalidatePostnatalViews(patientId);
     return { error: null };
-  } catch {
+  } catch (err) {
+    console.error("postnatal-actions: unexpected failure", err);
     return { error: t("postnatal.error.dbConnection") };
   }
 }
@@ -134,13 +162,17 @@ export async function setBirthVaccine(
         .eq("clinic_id", me.clinicId)
         .select("id")
         .maybeSingle();
-      if (error) return { error: error.message };
+      if (error) {
+        console.error("postnatal-actions: write failed", error);
+        return { error: t("common.error.generic") };
+      }
       if (!data) return { error: t("postnatal.error.notFound") };
     }
 
     revalidatePostnatalViews(patientId);
     return { error: null };
-  } catch {
+  } catch (err) {
+    console.error("postnatal-actions: unexpected failure", err);
     return { error: t("postnatal.error.dbConnection") };
   }
 }
@@ -173,12 +205,16 @@ export async function updateNewborn(
     } else if (Object.keys(patch).length > 0) {
       const supabase = await createClient();
       const { error } = await supabase.from("newborns").update(patch).eq("id", newbornId).eq("patient_id", patientId);
-      if (error) return { error: error.message };
+      if (error) {
+        console.error("postnatal-actions: write failed", error);
+        return { error: t("common.error.generic") };
+      }
     }
 
     revalidatePostnatalViews(patientId);
     return { error: null };
-  } catch {
+  } catch (err) {
+    console.error("postnatal-actions: unexpected failure", err);
     return { error: t("postnatal.error.dbConnection") };
   }
 }
