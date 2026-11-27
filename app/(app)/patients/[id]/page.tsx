@@ -29,6 +29,7 @@ import { VitalsTrendCharts } from "@/components/VitalsTrendCharts";
 import { PatientDetailInteractive } from "@/components/PatientDetailInteractive";
 import { DocumentUploader } from "@/components/DocumentUploader";
 import { ExtractedValues } from "@/components/ExtractedValues";
+import { DeleteDocumentButton } from "@/components/DeleteDocumentButton";
 import { Panel, Tag, Empty, SEVERITY_TONE, buttonPrimary, buttonSecondary, card, pageBody, th, td, type Tone } from "@/components/ui";
 import type { CareEventStatus, ContactOutcome, FollowUpRisk } from "@/lib/supabase/enums";
 import { getDemoPatientDetail } from "@/lib/demo-data";
@@ -673,7 +674,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
                     const url = doc.data_url ?? urlByPath.get(doc.storage_path) ?? null;
                     const isImage = /\.(jpe?g|png|webp)$/i.test(doc.storage_path) || Boolean(doc.data_url?.startsWith("data:image/"));
                     return (
-                      <li key={doc.id} className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-background)]">
+                      <li key={doc.id} className="flex flex-col overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-background)]">
                         <a href={url ?? undefined} target="_blank" rel="noreferrer" className="block hover:opacity-90">
                           {url && isImage ? (
                             // eslint-disable-next-line @next/next/no-img-element -- private signed URL, not an optimizable static asset
@@ -693,6 +694,11 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
                         {doc.ocr_text && (
                           <div className="px-2 pb-2">
                             <ExtractedValues text={doc.ocr_text} />
+                          </div>
+                        )}
+                        {me.role === "doctor" && (
+                          <div className="mt-auto px-2 pb-2">
+                            <DeleteDocumentButton documentId={doc.id} compact />
                           </div>
                         )}
                       </li>

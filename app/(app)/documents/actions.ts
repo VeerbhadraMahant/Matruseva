@@ -8,6 +8,7 @@ import { getT } from "@/lib/i18n/server";
 import {
   addDemoDocument,
   assignDemoDocument,
+  deleteDemoDocument,
   getDemoPatientDetail,
   getDemoStore,
   updateDemoDocumentOcr,
@@ -163,4 +164,82 @@ export async function getOpenCareEvents(patientId: string) {
     .order("due_from");
 
   return (data ?? []).filter((ce): ce is typeof ce & { id: string } => ce.id !== null);
+}
+
+const documentIdSchema = z.string().min(1);
+
+export async function deleteDocument(documentId: string): Promise<ActionResult> {
+  const me = await getCurrentUser();
+  const { t } = await getT();
+  const parsed = documentIdSchema.safeParse(documentId);
+  if (!parsed.success) {
+    return { error: t("documents.error.invalid") };
+  }
+
+  if (me.role !== "doctor") {
+    return { error: t("documents.error.doctorOnly") };
+  }
+
+  if (me.isDemo) {
+    const deleted = deleteDemoDocument(parsed.data);
+    if (!deleted) {
+      return { error: t("documents.error.notFound") };
+    }
+    revalidatePath("/documents");
+    revalidatePath("/opd");
+    if (deleted.patientId) {
+      revalidatePath(`/patients/${deleted.patientId}`);
+    }
+    return { error: null };
+  }
+
+  const supabase = await createClient();
+  const { data: doc, error: fetchError } = await supabase
+    .from("documents")
+    .select("id, patient_id, storage_path")
+    .eq("id", parsed.data)
+    .maybeSingle();
+
+  if (fetchError) {
+    return { error: fetchError.message };
+  }
+  if (!doc) {
+    return { error: t("documents.error.notFound") };
+  }
+
+  // Delete DB record first so the UI never references a missing storage object if removal fails.
+  const { data: deletedRows, error: deleteError } = await supabase
+    .from("documents")
+    .delete()
+    .eq("id", doc.id)
+    .select("id");
+
+  if (deleteError) {
+    return { error: deleteError.message };
+  }
+  if (!deletedRows || deletedRows.length === 0) {
+    return { error: t("documents.error.deleteFailed") };
+  }
+
+  let storageErrorMessage: string | null = null;
+  if (doc.storage_path) {
+    const { error: storageError } = await supabase.storage
+      .from("documents")
+      .remove([doc.storage_path]);
+    if (storageError) {
+      storageErrorMessage = storageError.message;
+    }
+  }
+
+  revalidatePath("/documents");
+  revalidatePath("/opd");
+  if (doc.patient_id) {
+    revalidatePath(`/patients/${doc.patient_id}`);
+  }
+
+  if (storageErrorMessage) {
+    return { error: storageErrorMessage };
+  }
+
+  return { error: null };
 }

@@ -9,6 +9,7 @@ import { DocumentUploader } from "@/components/DocumentUploader";
 import { AssignDocumentForm } from "@/components/AssignDocumentForm";
 import { ExtractedValues } from "@/components/ExtractedValues";
 import { OcrRetryButton } from "@/components/OcrRetryButton";
+import { DeleteDocumentButton } from "@/components/DeleteDocumentButton";
 import { PageHeader, Panel, Tag, type Tone, pageBody } from "@/components/ui";
 import { getT } from "@/lib/i18n/server";
 import { getDemoDocuments } from "@/lib/demo-data";
@@ -103,7 +104,16 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
             )}
           </div>
           <ExtractedValues text={doc.ocr_text} />
-          {canRetry && url && <OcrRetryButton documentId={doc.id} url={url} path={doc.storage_path} isDemo={Boolean(me.isDemo)} />}
+          {((canRetry && url) || me.role === "doctor") && (
+            <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-1">
+              {canRetry && url ? (
+                <OcrRetryButton documentId={doc.id} url={url} path={doc.storage_path} isDemo={Boolean(me.isDemo)} />
+              ) : (
+                <span />
+              )}
+              {me.role === "doctor" && <DeleteDocumentButton documentId={doc.id} />}
+            </div>
+          )}
           {!doc.patient_id && <AssignDocumentForm documentId={doc.id} />}
         </div>
       </li>

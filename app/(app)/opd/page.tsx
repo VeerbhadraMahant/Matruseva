@@ -5,6 +5,7 @@ import { formatDate } from "@/lib/format";
 import { DocumentPreview } from "@/components/DocumentPreview";
 import { documentTypeLabel } from "@/lib/clinicalLabels";
 import { DocumentUploader } from "@/components/DocumentUploader";
+import { DeleteDocumentButton } from "@/components/DeleteDocumentButton";
 import { PageHeader, Panel, Tag, type Tone, pageBody } from "@/components/ui";
 import { getT } from "@/lib/i18n/server";
 import { getDemoDocuments } from "@/lib/demo-data";
@@ -92,13 +93,14 @@ export default async function OpdRegisterPage({ searchParams }: { searchParams: 
                     const url = me.isDemo ? ((p as { data_url?: string | null }).data_url ?? null) : (urlByPath.get(p.storage_path) ?? null);
                     const status = OCR_STATUS[(p.ocr_status ?? "pending") as keyof typeof OCR_STATUS] ?? OCR_STATUS.pending;
                     return (
-                      <li key={p.id} className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-background)]">
+                      <li key={p.id} className="flex flex-col overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-background)]">
     <DocumentPreview
       url={url} path={p.storage_path} title={documentTypeLabel(p.doc_type, t)}
       text={p.ocr_text} className="h-40"
     />
-                        <div className="p-2">
+                        <div className="mt-auto flex flex-wrap items-center justify-between gap-1.5 p-2">
                           <Tag tone={status.tone}>{t(status.labelKey)}</Tag>
+                          {me.role === "doctor" && <DeleteDocumentButton documentId={p.id} compact />}
                         </div>
                       </li>
                     );

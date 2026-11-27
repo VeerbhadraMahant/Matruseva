@@ -1057,3 +1057,15 @@ export function assignDemoDocument(
   invalidateDemoCache();
   return true;
 }
+
+export function deleteDemoDocument(documentId: string): { patientId: string | null; docType: string } | null {
+  const store = getDemoStore();
+  if (!store.documents) return null;
+  const idx = store.documents.findIndex((d) => d.id === documentId);
+  if (idx === -1) return null;
+
+  const [removed] = store.documents.splice(idx, 1);
+  saveDemoStore(store);
+  invalidateDemoCache();
+  return { patientId: removed.patient_id ?? null, docType: removed.doc_type };
+}
