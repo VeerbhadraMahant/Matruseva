@@ -13,6 +13,9 @@ import { opd } from "./opd";
 import { settings } from "./settings";
 import { clinical } from "./clinical";
 import { consult } from "./consult";
+import { delivery } from "./delivery";
+import { postnatal } from "./postnatal";
+import { postnatalSummary } from "./postnatal-summary";
 import type { Locale } from "../config";
 
 import * as commonMod from "./common";
@@ -30,6 +33,9 @@ import * as opdMod from "./opd";
 import * as settingsMod from "./settings";
 import * as clinicalMod from "./clinical";
 import * as consultMod from "./consult";
+import * as deliveryMod from "./delivery";
+import * as postnatalMod from "./postnatal";
+import * as postnatalSummaryMod from "./postnatal-summary";
 
 /** Every area, by name. To add an area, add its file and one line here. */
 export const AREAS = {
@@ -48,6 +54,9 @@ export const AREAS = {
   settings,
   clinical,
   consult,
+  delivery,
+  postnatal,
+  postnatalSummary,
 } as const;
 
 /** Each area file's optional `untranslated` allow-list (parity test unions these). */
@@ -67,6 +76,9 @@ export const AREA_UNTRANSLATED: Record<keyof typeof AREAS, readonly string[]> = 
   settings: settingsMod.untranslated,
   clinical: clinicalMod.untranslated,
   consult: consultMod.untranslated,
+  delivery: deliveryMod.untranslated,
+  postnatal: postnatalMod.untranslated,
+  postnatalSummary: postnatalSummaryMod.untranslated,
 };
 
 type Areas = (typeof AREAS)[keyof typeof AREAS];
