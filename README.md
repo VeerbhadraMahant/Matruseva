@@ -89,6 +89,8 @@ The app deploys to [Vercel](https://vercel.com) with no extra config — it auto
 
 5. WhatsApp webhook (optional): in the Meta developer console open WhatsApp → Configuration, set the callback URL to `https://<your-domain>/api/whatsapp/webhook`, enter the same value as `WHATSAPP_VERIFY_TOKEN` as the verify token, and subscribe to the `messages` field. Copy the app secret (App Settings → Basic) into `WHATSAPP_APP_SECRET`. Redeploy after changing env vars, then click "Verify and save" in Meta.
 
+For staff invitations, enable custom SMTP in Supabase Auth and add `https://<your-domain>/auth/staff-invite` to the redirect allowlist. Use [the invitation template](supabase/templates/staff-invite.html) as the hosted **Invite user** email body. The recipient accepts the invitation in their own browser and sets their password. Apply `20261127000000_doctor_professional_details.sql` to enable saving degrees and years of experience in live profiles.
+
 ## Features
 
 Auth/onboarding (email/password + Google OAuth), patient registration with auto-generated ANC schedules, patient edit with LMP correction and schedule regeneration, visit recording, delivery outcome and pregnancy closure, a "Today" command centre and patient registry with risk/clinical-alert filters, the follow-up call queue (WhatsApp/tel links, per-clinic templates, contact logging, batch logging), document capture with in-browser OCR and full-text search, the OPD register, doctor Settings (clinic details, thresholds, schedule template, staff invites, message templates), clinic analytics summary, and PWA install with an offline fallback page.

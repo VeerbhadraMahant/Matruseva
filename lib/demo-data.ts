@@ -89,7 +89,14 @@ export interface DemoDocumentRecord {
   ocr_engine?: string | null;
 }
 
+interface DemoDoctorProfile {
+  fullName: string;
+  degree: string | null;
+  yearsOfExperience: number | null;
+}
+
 export interface DemoStoreState {
+  doctorProfile?: DemoDoctorProfile;
   patients: DemoPatientRaw[];
   completedEvents: Record<string, string[]>;
   completedEventDates?: Record<string, Record<string, string>>;
@@ -386,6 +393,14 @@ export function saveDemoStore(store: DemoStoreState): void {
   } catch {
     // Graceful fallback if fs is restricted
   }
+}
+
+export function getDemoDoctorProfile(): DemoDoctorProfile {
+  return getDemoStore().doctorProfile ?? { fullName: "Dr. Demo", degree: "MBBS, MD", yearsOfExperience: 12 };
+}
+
+export function setDemoDoctorProfile(profile: DemoDoctorProfile): void {
+  saveDemoStore({ ...getDemoStore(), doctorProfile: profile });
 }
 
 export function resetDemoStore(): void {

@@ -11,9 +11,11 @@ const inputClass =
   "min-h-10 w-full rounded-[var(--radius-buttons)] border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 py-2 text-sm focus:border-[var(--color-primary)]";
 
 export function DoctorProfessionalDetailsForm({
+  fullName,
   degree,
   yearsOfExperience,
 }: {
+  fullName: string;
   degree: string | null;
   yearsOfExperience: number | null;
 }) {
@@ -22,11 +24,24 @@ export function DoctorProfessionalDetailsForm({
     withSuccessToast(updateDoctorProfile, t("settings.profile.saved")),
     initialState,
   );
+  const [nameInput, setNameInput] = useState(fullName);
   const [degreeInput, setDegreeInput] = useState(degree ?? "");
   const [yearsInput, setYearsInput] = useState(yearsOfExperience?.toString() ?? "");
 
   return (
     <form action={formAction} className="mt-3 grid gap-3 sm:grid-cols-2">
+      <label className="space-y-1 text-xs font-medium text-[var(--color-charcoal)] sm:col-span-2">
+        <span>{t("settings.profile.fullName")}</span>
+        <input
+          name="fullName"
+          autoComplete="name"
+          required
+          minLength={2}
+          value={nameInput}
+          onChange={(event) => setNameInput(event.target.value)}
+          className={inputClass}
+        />
+      </label>
       <label className="space-y-1 text-xs font-medium text-[var(--color-charcoal)]">
         <span>{t("settings.profile.degree")}</span>
         <input

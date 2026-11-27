@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { getClaimsBounded } from "@/lib/supabase/claims";
 import { isDemoSession } from "@/lib/demo";
+import { getDemoDoctorProfile } from "@/lib/demo-data";
 
 export interface CurrentUser {
   userId: string;
@@ -32,7 +33,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
       userId: "demo-doctor-id",
       clinicId: "demo-clinic-id",
       clinicName: "MatruSetu Demo Clinic",
-      fullName: "Dr. Demo",
+      fullName: getDemoDoctorProfile().fullName,
       role: "doctor",
       isDemo: true,
     };
