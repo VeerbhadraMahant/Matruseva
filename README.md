@@ -44,6 +44,7 @@ npx supabase db push
 | `npm test` / `npm run test:watch` | Unit tests (Vitest; 14 files, 95 tests) |
 | `npm run db:validate` | Offline SQL syntax check for migrations |
 | `npm run db:seed` | Seed a demo clinic with synthetic patients (needs `SUPABASE_SERVICE_ROLE_KEY`) |
+| `npm run smoke:keys` | Read-only check that Supabase (anon, service role), Gemini (each model in `lib/consultation.ts`), Sarvam and optional WhatsApp Graph credentials work, and that `LISTEN_LINK_SECRET`, `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN` and `NEXT_PUBLIC_SITE_URL` are set sensibly. Prints names and statuses only; exits 1 if a required check fails |
 | `npm run test:e2e` | Playwright golden-path test (needs a running dev server + live Supabase credentials — not run in CI, see `playwright.config.ts`) |
 
 CI (`.github/workflows/ci.yml`) runs lint, typecheck, unit tests, `db:validate`, `npm audit --omit=dev --audit-level=high` (fails on high/critical advisories) and a production build.
