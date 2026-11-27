@@ -85,6 +85,8 @@ export interface DemoDocumentRecord {
   created_at: string;
   patient_id: string | null;
   data_url?: string | null;
+  /** Which engine read the text (sarvam | tesseract | pdf-text). */
+  ocr_engine?: string | null;
 }
 
 export interface DemoStoreState {
@@ -634,7 +636,7 @@ function computeDemoPatientDetail(id: string, today: Date, todayIso: string) {
       ? careEvents.map((ce) => (ce.completed_at ? ce : { ...ce, status: "skipped" as CareEventStatus, skipped_reason: "Pregnancy closed / delivered" }))
       : careEvents,
     visits,
-    documents: [],
+    documents: (store.documents ?? []).filter((d) => d.patient_id === patientRaw.id),
     contacts,
     risk: {
       risk: followUpRisk,
@@ -992,6 +994,7 @@ export function addDemoDocument(data: {
   dataUrl?: string | null;
   ocrText?: string | null;
   ocrStatus?: "pending" | "done" | "failed" | "skipped";
+  patientId?: string | null;
 }): DemoDocumentRecord {
   const store = getDemoStore();
   if (!store.documents) store.documents = [];
@@ -1006,12 +1009,28 @@ export function addDemoDocument(data: {
     ocr_status: data.ocrStatus ?? (data.ocrText ? "done" : "skipped"),
     ocr_text: data.ocrText || null,
     created_at: new Date().toISOString(),
-    patient_id: null,
+    patient_id: data.patientId ?? null,
     data_url: data.dataUrl || null,
   };
   store.documents.unshift(doc);
   saveDemoStore(store);
+  invalidateDemoCache();
   return doc;
+}
+
+export function updateDemoDocumentOcr(
+  documentId: string,
+  ocr: { status: "done" | "failed"; text?: string | null; engine?: string | null },
+): boolean {
+  const store = getDemoStore();
+  const doc = store.documents?.find((d) => d.id === documentId);
+  if (!doc) return false;
+  doc.ocr_status = ocr.status;
+  doc.ocr_text = ocr.text || null;
+  doc.ocr_engine = ocr.engine ?? null;
+  saveDemoStore(store);
+  invalidateDemoCache();
+  return true;
 }
 
 export function assignDemoDocument(
