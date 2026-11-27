@@ -4,7 +4,7 @@ import { useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Camera } from "@phosphor-icons/react";
 import { createClient } from "@/lib/supabase/client";
-import { prepareImage, previewDataUrl, readDocument, renderPdfPreview, terminateOcrWorker, type OcrEngine, type OcrResult, type PreparedImage } from "@/lib/ocr";
+import { prepareImage, previewDataUrl, readDocument, renderPdfPreview, acquireOcrWorker, releaseOcrWorker, type OcrEngine, type OcrResult, type PreparedImage } from "@/lib/ocr";
 import { saveOcrResult } from "@/lib/ocrSave";
 import type { DocSource, DocType } from "@/lib/supabase/enums";
 import { useT } from "@/lib/i18n/provider";
@@ -55,12 +55,16 @@ export function DocumentUploader({
   const [source, setSource] = useState<DocSource>("camera");
   const [docDate, setDocDate] = useState(() => showDateInput ? toISODate(todayInClinicTimezone()) : "");
   const [items, setItems] = useState<UploadItem[]>([]);
+  // A second batch would overwrite the first one's item list by index, so lock input while one runs.
+  const [busy, setBusy] = useState(false);
 
   async function handleFiles(files: FileList | null) {
-    if (!files || files.length === 0) return;
+    if (!files || files.length === 0 || busy) return;
     const supabase = isDemo ? null : createClient();
     const fileArray = Array.from(files);
     setItems(fileArray.map((f) => ({ fileName: f.name, status: "uploading" })));
+    setBusy(true);
+    acquireOcrWorker();
 
     try {
       for (let i = 0; i < fileArray.length; i++) {
@@ -138,7 +142,8 @@ export function DocumentUploader({
         router.refresh();
       }
     } finally {
-      await terminateOcrWorker();
+      await releaseOcrWorker();
+      setBusy(false);
       if (inputRef.current) inputRef.current.value = "";
     }
   }
@@ -186,12 +191,14 @@ export function DocumentUploader({
         accept="image/*,application/pdf"
         capture="environment"
         multiple
+        disabled={busy}
         onChange={(e) => handleFiles(e.target.files)}
         className="sr-only"
       />
       <label
         htmlFor={fileInputId}
-        className="flex min-h-10 w-full cursor-pointer flex-wrap items-center justify-center gap-2 rounded-[var(--radius-buttons)] bg-[var(--color-primary)] px-[var(--space-21)] py-[var(--space-14)] font-medium text-[var(--color-primary-foreground)] hover:bg-[var(--color-primary-hover)]"
+        aria-disabled={busy}
+        className={`flex min-h-10 w-full flex-wrap items-center justify-center gap-2 rounded-[var(--radius-buttons)] bg-[var(--color-primary)] px-[var(--space-21)] py-[var(--space-14)] font-medium text-[var(--color-primary-foreground)] hover:bg-[var(--color-primary-hover)] ${busy ? "pointer-events-none opacity-60" : "cursor-pointer"}`}
       >
         <Camera size={20} weight="regular" aria-hidden /> {t("documents.uploader.button")}
       </label>

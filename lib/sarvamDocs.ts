@@ -42,7 +42,7 @@ export async function sarvamParse(bytes: Uint8Array<ArrayBuffer>, mime: string, 
     form.append("language", "en-IN");
     form.append("output_format", "json");
     const job = await call("/job/parse", { method: "POST", body: form }, signal);
-    const id = String(job.job_id ?? "");
+    const id = encodeURIComponent(String(job.job_id ?? ""));
     if (!id) throw new SarvamOcrError("Sarvam returned no job id");
 
     let status = String(job.status ?? "pending");

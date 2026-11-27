@@ -28,8 +28,17 @@ async function getWorker() {
   return workerPromise;
 }
 
-/** Free the Tesseract worker thread and its ~30 MB of memory. Call when a batch finishes. */
-export async function terminateOcrWorker() {
+let workerUsers = 0;
+
+/** Mark the shared worker in use; pair every call with releaseOcrWorker in a finally. */
+export function acquireOcrWorker() {
+  workerUsers++;
+}
+
+/** Free the Tesseract worker (~30 MB) once its last user is done, so one finishing job cannot kill another's recognition. */
+export async function releaseOcrWorker() {
+  workerUsers = Math.max(0, workerUsers - 1);
+  if (workerUsers > 0) return;
   const pending = workerPromise;
   workerPromise = null;
   if (pending) await (await pending).terminate().catch(() => undefined);

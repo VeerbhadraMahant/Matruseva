@@ -240,8 +240,12 @@ h1, h2, h3, h4 {
   @page {
     size: A4 portrait;
     margin: 8mm 10mm 12mm;
+  }
+  /* The "Page X of Y" footer belongs to the multi-page A4 report only, not the single-card health card print. */
+  @page rpt {
     @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 9pt; color: #475569; }
   }
+  .rpt-doc { page: rpt; }
   body {
     background: #ffffff !important;
     color: #0f172a !important;

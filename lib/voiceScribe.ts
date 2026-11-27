@@ -188,7 +188,8 @@ const alt = (words: string[]) =>
 
 const kw = (words: string[]) => `(?<![a-z])(?:${alt(words)})`;
 const FILL = "(?:\\s|is|hai|aahe|ahe|आहे|है|=|-|of|at|about)*";
-const NUM = "(\\d{1,3}(?:\\.\\d{1,2})?)";
+// Take the whole digit run so "1058" is rejected as 1058 instead of being truncated to 105.
+const NUM = "(\\d{1,6}(?:\\.\\d{1,2})?)(?!\\d)";
 const BP_SEP = "(?:\\s*(?:\\/|by|over|upon|and|aur|bata|baay|बाय|बटा|ओवर|और|आणि|वर|पर)\\s*|\\s+)";
 const BP_STRONG_SEP = "\\s*(?:\\/|by|over|बाय|बटा|ओवर)\\s*";
 
@@ -205,12 +206,19 @@ const UNIT_KG = "(?:kg|kgs|kilo|kilos|kilogram|kilograms|किलो|किग�
 interface Match {
   a: string;
   b?: string;
+  /** Later, different readings of the same field (the first one wins; these are reported, not used). */
+  extra: Match[];
 }
 
 function first(norm: string, patterns: RegExp[]): Match | null {
   for (const p of patterns) {
-    const m = norm.match(p);
-    if (m) return { a: m[1], b: m[2] };
+    const all = [...norm.matchAll(new RegExp(p.source, "g"))];
+    if (!all.length) continue;
+    const key = (m: RegExpMatchArray) => `${m[1]}/${m[2] ?? ""}`;
+    const seen = new Set([key(all[0])]);
+    const extra: Match[] = [];
+    for (const m of all.slice(1)) if (!seen.has(key(m))) (seen.add(key(m)), extra.push({ a: m[1], b: m[2], extra: [] }));
+    return { a: all[0][1], b: all[0][2], extra };
   }
   return null;
 }
@@ -241,6 +249,7 @@ export function parseVoiceToVitals(rawText: string): ParsedVitals {
       bpSys = sys;
       bpDia = dia;
     } else rejected.push({ field: "bp", text: `${bp.a}/${bp.b}` });
+    for (const x of bp.extra) rejected.push({ field: "bp", text: `${x.a}/${x.b}` });
   }
 
   const scalar = (
@@ -252,9 +261,10 @@ export function parseVoiceToVitals(rawText: string): ParsedVitals {
     const m = first(norm, patterns);
     if (!m) return null;
     const v = num(m.a);
-    if (inRange(key, v)) return transform(v);
-    rejected.push({ field, text: m.a });
-    return null;
+    const ok = inRange(key, v);
+    if (!ok) rejected.push({ field, text: m.a });
+    for (const x of m.extra) rejected.push({ field, text: x.a });
+    return ok ? transform(v) : null;
   };
 
   weight = scalar(

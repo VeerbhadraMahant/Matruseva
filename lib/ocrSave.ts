@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/client";
 import { updateDemoDocumentOcrAction } from "@/app/(app)/documents/actions";
-import { readDocument, terminateOcrWorker, type OcrResult } from "@/lib/ocr";
+import { acquireOcrWorker, readDocument, releaseOcrWorker, type OcrResult } from "@/lib/ocr";
 
 /** Persist an OCR outcome (null = failed). Returns an error message, or null when the row was really updated. */
 export async function saveOcrResult(isDemo: boolean, id: string, result: OcrResult | null): Promise<string | null> {
@@ -22,6 +22,7 @@ export async function saveOcrResult(isDemo: boolean, id: string, result: OcrResu
 
 /** Re-run OCR on an already stored document (failed, interrupted or never processed). */
 export async function retryOcr(isDemo: boolean, id: string, url: string, fileName: string): Promise<{ error: string | null; engine?: string }> {
+  acquireOcrWorker();
   try {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`Could not open the stored file (${res.status})`);
@@ -38,6 +39,6 @@ export async function retryOcr(isDemo: boolean, id: string, url: string, fileNam
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Retry failed" };
   } finally {
-    await terminateOcrWorker();
+    await releaseOcrWorker();
   }
 }

@@ -9,6 +9,8 @@ export async function POST(request: Request) {
   try {
     await getCurrentUser();
 
+    if (Number(request.headers.get("content-length") ?? 0) > MAX_CLIP_BYTES + 65_536) return Response.json({ code: "bad_audio" }, { status: 413 });
+
     const form = await request.formData().catch(() => null);
     const audio = form?.get("audio");
     const lang = form?.get("lang");

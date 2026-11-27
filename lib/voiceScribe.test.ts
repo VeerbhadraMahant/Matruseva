@@ -264,3 +264,34 @@ describe("inRange", () => {
     expect(inRange("hb", Number.NaN)).toBe(false);
   });
 });
+
+describe("digit-run boundaries", () => {
+  it("does not truncate an over-long number", () => {
+    const w = p("weight 1058");
+    expect(w.weight).toBeNull();
+    expect(w.rejected).toEqual([{ field: "weight", text: "1058" }]);
+    const f = p("fhr 1400");
+    expect(f.fhr).toBeNull();
+    expect(f.rejected).toEqual([{ field: "fhr", text: "1400" }]);
+  });
+  it("still reads normal and decimal values", () => {
+    expect(p("weight 58.5").weight).toBe(58.5);
+    expect(p("fhr 140").fhr).toBe(140);
+  });
+});
+
+describe("extra readings are surfaced", () => {
+  it("lists a second distinct BP in rejected and keeps the first", () => {
+    const r = p("bp 120/80 and again bp 150/95");
+    expect(r.bpSys).toBe(120);
+    expect(r.rejected).toEqual([{ field: "bp", text: "150/95" }]);
+  });
+  it("lists a second distinct FHR", () => {
+    const r = p("fhr 140 then fhr 150");
+    expect(r.fhr).toBe(140);
+    expect(r.rejected).toEqual([{ field: "fhr", text: "150" }]);
+  });
+  it("ignores a repeated identical reading", () => {
+    expect(p("fhr 140 fhr 140").rejected).toEqual([]);
+  });
+});
