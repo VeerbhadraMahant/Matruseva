@@ -15,8 +15,9 @@ const loadModal = () => import("./RecordVisitModal");
 const RecordVisitModal = dynamic(() => loadModal().then((m) => m.RecordVisitModal), { ssr: false });
 
 export function VisitSchedule({
-  visits, newborns, patientId, motherName,
+  visits, newborns, patientId, motherName, todayIso,
 }: {
+  todayIso: string;
   visits: PostnatalVisitView[];
   newborns: NewbornView[];
   patientId: string;
@@ -49,7 +50,7 @@ export function VisitSchedule({
                   </span>
                 )}
                 {/* A check cannot be recorded before its window opens. */}
-                {v.status !== "upcoming" && (
+                {v.due_from <= todayIso && (
                   <button
                     type="button"
                     className={`${v.status === "due" || v.status === "overdue" ? buttonPrimary : buttonSecondary} ${smallButton}`}

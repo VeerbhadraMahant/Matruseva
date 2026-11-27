@@ -107,7 +107,7 @@ export function PostnatalPanel({
 
           <section aria-labelledby="postnatal-visits">
             <h3 id="postnatal-visits" className="mb-2 text-[14px] font-semibold">{t("postnatal.panel.visits.title")}</h3>
-            <VisitSchedule visits={data.visits} newborns={data.newborns} patientId={patientId} motherName={motherName} />
+            <VisitSchedule visits={data.visits} newborns={data.newborns} patientId={patientId} motherName={motherName} todayIso={data.todayIso} />
           </section>
         </div>
       </Panel>
