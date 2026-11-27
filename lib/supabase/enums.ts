@@ -15,3 +15,6 @@ export type ManualContactOutcome = Exclude<ContactOutcome, "automated_reminder">
 export type StaffRole = "doctor" | "staff";
 export type CareEventStatus = "done" | "skipped" | "upcoming" | "due" | "overdue";
 export type FollowUpRisk = "on_track" | "at_risk" | "lost";
+export type NewbornSex = "female" | "male" | "ambiguous";
+export type PostnatalVisitCode = "PNC_D3" | "PNC_D7" | "PNC_D14" | "PNC_D42";
+export type BirthVaccineCode = "HEPB0" | "OPV0" | "BCG";
