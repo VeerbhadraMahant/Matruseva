@@ -11,11 +11,20 @@ import { HeroCard } from "@/components/today/HeroCard";
 import { QuickActions } from "@/components/today/QuickActions";
 import { TodayWorklist } from "@/components/today/TodayWorklist";
 import { UpcomingDeliveries } from "@/components/today/UpcomingDeliveries";
+import { PostnatalDueCard } from "@/components/postnatal/PostnatalDueCard";
+import { getClinicPostnatalDue } from "@/lib/postnatalData";
+import { toISODate } from "@/lib/today";
 import { getDemoContactStats, getDemoDeliveriesThisMonthCount } from "@/lib/demo-data";
 import { buildWorklist, upcomingDeliveries } from "./view-model";
 
 export default async function TodayPage() {
-  const [me, { rows, today }, { t, locale }] = await Promise.all([getCurrentUser(), getClinicSnapshot(), getT()]);
+  // The postnatal card is secondary: a failed load (e.g. migration not yet applied) must not break Today.
+  const [me, { rows, today }, { t, locale }, postnatalDue] = await Promise.all([
+    getCurrentUser(),
+    getClinicSnapshot(),
+    getT(),
+    getClinicPostnatalDue().catch(() => []),
+  ]);
 
   const worklist = buildWorklist(rows, today, t, locale);
   const overdueCount = rows.filter((r) => hasOverdueItems(r.overdue.length)).length;
@@ -117,6 +126,7 @@ export default async function TodayPage() {
             <div className="order-5">
               <UpcomingDeliveries items={deliveries.slice(0, 5)} total={deliveries.length} />
             </div>
+            <PostnatalDueCard rows={postnatalDue} todayIso={toISODate(today)} />
           </div>
         </div>
       </div>
