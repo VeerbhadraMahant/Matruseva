@@ -65,6 +65,13 @@ export const documents = defineArea({
 
     "documents.error.choosePatient": "Choose a patient",
     "documents.error.invalid": "Check the details and try again.",
+    "documents.error.doctorOnly": "Only the clinic doctor can delete documents.",
+    "documents.error.notFound": "Document not found.",
+    "documents.error.deleteFailed": "Could not delete document.",
+    "documents.delete.aria": "Delete document",
+    "documents.delete.confirm": "Delete permanently?",
+    "documents.delete.deleting": "Deleting…",
+    "documents.delete.toast": "Document deleted",
   },
   hi: {
     "documents.title": "दस्तावेज़",
@@ -128,6 +135,13 @@ export const documents = defineArea({
 
     "documents.error.choosePatient": "मरीज़ चुनें",
     "documents.error.invalid": "विवरण जाँचकर फिर कोशिश करें।",
+    "documents.error.doctorOnly": "केवल क्लिनिक के डॉक्टर ही दस्तावेज़ हटा सकते हैं।",
+    "documents.error.notFound": "दस्तावेज़ नहीं मिला।",
+    "documents.error.deleteFailed": "दस्तावेज़ नहीं हटाया जा सका।",
+    "documents.delete.aria": "दस्तावेज़ हटाएँ",
+    "documents.delete.confirm": "स्थायी रूप से हटाएँ?",
+    "documents.delete.deleting": "हटाया जा रहा है…",
+    "documents.delete.toast": "दस्तावेज़ हटाया गया",
   },
   mr: {
     "documents.title": "कागदपत्रे",
@@ -191,6 +205,13 @@ export const documents = defineArea({
 
     "documents.error.choosePatient": "रुग्ण निवडा",
     "documents.error.invalid": "तपशील तपासा आणि पुन्हा प्रयत्न करा.",
+    "documents.error.doctorOnly": "केवळ क्लिनिकचे डॉक्टरच कागदपत्रे हटवू शकतात.",
+    "documents.error.notFound": "कागदपत्र सापडले नाही.",
+    "documents.error.deleteFailed": "कागदपत्र हटवता आले नाही.",
+    "documents.delete.aria": "कागदपत्र हटवा",
+    "documents.delete.confirm": "कायमचे हटवायचे?",
+    "documents.delete.deleting": "हटवले जात आहे…",
+    "documents.delete.toast": "कागदपत्र हटवले",
   },
 });
 

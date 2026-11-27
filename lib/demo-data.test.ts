@@ -8,6 +8,7 @@ import {
   getDemoDocuments,
   addDemoDocument,
   assignDemoDocument,
+  deleteDemoDocument,
 } from "./demo-data";
 
 describe("Demo Data Operations (Zero-Fetch Local Evaluation)", () => {
@@ -106,5 +107,22 @@ describe("Demo Data Operations (Zero-Fetch Local Evaluation)", () => {
     const updated = getDemoDocuments().find((d) => d.id === doc.id);
     expect(updated?.patient_id).toBe("p1-pooja-deshmukh");
     expect(updated?.patients?.name).toBe("Pooja Deshmukh");
+  });
+
+  it("deletes demo documents and removes them from the store", () => {
+    const doc = addDemoDocument({
+      docType: "report",
+      source: "camera",
+      patientId: "p1-pooja-deshmukh",
+      ocrText: "Temporary document to delete",
+      ocrStatus: "done",
+    });
+
+    expect(getDemoDocuments().some((d) => d.id === doc.id)).toBe(true);
+
+    const deleted = deleteDemoDocument(doc.id);
+    expect(deleted).toEqual({ patientId: "p1-pooja-deshmukh", docType: "report" });
+    expect(getDemoDocuments().some((d) => d.id === doc.id)).toBe(false);
+    expect(deleteDemoDocument("missing-doc-id")).toBeNull();
   });
 });
