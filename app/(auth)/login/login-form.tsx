@@ -6,6 +6,7 @@ import { Sparkle } from "@phosphor-icons/react";
 import { login, loginDemo, type ActionResult } from "../actions";
 import { SubmitButton } from "@/components/SubmitButton";
 import { DEMO_EMAIL, DEMO_PASSWORD } from "@/lib/demo";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { useT } from "@/lib/i18n/provider";
 
@@ -17,7 +18,7 @@ export function LoginForm({ demo }: { demo: boolean }) {
   const [state, formAction] = useActionState(login, initialState);
 
   return (
-    <AuthShell>
+    <AuthShell showBack>
       <h1 className="mb-1 text-[24px] font-semibold tracking-tight text-[var(--color-foreground)]">
         {t("auth.login.title")}
       </h1>
@@ -74,24 +75,23 @@ export function LoginForm({ demo }: { demo: boolean }) {
         <SubmitButton>{t("auth.login.submit")}</SubmitButton>
       </form>
 
-      {demo && (
-        <>
-          <div className="my-4 flex items-center gap-3 text-xs text-[var(--color-charcoal)]">
-            <span className="h-px flex-1 bg-[var(--color-border)]" />
-            {t("auth.signup.or")}
-            <span className="h-px flex-1 bg-[var(--color-border)]" />
-          </div>
+      <div className="my-4 flex items-center gap-3 text-xs text-[var(--color-charcoal)]">
+        <span className="h-px flex-1 bg-[var(--color-border)]" />
+        {t("auth.signup.or")}
+        <span className="h-px flex-1 bg-[var(--color-border)]" />
+      </div>
+      <GoogleSignInButton />
 
-          <form action={loginDemo}>
-            <button
-              type="submit"
-              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-[var(--radius-buttons)] border border-[var(--color-border)] bg-[var(--color-background)] px-4 text-[15px] font-semibold text-[var(--color-foreground)] transition-all hover:border-[var(--color-primary)] hover:bg-[var(--color-surface-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
-            >
-              <Sparkle size={18} weight="fill" className="text-[var(--color-primary)]" aria-hidden />
-              {t("auth.login.demoButton")}
-            </button>
-          </form>
-        </>
+      {demo && (
+        <form action={loginDemo} className="mt-3">
+          <button
+            type="submit"
+            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-[var(--radius-buttons)] border border-[var(--color-border)] bg-[var(--color-background)] px-4 text-[15px] font-semibold text-[var(--color-foreground)] transition-all hover:border-[var(--color-primary)] hover:bg-[var(--color-surface-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+          >
+            <Sparkle size={18} weight="fill" className="text-[var(--color-primary)]" aria-hidden />
+            {t("auth.login.demoButton")}
+          </button>
+        </form>
       )}
 
       <p className="mt-6 text-sm text-[var(--color-charcoal)]">

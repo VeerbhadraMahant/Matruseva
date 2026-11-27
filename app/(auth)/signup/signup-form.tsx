@@ -18,7 +18,7 @@ export function SignupForm({ demo }: { demo: boolean }) {
 
   if (state.checkEmail) {
     return (
-      <AuthShell>
+      <AuthShell showBack>
         <div className="text-center">
           <CheckCircle size={40} weight="fill" className="mx-auto text-[var(--color-on-track)]" aria-hidden />
           <h1 className="mt-4 mb-1 text-[20px] font-semibold tracking-tight text-[var(--color-foreground)]">
@@ -33,7 +33,7 @@ export function SignupForm({ demo }: { demo: boolean }) {
   }
 
   return (
-    <AuthShell>
+    <AuthShell showBack>
       <div>
         <h1 className="mb-1 text-[24px] font-semibold tracking-tight text-[var(--color-foreground)]">
           {t("auth.signup.title")}

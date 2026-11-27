@@ -61,6 +61,8 @@ export async function login(_prev: ActionResult, formData: FormData): Promise<Ac
     return { error: t("auth.error.credentials") };
   }
 
+  // A leftover demo cookie would otherwise override this real session.
+  (await cookies()).delete(DEMO_COOKIE);
   redirect("/today");
 }
 
@@ -94,6 +96,7 @@ export async function signup(_prev: ActionResult, formData: FormData): Promise<A
     return { error: null, checkEmail: true };
   }
 
+  (await cookies()).delete(DEMO_COOKIE);
   redirect("/onboarding");
 }
 

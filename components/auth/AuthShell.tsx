@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { CheckCircle } from "@phosphor-icons/react/dist/ssr";
+import { ArrowLeft, CheckCircle } from "@phosphor-icons/react/dist/ssr";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useT } from "@/lib/i18n/provider";
 
 const POINTS = ["auth.shell.point1", "auth.shell.point2", "auth.shell.point3"] as const;
 
 /** Split-screen frame for sign-in, sign-up and onboarding. Decorative shapes only, no imagery. */
-export function AuthShell({ children }: { children: React.ReactNode }) {
+export function AuthShell({ children, showBack = false }: { children: React.ReactNode; showBack?: boolean }) {
   const t = useT();
   return (
     <main className="flex min-h-dvh">
@@ -60,7 +60,16 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
         <p className="text-[12px] text-[#e6ddef]/80">{t("auth.shell.tagline")}</p>
       </aside>
 
-      <div className="relative flex flex-1 flex-col items-center justify-center px-4 py-10">
+      <div className="relative flex flex-1 flex-col items-center justify-center px-4 pb-10 pt-20 md:pt-10">
+        {showBack && (
+          <Link
+            href="/"
+            className="absolute left-4 top-4 inline-flex min-h-11 items-center gap-1.5 text-[14px] text-[var(--color-charcoal)] hover:text-[var(--color-foreground)]"
+          >
+            <ArrowLeft size={16} aria-hidden />
+            {t("auth.back.home")}
+          </Link>
+        )}
         <div className="absolute right-4 top-4">
           <LanguageSwitcher variant="pill" placement="bottom" align="end" />
         </div>

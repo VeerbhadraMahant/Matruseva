@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createRecoveryProof, RECOVERY_COOKIE, RECOVERY_MAX_AGE } from "@/lib/passwordRecovery";
 import { getT } from "@/lib/i18n/server";
+import { DEMO_COOKIE } from "@/lib/demo";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
@@ -26,7 +27,10 @@ export async function GET(request: NextRequest) {
           return response;
         }
       } else if (!recovery) {
-        return NextResponse.redirect(`${origin}/today`);
+        const response = NextResponse.redirect(`${origin}/today`);
+        // A leftover demo cookie would otherwise override this real session.
+        response.cookies.delete(DEMO_COOKIE);
+        return response;
       }
       return NextResponse.redirect(`${origin}/forgot-password?expired=1`);
     }

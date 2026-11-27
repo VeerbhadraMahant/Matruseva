@@ -15,6 +15,7 @@ export const auth = defineArea({
     "auth.field.email": "Email",
     "auth.field.password": "Password",
     "auth.google.continue": "Continue with Google",
+    "auth.back.home": "Back to home",
 
     "auth.login.title": "Sign in",
     "auth.login.subtitle": "Welcome back to your clinic",
@@ -79,6 +80,7 @@ export const auth = defineArea({
     "auth.field.email": "ईमेल",
     "auth.field.password": "पासवर्ड",
     "auth.google.continue": "Google से जारी रखें",
+    "auth.back.home": "होम पर वापस जाएँ",
 
     "auth.login.title": "साइन इन करें",
     "auth.login.subtitle": "अपने क्लिनिक में वापसी पर स्वागत है",
@@ -143,6 +145,7 @@ export const auth = defineArea({
     "auth.field.email": "ईमेल",
     "auth.field.password": "पासवर्ड",
     "auth.google.continue": "Google सह सुरू ठेवा",
+    "auth.back.home": "मुख्यपृष्ठावर परत जा",
 
     "auth.login.title": "साइन इन करा",
     "auth.login.subtitle": "तुमच्या क्लिनिकमध्ये पुन्हा स्वागत आहे",
