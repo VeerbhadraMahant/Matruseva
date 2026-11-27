@@ -29,10 +29,10 @@ export function ScheduleItemRow({
   return (
     <form
       action={formAction}
-      className="grid grid-cols-2 items-end gap-x-3 gap-y-3 px-4 py-4 sm:px-5 md:grid-cols-[minmax(0,1fr)_6rem_6rem_auto_auto] md:gap-x-4"
+      className="grid grid-cols-2 items-end gap-x-3 gap-y-3 px-4 py-4 sm:px-5 xl:grid-cols-[minmax(0,1fr)_6rem_6rem_auto_auto] xl:gap-x-4"
     >
       <input type="hidden" name="itemId" value={id} />
-      <p className="col-span-2 text-[14px] font-medium text-[var(--color-foreground)] md:col-span-1 md:self-center">{name}</p>
+      <p className="col-span-2 text-[14px] font-medium text-[var(--color-foreground)] xl:col-span-1 xl:self-center">{name}</p>
       <div>
         <label htmlFor={`start-${id}`} className={weekLabelClass}>
           {t("settings.schedule.fromWeek")}
@@ -65,7 +65,7 @@ export function ScheduleItemRow({
       </label>
       <SaveButton />
       {state.error && (
-        <div className="col-span-2 md:col-span-5">
+        <div className="col-span-2 xl:col-span-5">
           <FormError>{state.error}</FormError>
         </div>
       )}
