@@ -27,6 +27,8 @@ import { ClosePregnancyForm } from "@/components/ClosePregnancyForm";
 import { EditPatientButton } from "@/components/EditPatientModal";
 import { VitalsTrendCharts } from "@/components/VitalsTrendCharts";
 import { PatientDetailInteractive } from "@/components/PatientDetailInteractive";
+import { DocumentUploader } from "@/components/DocumentUploader";
+import { ExtractedValues } from "@/components/ExtractedValues";
 import { Panel, Tag, Empty, SEVERITY_TONE, buttonPrimary, buttonSecondary, card, pageBody, th, td, type Tone } from "@/components/ui";
 import type { CareEventStatus, ContactOutcome, FollowUpRisk } from "@/lib/supabase/enums";
 import { getDemoPatientDetail } from "@/lib/demo-data";
@@ -80,6 +82,8 @@ interface DocRecord {
   storage_path: string;
   ocr_text?: string | null;
   created_at: string;
+  /** Demo store only: inline image preview in place of a signed storage URL. */
+  data_url?: string | null;
 }
 
 interface ContactRecord {
@@ -182,7 +186,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
     doc_date: d.doc_date,
     storage_path: d.storage_path,
     ocr_text: d.ocr_text ?? null,
-    url: urlByPath.get(d.storage_path) ?? null,
+    url: d.data_url ?? urlByPath.get(d.storage_path) ?? null,
     created_at: d.created_at,
   }));
 
@@ -658,13 +662,16 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
                 </Link>
               }
             >
+              <div className="p-4 pb-0">
+                <DocumentUploader clinicId={me.clinicId} isDemo={Boolean(me.isDemo)} patientId={id} />
+              </div>
               {docs.length === 0 ? (
                 <Empty>{t("patientDetail.documents.empty")}</Empty>
               ) : (
-                <ul className="grid grid-cols-2 gap-3 p-4 pt-1">
+                <ul className="grid grid-cols-2 gap-3 p-4">
                   {docs.map((doc) => {
-                    const url = urlByPath.get(doc.storage_path) ?? null;
-                    const isImage = /\.(jpe?g|png|webp)$/i.test(doc.storage_path);
+                    const url = doc.data_url ?? urlByPath.get(doc.storage_path) ?? null;
+                    const isImage = /\.(jpe?g|png|webp)$/i.test(doc.storage_path) || Boolean(doc.data_url?.startsWith("data:image/"));
                     return (
                       <li key={doc.id} className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-background)]">
                         <a href={url ?? undefined} target="_blank" rel="noreferrer" className="block hover:opacity-90">
@@ -683,6 +690,11 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
                             </span>
                           </p>
                         </a>
+                        {doc.ocr_text && (
+                          <div className="px-2 pb-2">
+                            <ExtractedValues text={doc.ocr_text} />
+                          </div>
+                        )}
                       </li>
                     );
                   })}
