@@ -93,16 +93,40 @@ test("mobile language, filter and patient name targets measure at least 44 pixel
   expect((await language.boundingBox())!.height).toBeGreaterThanOrEqual(44);
 });
 
-test("demo Settings show thresholds, schedule and message templates", async ({ page }) => {
-  await page.goto("/settings");
-  const main = page.getByRole("main");
-  await expect(main.getByRole("heading", { name: /Follow-up thresholds/ })).toBeVisible();
-  await expect(main.getByRole("spinbutton").first()).toHaveValue("7");
-  await expect(main.getByRole("heading", { name: /ANC schedule template/ })).toBeVisible();
-  await expect(main.getByText(/Booking visit/i).first()).toBeVisible();
-  await expect(main.getByRole("heading", { name: /Reminder message templates/ })).toBeVisible();
-  await expect(main.locator("textarea").first()).not.toHaveValue("");
-});
+for (const viewport of [{ width: 320, height: 740 }, { width: 1440, height: 900 }]) {
+  test(`the top bar avatar opens the doctor profile above Settings at ${viewport.width}px`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await page.goto("/today");
+    const avatar = page.getByRole("banner").getByRole("link", { name: "Doctor profile" });
+    await expect(avatar).toHaveText("D");
+    await expect(avatar).toBeInViewport({ ratio: 1 });
+    await avatar.click();
+    await expect(page).toHaveURL(/\/settings$/);
+    await expect(avatar).toHaveAttribute("aria-current", "page");
+
+    const main = page.getByRole("main");
+    await expect(main.getByRole("heading", { name: "Doctor profile", level: 1 })).toBeVisible();
+    const profile = main.getByRole("region", { name: "Dr. Demo" });
+    const settings = main.getByRole("region", { name: "Settings", exact: true });
+    await expect(profile.getByText("Doctor", { exact: true })).toBeVisible();
+    await expect(profile.getByText("MatruSetu Demo Clinic", { exact: true })).toBeVisible();
+    await expect(profile.getByText("Demo profile", { exact: true })).toBeVisible();
+    await expect(profile.getByText("Degree", { exact: true })).toBeVisible();
+    await expect(profile.getByText("MBBS, MD", { exact: true })).toBeVisible();
+    await expect(profile.getByText("Years of experience", { exact: true })).toBeVisible();
+    await expect(profile.getByText("12", { exact: true })).toBeVisible();
+    await expect(profile.getByText("Edit professional details", { exact: true })).toHaveCount(0);
+    expect((await profile.boundingBox())!.y).toBeLessThan((await settings.boundingBox())!.y);
+    await expect(settings.getByText("Demo clinic settings are read-only.")).toBeVisible();
+    await expect(settings.getByRole("heading", { name: /Follow-up thresholds/ })).toBeVisible();
+    await expect(settings.getByRole("spinbutton").first()).toHaveValue("7");
+    await expect(settings.getByRole("spinbutton").first()).toBeDisabled();
+    await expect(settings.getByRole("heading", { name: /ANC schedule template/ })).toBeVisible();
+    await expect(settings.getByText(/Booking visit/i).first()).toBeVisible();
+    await expect(settings.getByRole("heading", { name: /Reminder message templates/ })).toBeVisible();
+    await expect(settings.locator("textarea").first()).not.toHaveValue("");
+  });
+}
 
 test("phone navigation has five links and the menu retains access to scanning", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -110,21 +134,28 @@ test("phone navigation has five links and the menu retains access to scanning", 
   const bottom = page.getByRole("navigation", { name: "Primary" });
   await expect(bottom.getByRole("link")).toHaveCount(5);
   await expect(bottom.getByRole("link", { name: "Today", exact: true })).toHaveCount(1);
-  await expect(page.getByRole("banner").getByRole("link")).toHaveCount(0);
+  await expect(page.getByRole("banner").getByRole("link", { name: "Doctor profile" })).toBeVisible();
   await page.getByRole("button", { name: "Open menu", exact: true }).click();
-  await page.getByRole("dialog", { name: "Main menu" }).getByRole("link", { name: "Scan QR Card" }).click();
+  const menu = page.getByRole("dialog", { name: "Main menu" });
+  await expect(menu.getByRole("link", { name: "Settings", exact: true })).toHaveCount(0);
+  await menu.getByRole("link", { name: "Scan QR Card" }).click();
   await expect(page).toHaveURL(/\/scan$/);
 });
 
-test("desktop navigation keeps explicit accessible link names when collapsed", async ({ page }) => {
+test("the desktop sidebar keeps accessible link names and drops duplicate navigation", async ({ page }) => {
   const sidebar = page.getByRole("complementary", { name: "Main menu" });
   const nav = sidebar.getByRole("navigation", { name: "Primary" });
-  for (const name of ["Today", "Patients", "Scan QR Card", "Call queue", "Documents", "OPD register", "Settings"]) {
+  for (const name of ["Today", "Patients", "Scan QR Card", "Call queue", "Documents", "OPD register"]) {
     await expect(nav.getByRole("link", { name, exact: true })).toBeVisible();
   }
   await sidebar.getByRole("button", { name: "Collapse sidebar", exact: true }).click();
   await expect(nav.getByRole("link", { name: "Patients", exact: true })).toBeVisible();
   await expect(nav.getByRole("link", { name: "Call queue", exact: true })).toHaveAccessibleDescription(/patients? needs? follow-up/);
+  await expect(sidebar.getByRole("button", { name: /^Find patient/ })).toHaveCount(0);
+  await expect(nav.getByRole("link", { name: "Settings", exact: true })).toHaveCount(0);
+  const search = page.getByRole("banner").getByRole("button", { name: /^Find patient/ });
+  await search.click();
+  await expect(page.getByRole("dialog", { name: "Find patient or page" })).toBeVisible();
 });
 
 test("image-only PDFs have distinguishable first-page previews", async ({ page }) => {

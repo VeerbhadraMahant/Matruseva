@@ -26,6 +26,7 @@ import {
 import { whatsAppLink } from "@/lib/whatsapp";
 import { createListenLink } from "@/app/(app)/patients/[id]/actions";
 import { useLocale, useT } from "@/lib/i18n/provider";
+import { PatientDetailDialog } from "@/components/PatientDetailDialog";
 
 
 
@@ -226,6 +227,11 @@ export function VoiceCounselorModal({
 
   const progressPercent = Math.min(100, (currentTime / estimatedDuration) * 100);
 
+  const close = () => {
+    stopSpeech();
+    onClose();
+  };
+
   const getSectionIcon = (index: number) => {
     switch (index) {
       case 0:
@@ -242,27 +248,20 @@ export function VoiceCounselorModal({
   };
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={t("patientDetail.counselor.aria")}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-3 sm:p-5 backdrop-blur-xs"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          stopSpeech();
-          onClose();
-        }
-      }}
+    <PatientDetailDialog
+      label={t("patientDetail.counselor.aria")}
+      onClose={close}
+      backdropClassName="backdrop:bg-black/65"
     >
-      <div className="relative w-full max-w-2xl max-h-[92vh] flex flex-col rounded-2xl bg-[var(--color-background)] shadow-2xl overflow-hidden border border-[var(--color-border)] animate-in fade-in zoom-in-95 duration-150">
+      <div className="relative flex max-h-full w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-background)] shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--color-border)] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--color-pc-lilac)_85%,transparent)_0%,var(--color-surface-1)_100%)] px-5 py-4">
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[var(--color-border)] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--color-pc-lilac)_85%,transparent)_0%,var(--color-surface-1)_100%)] px-5 py-4">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--color-primary)] text-white shadow-xs">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--color-primary)] text-white shadow-xs">
               <SpeakerHigh size={20} weight="fill" />
             </div>
             <div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-1.5">
                 <h2 className="text-[15px] font-bold text-[var(--color-foreground)]">
                   {t("patientDetail.counselor.title")}
                 </h2>
@@ -279,10 +278,7 @@ export function VoiceCounselorModal({
           <button
             type="button"
             aria-label={t("common.close")}
-            onClick={() => {
-              stopSpeech();
-              onClose();
-            }}
+            onClick={close}
             className="rounded-lg p-1.5 text-[var(--color-charcoal)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-foreground)] transition-colors cursor-pointer"
           >
             <X size={18} />
@@ -290,7 +286,7 @@ export function VoiceCounselorModal({
         </div>
 
         {/* Scrollable Body */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-5 sm:px-6">
           {/* Language Selector Bar */}
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--color-border)] pb-3">
             <span className="text-[12px] font-semibold text-[var(--color-charcoal)]">
@@ -353,7 +349,7 @@ export function VoiceCounselorModal({
               </div>
 
               {/* Soundwave Animation */}
-              <div className="flex items-center gap-1 h-7 px-2">
+              <div aria-hidden="true" className="hidden h-7 items-center gap-1 px-2 sm:flex">
                 {[40, 75, 55, 90, 60, 85, 45, 95, 70, 50, 80, 65].map((height, i) => (
                   <div
                     key={i}
@@ -465,7 +461,7 @@ export function VoiceCounselorModal({
         </div>
 
         {/* Footer Actions */}
-        <div className="flex flex-wrap items-center justify-between gap-2.5 border-t border-[var(--color-border)] bg-[var(--color-surface-1)] px-5 py-3.5">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-2.5 border-t border-[var(--color-border)] bg-[var(--color-surface-1)] px-5 py-3.5">
           <button
             type="button"
             onClick={handleCopy}
@@ -513,6 +509,6 @@ export function VoiceCounselorModal({
           </div>
         </div>
       </div>
-    </div>
+    </PatientDetailDialog>
   );
 }

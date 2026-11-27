@@ -8,6 +8,13 @@ export default function SettingsLoading() {
   return (
     <div aria-busy="true" aria-label={t("shell.loading.settings")} className={`${pageBody} pt-6 md:pt-9`}>
       <div className="pc-skeleton h-8 w-40" />
+      <div className={`space-y-4 p-5 ${card}`}>
+        <div className="flex items-center gap-3">
+          <div className="pc-skeleton size-12 !rounded-full" />
+          <div className="pc-skeleton h-5 w-32" />
+        </div>
+        <div className="pc-skeleton h-8 w-48" />
+      </div>
       <div className="grid grid-cols-[minmax(0,1fr)] gap-5 xl:grid-cols-2">
         {Array.from({ length: 2 }, (_, i) => (
           <div key={i} className={`space-y-4 p-5 ${card}`}>

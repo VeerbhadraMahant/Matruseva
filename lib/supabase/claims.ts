@@ -3,7 +3,7 @@ export const CLAIMS_TIMEOUT_MS = 3_000;
 
 type ClaimsClient = {
   auth: {
-    getClaims(): Promise<{ data: { claims: { sub: string } } | null; error: unknown }>;
+    getClaims(): Promise<{ data: { claims: { sub: string; email?: string } } | null; error: unknown }>;
   };
 };
 
@@ -16,7 +16,7 @@ type ClaimsClient = {
 export async function getClaimsBounded(
   supabase: ClaimsClient,
   ms = CLAIMS_TIMEOUT_MS
-): Promise<{ userId?: string; failed: boolean }> {
+): Promise<{ userId?: string; email?: string; failed: boolean }> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<"timeout">((resolve) => {
     timer = setTimeout(() => resolve("timeout"), ms);
@@ -24,7 +24,12 @@ export async function getClaimsBounded(
   try {
     const result = await Promise.race([supabase.auth.getClaims(), timeout]);
     if (result === "timeout") return { failed: true };
-    return { userId: result.data?.claims.sub, failed: !!result.error };
+    const claims = result.data?.claims;
+    return {
+      userId: claims?.sub,
+      email: result.error ? undefined : claims?.email,
+      failed: !!result.error,
+    };
   } catch {
     return { failed: true };
   } finally {

@@ -17,7 +17,6 @@ export const shell = defineArea({
     "shell.nav.documents.short": "Docs",
     "shell.nav.opd": "OPD register",
     "shell.nav.opd.short": "OPD",
-    "shell.nav.settings": "Settings",
     "shell.nav.primary": "Primary",
     "shell.nav.mainMenu": "Main menu",
     "shell.nav.openMenu": "Open menu",
@@ -25,7 +24,6 @@ export const shell = defineArea({
     "shell.nav.closeMenu": "Close menu",
     "shell.nav.findPatient": "Find patient…",
     "shell.nav.findPatientShort": "Find patient",
-    "shell.nav.findPatientShortcut": "Find patient ({shortcut})",
     "shell.nav.collapse": "Collapse sidebar",
     "shell.nav.expand": "Expand sidebar",
     "shell.nav.collapseTitle": "Collapse sidebar ({shortcut})",
@@ -75,7 +73,7 @@ export const shell = defineArea({
     "shell.callBadge.followUp_one": "{count} patient needs follow-up",
     "shell.callBadge.followUp_other": "{count} patients need follow-up",
 
-    "shell.loading.settings": "Loading settings",
+    "shell.loading.settings": "Loading doctor profile and settings",
     "shell.loading.patient": "Loading patient",
     "shell.loading.form": "Loading form",
 
@@ -96,7 +94,6 @@ export const shell = defineArea({
     "shell.nav.documents.short": "दस्तावेज़",
     "shell.nav.opd": "OPD रजिस्टर",
     "shell.nav.opd.short": "OPD",
-    "shell.nav.settings": "सेटिंग्स",
     "shell.nav.primary": "मुख्य नेविगेशन",
     "shell.nav.mainMenu": "मुख्य मेन्यू",
     "shell.nav.openMenu": "मेन्यू खोलें",
@@ -104,7 +101,6 @@ export const shell = defineArea({
     "shell.nav.closeMenu": "मेन्यू बंद करें",
     "shell.nav.findPatient": "मरीज़ खोजें…",
     "shell.nav.findPatientShort": "मरीज़ खोजें",
-    "shell.nav.findPatientShortcut": "मरीज़ खोजें ({shortcut})",
     "shell.nav.collapse": "साइडबार छोटा करें",
     "shell.nav.expand": "साइडबार बड़ा करें",
     "shell.nav.collapseTitle": "साइडबार छोटा करें ({shortcut})",
@@ -155,7 +151,7 @@ export const shell = defineArea({
     "shell.callBadge.followUp_one": "{count} मरीज़ को फ़ॉलो-अप चाहिए",
     "shell.callBadge.followUp_other": "{count} मरीज़ों को फ़ॉलो-अप चाहिए",
 
-    "shell.loading.settings": "सेटिंग्स लोड हो रही हैं",
+    "shell.loading.settings": "डॉक्टर की प्रोफ़ाइल और सेटिंग्स लोड हो रही हैं",
     "shell.loading.patient": "मरीज़ की जानकारी लोड हो रही है",
     "shell.loading.form": "फ़ॉर्म लोड हो रहा है",
 
@@ -176,7 +172,6 @@ export const shell = defineArea({
     "shell.nav.documents.short": "कागदपत्रे",
     "shell.nav.opd": "OPD नोंदवही",
     "shell.nav.opd.short": "OPD",
-    "shell.nav.settings": "सेटिंग्ज",
     "shell.nav.primary": "मुख्य नेव्हिगेशन",
     "shell.nav.mainMenu": "मुख्य मेन्यू",
     "shell.nav.openMenu": "मेन्यू उघडा",
@@ -184,7 +179,6 @@ export const shell = defineArea({
     "shell.nav.closeMenu": "मेन्यू बंद करा",
     "shell.nav.findPatient": "रुग्ण शोधा…",
     "shell.nav.findPatientShort": "रुग्ण शोधा",
-    "shell.nav.findPatientShortcut": "रुग्ण शोधा ({shortcut})",
     "shell.nav.collapse": "साइडबार लहान करा",
     "shell.nav.expand": "साइडबार मोठा करा",
     "shell.nav.collapseTitle": "साइडबार लहान करा ({shortcut})",
@@ -235,7 +229,7 @@ export const shell = defineArea({
     "shell.callBadge.followUp_one": "{count} रुग्णाला पाठपुरावा हवा",
     "shell.callBadge.followUp_other": "{count} रुग्णांना पाठपुरावा हवा",
 
-    "shell.loading.settings": "सेटिंग्ज लोड होत आहेत",
+    "shell.loading.settings": "डॉक्टरांचे प्रोफाइल आणि सेटिंग्ज लोड होत आहेत",
     "shell.loading.patient": "रुग्णाची माहिती लोड होत आहे",
     "shell.loading.form": "फॉर्म लोड होत आहे",
 

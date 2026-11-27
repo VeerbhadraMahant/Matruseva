@@ -12,9 +12,9 @@ export interface ActionResult {
   inviteLink?: string;
 }
 
-/** Doctor-only guard: every action here mutates clinic-wide settings. */
+/** Doctor-only guard for live settings and profile changes. */
 async function requireDoctor(t: Awaited<ReturnType<typeof getT>>["t"]): Promise<
-  | { supabase: Awaited<ReturnType<typeof createClient>>; profile: { clinic_id: string; role: CurrentUser["role"] }; error: null }
+  | { supabase: Awaited<ReturnType<typeof createClient>>; profile: { id: string; clinic_id: string; role: CurrentUser["role"] }; error: null }
   | { supabase: null; profile: null; error: string }
 > {
   const me = await getCurrentUser();
@@ -25,7 +25,39 @@ async function requireDoctor(t: Awaited<ReturnType<typeof getT>>["t"]): Promise<
     return { supabase: null, profile: null, error: t("settings.error.doctorOnly") };
   }
   const supabase = await createClient();
-  return { supabase, profile: { clinic_id: me.clinicId, role: me.role }, error: null };
+  return { supabase, profile: { id: me.userId, clinic_id: me.clinicId, role: me.role }, error: null };
+}
+
+const doctorProfileSchema = z.object({
+  degree: z.string().trim(),
+  yearsOfExperience: z.string().trim()
+    .transform((value) => value === "" ? null : Number(value))
+    .pipe(z.int32().nonnegative().nullable()),
+});
+
+export async function updateDoctorProfile(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
+  const { t } = await getT();
+  const { supabase, profile, error } = await requireDoctor(t);
+  if (error || !profile) return { error };
+
+  const parsed = doctorProfileSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) return { error: t("settings.profile.invalid") };
+
+  const { data: updated, error: updateError } = await supabase
+    .from("profiles")
+    .update({
+      degree: parsed.data.degree || null,
+      years_of_experience: parsed.data.yearsOfExperience,
+    })
+    .eq("id", profile.id)
+    .eq("clinic_id", profile.clinic_id)
+    .eq("role", "doctor")
+    .select("id")
+    .maybeSingle();
+
+  if (updateError || !updated) return { error: t("settings.profile.saveFailed") };
+  revalidatePath("/settings");
+  return { error: null };
 }
 
 const clinicDetailsSchema = (msg: string) => z.object({

@@ -9,7 +9,6 @@ import {
   PhoneCall,
   Tray,
   BookOpenText,
-  Gear,
   MagnifyingGlass,
   SignOut,
   QrCode,
@@ -51,7 +50,6 @@ const NAV_ITEMS: { href: string; label: MessageKey; short?: MessageKey; icon: Ic
   { href: "/opd", label: "shell.nav.opd", short: "shell.nav.opd.short", icon: BookOpenText },
 ];
 const MOBILE_NAV_ITEMS = NAV_ITEMS.filter((item) => item.href !== "/scan");
-const SETTINGS_ITEM = { href: "/settings", label: "shell.nav.settings" as MessageKey, icon: Gear };
 
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -77,7 +75,6 @@ function initials(name: string): string {
 
 function MenuBody({
   pathname,
-  items,
   clinicName,
   userName,
   isDoctor,
@@ -90,7 +87,6 @@ function MenuBody({
   callBadge,
 }: {
   pathname: string;
-  items: { href: string; label: MessageKey; icon: Icon }[];
   clinicName: string;
   userName: string;
   isDoctor: boolean;
@@ -127,17 +123,6 @@ function MenuBody({
           )}
         </div>
 
-        {collapsed && (
-          <button
-            type="button"
-            onClick={() => openCommandPalette()}
-            aria-label={t("shell.nav.findPatientShortcut", { shortcut: keys.search })}
-            title={t("shell.nav.findPatientShortcut", { shortcut: keys.search })}
-            className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] text-[var(--color-charcoal)] transition-colors hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
-          >
-            <MagnifyingGlass size={18} aria-hidden />
-          </button>
-        )}
         {!hideSearch && !collapsed && (
         <button
           type="button"
@@ -154,7 +139,7 @@ function MenuBody({
         )}
 
         <nav className={`mt-5 flex flex-1 flex-col gap-1 overflow-y-auto ${collapsed ? "px-2" : "px-3"}`} aria-label={t("shell.nav.primary")}>
-          {items.map(({ href, label: labelKey, icon: Icon }, i) => {
+          {NAV_ITEMS.map(({ href, label: labelKey, icon: Icon }, i) => {
             const label = t(labelKey);
             const active = isActive(pathname, href);
             return (
@@ -250,7 +235,6 @@ export function AppTopBar({
   const [open, setOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const firstLinkRef = useRef<HTMLAnchorElement>(null);
-  const items = isDoctor ? [...NAV_ITEMS, SETTINGS_ITEM] : NAV_ITEMS;
 
   const close = useCallback(() => {
     setOpen(false);
@@ -291,12 +275,12 @@ export function AppTopBar({
           </button>
           <div className="flex min-w-0 items-center gap-2.5">
             <BrandMark />
-            <span className="text-[17px] font-semibold tracking-tight text-[var(--color-foreground)]">MatruSetu</span>
+            <span className="truncate text-[17px] font-semibold tracking-tight text-[var(--color-foreground)]">MatruSetu</span>
             <span className="hidden truncate text-[13px] text-[var(--color-charcoal)] sm:inline">· {clinicName}</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
             onClick={openCommandPalette}
@@ -314,13 +298,25 @@ export function AppTopBar({
           >
             <MagnifyingGlass size={21} aria-hidden />
           </button>
-          <span
-            aria-hidden
-            title={userName}
-            className="hidden h-9 w-9 items-center justify-center rounded-full bg-[var(--color-primary-surface)] text-[12px] font-semibold text-[var(--color-primary)] sm:flex"
-          >
-            {initials(userName)}
-          </span>
+          {isDoctor ? (
+            <Link
+              href="/settings"
+              aria-label={t("settings.profile.title")}
+              title={t("settings.profile.title")}
+              aria-current={isActive(pathname, "/settings") ? "page" : undefined}
+              className="flex size-11 items-center justify-center rounded-full bg-[var(--color-primary-surface)] text-[12px] font-semibold text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)] aria-[current=page]:ring-2 aria-[current=page]:ring-[var(--color-primary)] md:size-9"
+            >
+              {initials(userName)}
+            </Link>
+          ) : (
+            <span
+              aria-hidden
+              title={userName}
+              className="hidden size-9 items-center justify-center rounded-full bg-[var(--color-primary-surface)] text-[12px] font-semibold text-[var(--color-primary)] sm:flex"
+            >
+              {initials(userName)}
+            </span>
+          )}
         </div>
       </header>
 
@@ -345,7 +341,6 @@ export function AppTopBar({
       >
         <MenuBody
           pathname={pathname}
-          items={items}
           clinicName={clinicName}
           userName={userName}
           isDoctor={isDoctor}
@@ -364,7 +359,6 @@ export function AppTopBar({
       >
         <MenuBody
           pathname={pathname}
-          items={items}
           clinicName={clinicName}
           userName={userName}
           isDoctor={isDoctor}
