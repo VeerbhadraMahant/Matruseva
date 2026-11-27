@@ -105,7 +105,9 @@ create policy newborn_vaccinations_update on public.newborn_vaccinations for upd
 create policy newborn_vaccinations_delete_doctor on public.newborn_vaccinations for delete to authenticated
   using (clinic_id = (select private.current_clinic_id()) and (select private.is_doctor()));
 
--- SECURITY INVOKER: the caller's RLS applies to every statement.
+-- SECURITY INVOKER: the caller's RLS applies to every statement. Because any
+-- signed-in user can call this directly, it validates its own inputs:
+-- closed_by is always auth.uid() and newborn birth_date is the delivery date.
 -- p_delivery.notes is accepted but not stored, matching closePregnancy today
 -- (patients has no closure-notes column).
 create or replace function public.record_delivery(
@@ -121,6 +123,8 @@ set search_path = ''
 as $$
 declare
   v_pregnancy_status text;
+  v_lmp date;
+  v_delivery_date date := (p_delivery->>'delivery_date')::date;
   v_count int := jsonb_array_length(coalesce(p_newborns, '[]'::jsonb));
   v_first_weight numeric;
   v_vaccine_count int;
@@ -130,7 +134,7 @@ begin
     raise exception 'record_delivery: p_newborns must contain 1 to 3 babies (got %)', v_count;
   end if;
 
-  select p.pregnancy_status into v_pregnancy_status
+  select p.pregnancy_status, p.lmp into v_pregnancy_status, v_lmp
   from public.patients p
   where p.id = p_patient_id
   for update;
@@ -142,6 +146,19 @@ begin
     raise exception 'record_delivery: pregnancy is not active (status: %)', v_pregnancy_status;
   end if;
 
+  if v_delivery_date is null then
+    raise exception 'record_delivery: delivery_date is required';
+  end if;
+  if v_delivery_date > private.today_ist() then
+    raise exception 'record_delivery: delivery_date cannot be in the future';
+  end if;
+  if v_lmp is not null and v_delivery_date < v_lmp then
+    raise exception 'record_delivery: delivery_date cannot be before the LMP (%)', v_lmp;
+  end if;
+  if p_delivery->>'delivery_mode' is null then
+    raise exception 'record_delivery: delivery_mode is required';
+  end if;
+
   select n.birth_weight_kg into v_first_weight
   from jsonb_to_recordset(p_newborns) as n(birth_order smallint, birth_weight_kg numeric)
   order by n.birth_order
@@ -150,11 +167,11 @@ begin
   update public.patients
   set status = 'delivered',
       pregnancy_status = 'delivered',
-      delivery_date = (p_delivery->>'delivery_date')::date,
+      delivery_date = v_delivery_date,
       delivery_mode = p_delivery->>'delivery_mode',
       birth_weight_kg = v_first_weight,
       closed_at = now(),
-      closed_by = (p_delivery->>'closed_by')::uuid
+      closed_by = auth.uid()
   where id = p_patient_id;
 
   update public.care_events
@@ -168,13 +185,12 @@ begin
     gestational_age_weeks, nicu_admission
   )
   select
-    p_patient_id, n.birth_order, n.name, n.sex, n.birth_date, n.birth_weight_kg,
+    p_patient_id, n.birth_order, n.name, n.sex, v_delivery_date, n.birth_weight_kg,
     n.gestational_age_weeks, coalesce(n.nicu_admission, false)
   from jsonb_to_recordset(p_newborns) as n(
     birth_order smallint,
     name text,
     sex text,
-    birth_date date,
     birth_weight_kg numeric,
     gestational_age_weeks smallint,
     nicu_admission boolean
