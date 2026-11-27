@@ -4,7 +4,8 @@ import { useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Camera } from "@phosphor-icons/react";
 import { createClient } from "@/lib/supabase/client";
-import { preprocessImage, recognizeImage, extractPdfText, renderPdfPreview } from "@/lib/ocr";
+import { prepareImage, previewDataUrl, readDocument, renderPdfPreview, acquireOcrWorker, releaseOcrWorker, type OcrEngine, type OcrResult, type PreparedImage } from "@/lib/ocr";
+import { saveOcrResult } from "@/lib/ocrSave";
 import type { DocSource, DocType } from "@/lib/supabase/enums";
 import { useT } from "@/lib/i18n/provider";
 import { createUuid } from "@/lib/uuid";
@@ -13,22 +14,16 @@ import { uploadDemoDocumentAction } from "@/app/(app)/documents/actions";
 
 interface UploadItem {
   fileName: string;
-  status: "uploading" | "ocr" | "done" | "failed";
+  /** unread = stored fine, but no engine could read text (retry from the document card). */
+  status: "uploading" | "ocr" | "done" | "unread" | "failed";
+  engine?: OcrEngine;
+  error?: string;
 }
 
 function extOf(file: File): string {
   const fromName = file.name.split(".").pop();
   if (fromName && fromName.length <= 5) return fromName.toLowerCase();
   return file.type === "application/pdf" ? "pdf" : "jpg";
-}
-
-function blobToDataUrl(blob: Blob): Promise<string> {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve((reader.result as string) || "");
-    reader.onerror = () => resolve("");
-    reader.readAsDataURL(blob);
-  });
 }
 
 interface DocumentUploaderProps {
@@ -41,6 +36,8 @@ interface DocumentUploaderProps {
   showDateInput?: boolean;
   /** When true, stores files locally in the demo store without hitting Supabase. */
   isDemo?: boolean;
+  /** When set, files go straight to this patient instead of the inbox. */
+  patientId?: string;
 }
 
 export function DocumentUploader({
@@ -49,6 +46,7 @@ export function DocumentUploader({
   fixedDocType,
   showDateInput = false,
   isDemo = false,
+  patientId,
 }: DocumentUploaderProps) {
   const t = useT();
   const router = useRouter();
@@ -57,92 +55,97 @@ export function DocumentUploader({
   const [source, setSource] = useState<DocSource>("camera");
   const [docDate, setDocDate] = useState(() => showDateInput ? toISODate(todayInClinicTimezone()) : "");
   const [items, setItems] = useState<UploadItem[]>([]);
+  // A second batch would overwrite the first one's item list by index, so lock input while one runs.
+  const [busy, setBusy] = useState(false);
 
   async function handleFiles(files: FileList | null) {
-    if (!files || files.length === 0) return;
+    if (!files || files.length === 0 || busy) return;
     const supabase = isDemo ? null : createClient();
     const fileArray = Array.from(files);
     setItems(fileArray.map((f) => ({ fileName: f.name, status: "uploading" })));
+    setBusy(true);
+    acquireOcrWorker();
 
-    for (let i = 0; i < fileArray.length; i++) {
-      const file = fileArray[i];
-      const setStatus = (status: UploadItem["status"]) =>
-        setItems((prev) => prev.map((it, idx) => (idx === i ? { ...it, status } : it)));
-
-      try {
+    try {
+      for (let i = 0; i < fileArray.length; i++) {
+        const file = fileArray[i];
+        const patch = (p: Partial<UploadItem>) => setItems((prev) => prev.map((it, idx) => (idx === i ? { ...it, ...p } : it)));
         const isPdf = file.type === "application/pdf";
-        const uploadBlob = isPdf ? file : await preprocessImage(file);
+        const docSource: DocSource = isPdf ? "pdf" : source;
 
-        if (isDemo) {
-          setStatus("ocr");
-          let text = "";
-          try {
-            text = isPdf ? await extractPdfText(file) : await recognizeImage(uploadBlob);
-          } catch {
-            // OCR failure shouldn't block the upload
+        // 1. Store the file and create the document row (pending). Anything wrong here is a real upload failure.
+        let documentId: string;
+        let prepared: PreparedImage | undefined;
+        try {
+          // The colour scan is stored; a separate normalised copy is only used for OCR.
+          prepared = isPdf ? undefined : await prepareImage(file).catch(() => ({ stored: file, ocr: file }));
+          const stored = prepared?.stored ?? file;
+
+          if (isDemo) {
+            const dataUrl = isPdf ? await renderPdfPreview(file).catch(() => "") : await previewDataUrl(stored).catch(() => "");
+            const res = await uploadDemoDocumentAction({
+              clinicId,
+              folder,
+              fixedDocType,
+              docDate,
+              source: docSource,
+              fileName: file.name,
+              dataUrl,
+              patientId,
+            });
+            if (res.error || !res.id) throw new Error(res.error ?? "Upload failed");
+            documentId = res.id;
+          } else {
+            if (!supabase) throw new Error("Not signed in");
+            const ext = isPdf ? "pdf" : stored.type === "image/jpeg" ? "jpg" : extOf(file);
+            const path = `${clinicId}/${patientId ?? folder}/${createUuid()}.${ext}`;
+            const { error: uploadError } = await supabase.storage.from("documents").upload(path, stored, {
+              contentType: isPdf ? "application/pdf" : stored.type || "image/jpeg",
+            });
+            if (uploadError) throw uploadError;
+
+            const { data: doc, error: insertError } = await supabase
+              .from("documents")
+              .insert({
+                clinic_id: clinicId,
+                patient_id: patientId ?? null,
+                doc_type: fixedDocType ?? "other",
+                doc_date: docDate || null,
+                source: docSource,
+                storage_path: path,
+                ocr_status: "pending",
+              })
+              .select("id")
+              .single();
+            if (insertError || !doc) throw insertError ?? new Error("Could not create the document record");
+            documentId = doc.id;
           }
-
-          const dataUrl = isPdf ? await renderPdfPreview(file).catch(() => "") : await blobToDataUrl(uploadBlob);
-          const res = await uploadDemoDocumentAction({
-            clinicId,
-            folder,
-            fixedDocType,
-            docDate,
-            source: isPdf ? "pdf" : source,
-            fileName: file.name,
-            dataUrl,
-            ocrText: text,
-          });
-
-          if (res.error) throw new Error(res.error);
-          setStatus("done");
+        } catch (e) {
+          patch({ status: "failed", error: e instanceof Error ? e.message : (e as { message?: string })?.message ?? "Upload failed" });
           continue;
         }
 
-        const path = `${clinicId}/${folder}/${createUuid()}.${extOf(file)}`;
+        // The document now exists and shows in the list as "reading".
+        router.refresh();
+        patch({ status: "ocr" });
 
-        if (!supabase) return;
-        const { error: uploadError } = await supabase.storage.from("documents").upload(path, uploadBlob, {
-          contentType: isPdf ? "application/pdf" : "image/jpeg",
-        });
-        if (uploadError) throw uploadError;
-
-        const { data: doc, error: insertError } = await supabase
-          .from("documents")
-          .insert({
-            clinic_id: clinicId,
-            doc_type: fixedDocType ?? "other",
-            doc_date: docDate || null,
-            source: isPdf ? "pdf" : source,
-            storage_path: path,
-            ocr_status: "pending",
-          })
-          .select("id")
-          .single();
-        if (insertError || !doc) throw insertError;
-
-        setStatus("ocr");
-        let text = "";
+        // 2. Read it. A failure here keeps the document and marks it failed so it can be retried.
+        let result: OcrResult | null = null;
         try {
-          text = isPdf ? await extractPdfText(file) : await recognizeImage(uploadBlob);
+          result = await readDocument(file, prepared);
         } catch {
-          // OCR failure shouldn't block the upload — the document is still
-          // filed and searchable by whatever tags staff add manually.
+          result = null;
         }
-
-        await supabase
-          .from("documents")
-          .update({ ocr_text: text || null, ocr_status: text ? "done" : "failed" })
-          .eq("id", doc.id);
-
-        setStatus("done");
-      } catch {
-        setStatus("failed");
+        const saveError = await saveOcrResult(isDemo, documentId, result);
+        if (saveError) patch({ status: "failed", error: saveError });
+        else patch({ status: result ? "done" : "unread", engine: result?.engine });
+        router.refresh();
       }
+    } finally {
+      await releaseOcrWorker();
+      setBusy(false);
+      if (inputRef.current) inputRef.current.value = "";
     }
-
-    router.refresh();
-    if (inputRef.current) inputRef.current.value = "";
   }
 
   return (
@@ -150,11 +153,11 @@ export function DocumentUploader({
       <div className="mb-3 flex flex-wrap items-center gap-4">
         {!fixedDocType && (
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium" htmlFor="doc-source">
+            <label className="text-sm font-medium" htmlFor={`${fileInputId}-source`}>
               {t("documents.uploader.source")}
             </label>
             <select
-              id="doc-source"
+              id={`${fileInputId}-source`}
               value={source}
               onChange={(e) => setSource(e.target.value as DocSource)}
               className="min-h-10 rounded-[var(--radius-buttons)] border border-[var(--color-border-strong)] bg-[var(--color-background)] px-2 py-1.5 text-sm"
@@ -167,11 +170,11 @@ export function DocumentUploader({
         )}
         {showDateInput && (
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium" htmlFor="doc-date">
+            <label className="text-sm font-medium" htmlFor={`${fileInputId}-date`}>
               {t("documents.uploader.date")}
             </label>
             <input
-              id="doc-date"
+              id={`${fileInputId}-date`}
               type="date"
               value={docDate}
               onChange={(e) => setDocDate(e.target.value)}
@@ -188,12 +191,14 @@ export function DocumentUploader({
         accept="image/*,application/pdf"
         capture="environment"
         multiple
+        disabled={busy}
         onChange={(e) => handleFiles(e.target.files)}
         className="sr-only"
       />
       <label
         htmlFor={fileInputId}
-        className="flex min-h-10 w-full cursor-pointer flex-wrap items-center justify-center gap-2 rounded-[var(--radius-buttons)] bg-[var(--color-primary)] px-[var(--space-21)] py-[var(--space-14)] font-medium text-[var(--color-primary-foreground)] hover:bg-[var(--color-primary-hover)]"
+        aria-disabled={busy}
+        className={`flex min-h-10 w-full flex-wrap items-center justify-center gap-2 rounded-[var(--radius-buttons)] bg-[var(--color-primary)] px-[var(--space-21)] py-[var(--space-14)] font-medium text-[var(--color-primary-foreground)] hover:bg-[var(--color-primary-hover)] ${busy ? "pointer-events-none opacity-60" : "cursor-pointer"}`}
       >
         <Camera size={20} weight="regular" aria-hidden /> {t("documents.uploader.button")}
       </label>
@@ -202,15 +207,16 @@ export function DocumentUploader({
       </p>
 
       {items.length > 0 && (
-        <ul className="mt-3 space-y-1 text-sm">
-          {items.map((it) => (
-            <li key={it.fileName} className="flex justify-between gap-3">
-              <span>{it.fileName}</span>
-              <span className="text-[var(--color-charcoal)]">
+        <ul className="mt-3 space-y-1 text-sm" aria-live="polite">
+          {items.map((it, idx) => (
+            <li key={`${idx}-${it.fileName}`} className="flex justify-between gap-3">
+              <span className="min-w-0 truncate">{it.fileName}</span>
+              <span className={it.status === "failed" ? "text-[var(--color-danger,#b42318)]" : "text-[var(--color-charcoal)]"}>
                 {it.status === "uploading" && t("documents.uploader.uploading")}
                 {it.status === "ocr" && t("documents.uploader.reading")}
-                {it.status === "done" && t("documents.uploader.done")}
-                {it.status === "failed" && t("documents.uploader.failed")}
+                {it.status === "done" && `${t("documents.uploader.done")}${it.engine ? ` · ${t(`documents.engine.${it.engine}`)}` : ""}`}
+                {it.status === "unread" && t("documents.uploader.unread")}
+                {it.status === "failed" && `${t("documents.uploader.failed")}${it.error ? `: ${it.error}` : ""}`}
               </span>
             </li>
           ))}

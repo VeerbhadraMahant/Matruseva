@@ -112,7 +112,7 @@ export function OnePagePatientReport({
   const isHighRisk = patient.risk !== "on_track" || patient.rhNegative || riskFlags.length > 0;
 
   return (
-    <div className="min-h-screen bg-[var(--color-surface-1)]/60 text-[var(--color-foreground)] py-6 px-3 sm:px-6 print:p-0 print:bg-white">
+    <div className="min-h-screen bg-[var(--color-surface-1)]/60 text-[var(--color-foreground)] py-6 px-3 sm:px-6 print:min-h-0 print:p-0 print:bg-white">
       {/* Top Floating Control Bar (Screen Only) */}
       <div className="max-w-5xl mx-auto mb-4 flex flex-wrap items-center justify-between gap-3 bg-[var(--color-background)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 shadow-xs print:hidden">
         <div className="flex items-center gap-3">
@@ -172,10 +172,10 @@ export function OnePagePatientReport({
       {/* Main Single-Sheet Obstetric Dossier Document */}
       <div
         ref={printAreaRef}
-        className="max-w-5xl mx-auto bg-white border border-[var(--color-border)] shadow-md rounded-2xl p-6 sm:p-8 print:border-none print:shadow-none print:p-0 print:rounded-none"
+        className="rpt-doc max-w-5xl mx-auto bg-white border border-[var(--color-border)] shadow-md rounded-2xl p-6 sm:p-8 print:max-w-none print:border-none print:shadow-none print:p-0 print:rounded-none"
       >
         {/* Document Header: Clinical Authority Banner */}
-        <header className="border-b-2 border-[var(--color-primary)] pb-4 mb-5">
+        <header className="rpt-card border-b-2 border-[var(--color-primary)] pb-4 mb-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
@@ -215,7 +215,7 @@ export function OnePagePatientReport({
           </div>
 
           {/* Primary Patient Identification Strip */}
-          <div className="mt-3.5 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2 bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-xl p-3 text-[12px]">
+          <div className="mt-3.5 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 print:grid-cols-7 print:gap-1 gap-2 bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-xl p-3 text-[12px] print:bg-white print:p-2">
             <div>
               <span className="text-[10px] uppercase tracking-wider text-[var(--color-charcoal)] block">{t("reports.dossier.mothersName")}</span>
               <span className="font-semibold text-slate-900 text-[13px]">{patient.name}</span>
@@ -256,9 +256,9 @@ export function OnePagePatientReport({
         </header>
 
         {/* Two-Column Grid: Section 1 & Section 2 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-4 print:gap-2 mb-4 print:mb-2">
           {/* Section 1: Past Obstetric History */}
-          <div className="border border-[var(--color-border)] rounded-xl p-3.5 bg-white">
+          <div className="rpt-card border border-[var(--color-border)] rounded-xl p-3.5 bg-white">
             <div className="flex items-center gap-2 border-b border-[var(--color-border)]/70 pb-2 mb-2.5">
               <Baby size={16} className="text-[var(--color-primary)] shrink-0" />
               <h2 className="text-[13px] font-bold tracking-tight text-[var(--color-foreground)] uppercase">
@@ -326,7 +326,7 @@ export function OnePagePatientReport({
           </div>
 
           {/* Section 2: Family Pregnancy & Genetic History */}
-          <div className="border border-[var(--color-border)] rounded-xl p-3.5 bg-white">
+          <div className="rpt-card border border-[var(--color-border)] rounded-xl p-3.5 bg-white">
             <div className="flex items-center gap-2 border-b border-[var(--color-border)]/70 pb-2 mb-2.5">
               <UsersThree size={16} className="text-[var(--color-primary)] shrink-0" />
               <h2 className="text-[13px] font-bold tracking-tight text-[var(--color-foreground)] uppercase">
@@ -388,7 +388,7 @@ export function OnePagePatientReport({
         </div>
 
         {/* Section 3: Longitudinal Vitals Track (Current Pregnancy) */}
-        <div className="border border-[var(--color-border)] rounded-xl p-3.5 bg-white mb-4">
+        <div className="rpt-card border border-[var(--color-border)] rounded-xl p-3.5 bg-white mb-4">
           <div className="flex items-center justify-between border-b border-[var(--color-border)]/70 pb-2 mb-2.5">
             <div className="flex items-center gap-2">
               <Heartbeat size={16} className="text-[var(--color-primary)] shrink-0" />
@@ -404,7 +404,7 @@ export function OnePagePatientReport({
           </div>
 
           {/* Latest Key Vitals Gauge Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 mb-3 text-center">
+          <div className="grid grid-cols-2 sm:grid-cols-6 print:grid-cols-6 gap-2 mb-3 print:mb-2 text-center">
             <div className="bg-[var(--color-surface-1)] p-2 rounded-lg border border-[var(--color-border)]/50">
               <span className="text-[10px] text-[var(--color-charcoal)] block uppercase">{t("reports.dossier.bp")}</span>
               <span
@@ -476,7 +476,7 @@ export function OnePagePatientReport({
 
           {/* Vitals History Progression Table */}
           {visits.length > 0 && (
-            <div className="overflow-x-auto rounded-lg border border-[var(--color-border)]/70">
+            <div className="rpt-card overflow-x-auto print:overflow-visible rounded-lg border border-[var(--color-border)]/70">
               <table className="w-full text-[11px] text-left">
                 <thead className="bg-[var(--color-surface-1)] text-[10px] uppercase tracking-wider text-[var(--color-charcoal)]">
                   <tr>
@@ -536,7 +536,7 @@ export function OnePagePatientReport({
         </div>
 
         {/* Section 4: Sonography (USG) & Diagnostic Lab Test Reports */}
-        <div className="border border-[var(--color-border)] rounded-xl p-3.5 bg-white mb-4">
+        <div className="rpt-flow border border-[var(--color-border)] rounded-xl p-3.5 bg-white mb-4">
           <div className="flex items-center justify-between border-b border-[var(--color-border)]/70 pb-2 mb-2.5">
             <div className="flex items-center gap-2">
               <FileText size={16} className="text-[var(--color-primary)] shrink-0" />
@@ -544,20 +544,20 @@ export function OnePagePatientReport({
                 {t("reports.dossier.s4")}
               </h2>
             </div>
-            <span className="text-[10px] text-[var(--color-charcoal)]">
+            <span className="text-[10px] text-[var(--color-charcoal)] print:hidden">
               {t("reports.dossier.scanHint")}
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 print:grid-cols-3 gap-3 print:gap-1.5">
             {scans.map((scan) => (
               <div
                 key={scan.id}
                 onClick={() => setSelectedScan(scan)}
-                className="group border border-[var(--color-border)] rounded-xl overflow-hidden bg-[var(--color-surface-1)]/30 hover:border-[var(--color-primary)] transition-all cursor-pointer shadow-2xs hover:shadow-sm"
+                className="rpt-card group border border-[var(--color-border)] rounded-xl overflow-hidden bg-[var(--color-surface-1)]/30 hover:border-[var(--color-primary)] transition-all cursor-pointer shadow-2xs hover:shadow-sm"
               >
                 {/* Visual Sonogram / Lab Preview Thumbnail */}
-                <div className="relative h-28 w-full bg-[#0a0d14] overflow-hidden border-b border-[var(--color-border)]/50">
+                <div className="relative h-28 w-full bg-[#0a0d14] overflow-hidden border-b border-[var(--color-border)]/50 print:hidden">
                   <div
                     dangerouslySetInnerHTML={{ __html: scan.svgImage }}
                     className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-200"
@@ -581,7 +581,7 @@ export function OnePagePatientReport({
                     </span>
                   </div>
 
-                  <p className="text-[10px] text-slate-600 line-clamp-2 leading-relaxed mb-2">
+                  <p className="text-[10px] text-slate-600 line-clamp-2 print:line-clamp-none leading-relaxed mb-2 print:mb-1">
                     {scan.findings}
                   </p>
 
@@ -608,9 +608,9 @@ export function OnePagePatientReport({
         </div>
 
         {/* Section 5 & Section 6: ANC Milestones & PMSMA Clinical Risk Alerts */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-4 print:gap-2 mb-4 print:mb-2">
           {/* Section 5: ANC Care Milestones */}
-          <div className="border border-[var(--color-border)] rounded-xl p-3.5 bg-white">
+          <div className="rpt-card border border-[var(--color-border)] rounded-xl p-3.5 bg-white">
             <div className="flex items-center gap-2 border-b border-[var(--color-border)]/70 pb-2 mb-2.5">
               <Calendar size={16} className="text-[var(--color-primary)] shrink-0" />
               <h2 className="text-[13px] font-bold tracking-tight text-[var(--color-foreground)] uppercase">
@@ -618,7 +618,7 @@ export function OnePagePatientReport({
               </h2>
             </div>
 
-            <div className="space-y-1.5 text-[11px]">
+            <div className="space-y-1.5 print:space-y-1 text-[11px]">
               {careEvents.slice(0, 5).map((ce, cIdx) => (
                 <div
                   key={cIdx}
@@ -646,7 +646,7 @@ export function OnePagePatientReport({
           </div>
 
           {/* Section 6: Clinical Decision Protocol & Risk Flags */}
-          <div className="border border-[var(--color-border)] rounded-xl p-3.5 bg-white">
+          <div className="rpt-card border border-[var(--color-border)] rounded-xl p-3.5 bg-white">
             <div className="flex items-center gap-2 border-b border-[var(--color-border)]/70 pb-2 mb-2.5">
               <FirstAid size={16} className="text-[var(--color-primary)] shrink-0" />
               <h2 className="text-[13px] font-bold tracking-tight text-[var(--color-foreground)] uppercase">
@@ -692,7 +692,7 @@ export function OnePagePatientReport({
         </div>
 
         {/* Document Footer: Emergency 108 Dispatch & Medical Verification Stamp */}
-        <footer className="border-t border-[var(--color-border)] pt-3.5 text-[11px] text-[var(--color-charcoal)]">
+        <footer className="rpt-card border-t border-[var(--color-border)] pt-3.5 text-[11px] text-[var(--color-charcoal)]">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1.5 bg-red-50 border border-red-200 px-2.5 py-1 rounded-lg text-red-800 font-bold">
@@ -714,6 +714,10 @@ export function OnePagePatientReport({
             </div>
           </div>
         </footer>
+        <p className="hidden print:block mt-2 border-t border-slate-300 pt-1 text-[10px] text-slate-600">
+          MatruSetu · {patient.clinicName || t("reports.dossier.defaultClinic")} · {patient.name}
+          {patient.clinicPatientNo ? ` · ${patient.clinicPatientNo}` : ""} · Confidential patient record
+        </p>
       </div>
 
       {/* High-Resolution Sonography & Lab Report Lightbox Modal */}

@@ -10,6 +10,7 @@ import {
   assignDemoDocument,
   getDemoPatientDetail,
   getDemoStore,
+  updateDemoDocumentOcr,
 } from "@/lib/demo-data";
 
 export interface ActionResult {
@@ -32,7 +33,7 @@ export async function uploadDemoDocumentAction(data: {
   source: string;
   fileName: string;
   dataUrl?: string;
-  ocrText?: string;
+  patientId?: string;
 }): Promise<{ error: string | null; id?: string }> {
   const me = await getCurrentUser();
   if (!me.isDemo) {
@@ -45,14 +46,29 @@ export async function uploadDemoDocumentAction(data: {
     docDate: data.docDate || null,
     source: data.source,
     dataUrl: data.dataUrl,
-    ocrText: data.ocrText,
-    ocrStatus: data.ocrText ? "done" : "skipped",
+    patientId: data.patientId,
+    ocrStatus: "pending",
   });
   revalidatePath("/documents");
+  if (data.patientId) revalidatePath(`/patients/${data.patientId}`);
   if (data.folder === "opd-register") {
     revalidatePath("/opd");
   }
   return { error: null, id: doc.id };
+}
+
+/** Demo-store counterpart of the browser's Supabase update once OCR finishes. */
+export async function updateDemoDocumentOcrAction(
+  documentId: string,
+  ocr: { status: "done" | "failed"; text?: string; engine?: string },
+): Promise<{ error: string | null }> {
+  const me = await getCurrentUser();
+  if (!me.isDemo) return { error: "Demo update is only available in demo sessions" };
+  if (!updateDemoDocumentOcr(documentId, ocr)) return { error: "Document not found" };
+  revalidatePath("/documents");
+  revalidatePath("/opd");
+  revalidatePath("/patients/[id]", "page");
+  return { error: null };
 }
 
 export async function assignDocument(documentId: string, _prev: ActionResult, formData: FormData): Promise<ActionResult> {
