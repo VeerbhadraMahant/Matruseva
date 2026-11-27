@@ -111,22 +111,73 @@ for (const viewport of [{ width: 320, height: 740 }, { width: 1440, height: 900 
     await expect(profile.getByText("Doctor", { exact: true })).toBeVisible();
     await expect(profile.getByText("MatruSetu Demo Clinic", { exact: true })).toBeVisible();
     await expect(profile.getByText("Demo profile", { exact: true })).toBeVisible();
-    await expect(profile.getByText("Degree", { exact: true })).toBeVisible();
+    await expect(profile.getByRole("term").filter({ hasText: /^Degree$/ })).toBeVisible();
     await expect(profile.getByText("MBBS, MD", { exact: true })).toBeVisible();
-    await expect(profile.getByText("Years of experience", { exact: true })).toBeVisible();
+    await expect(profile.getByRole("term").filter({ hasText: /^Years of experience$/ })).toBeVisible();
     await expect(profile.getByText("12", { exact: true })).toBeVisible();
-    await expect(profile.getByText("Edit professional details", { exact: true })).toHaveCount(0);
+    await expect(profile.getByText("Edit profile", { exact: true })).toBeVisible();
     expect((await profile.boundingBox())!.y).toBeLessThan((await settings.boundingBox())!.y);
     await expect(settings.getByText("Demo clinic settings are read-only.")).toBeVisible();
     await expect(settings.getByRole("heading", { name: /Follow-up thresholds/ })).toBeVisible();
     await expect(settings.getByRole("spinbutton").first()).toHaveValue("7");
     await expect(settings.getByRole("spinbutton").first()).toBeDisabled();
-    await expect(settings.getByRole("heading", { name: /ANC schedule template/ })).toBeVisible();
+    const schedule = settings.getByRole("heading", { name: /ANC schedule template/ });
+    const reminders = settings.getByRole("heading", { name: /Reminder message templates/ });
+    await expect(schedule).toBeVisible();
     await expect(settings.getByText(/Booking visit/i).first()).toBeVisible();
-    await expect(settings.getByRole("heading", { name: /Reminder message templates/ })).toBeVisible();
+    await expect(reminders).toBeVisible();
     await expect(settings.locator("textarea").first()).not.toHaveValue("");
+
+    const schedulePosition = (await schedule.boundingBox())!;
+    const remindersPosition = (await reminders.boundingBox())!;
+    if (viewport.width >= 1280) {
+      expect(remindersPosition.x).toBeGreaterThan(schedulePosition.x);
+      expect(Math.abs(remindersPosition.y - schedulePosition.y)).toBeLessThan(8);
+    } else {
+      expect(remindersPosition.x).toBeCloseTo(schedulePosition.x);
+      expect(remindersPosition.y).toBeGreaterThan(schedulePosition.y);
+    }
   });
 }
+
+test("the doctor can edit and persist their demo profile without unlocking clinic settings", async ({ page }) => {
+  await page.goto("/settings");
+  const edit = page.getByText("Edit profile", { exact: true });
+  await edit.click();
+  const name = page.getByLabel("Full name", { exact: true });
+  const degree = page.getByLabel("Degree", { exact: true });
+  const years = page.getByLabel("Years of experience", { exact: true });
+  const original = [await name.inputValue(), await degree.inputValue(), await years.inputValue()];
+  const save = page.getByRole("button", { name: "Save profile", exact: true });
+  try {
+    await name.fill("Dr. Demo QA");
+    await degree.fill("MBBS, DGO");
+    await years.fill("8");
+    await save.click();
+    await expect(page.getByRole("heading", { name: "Dr. Demo QA", exact: true })).toBeVisible();
+    await page.reload();
+    const profile = page.getByRole("region", { name: "Dr. Demo QA", exact: true });
+    await expect(profile.getByText("MBBS, DGO", { exact: true })).toBeVisible();
+    await expect(profile.getByText("8", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Save clinic details" })).toBeDisabled();
+  } finally {
+    if (!(await name.isVisible())) await edit.click();
+    await name.fill(original[0]);
+    await degree.fill(original[1]);
+    await years.fill(original[2]);
+    await save.click();
+    await expect(page.getByRole("heading", { name: original[0], exact: true })).toBeVisible();
+  }
+});
+
+test("a staff invitation requires an explicit acceptance and rejects demo tokens", async ({ page }) => {
+  await page.goto("/auth/staff-invite?token_hash=demo-test-token");
+  await expect(page.getByRole("heading", { name: "Your staff invitation" })).toBeVisible();
+  await expect(page).toHaveURL(/token_hash=demo-test-token$/);
+  await page.getByRole("button", { name: "Accept invitation" }).click();
+  await expect(page).toHaveURL(/\/auth\/staff-invite\?expired=1$/);
+  await expect(page.getByRole("link", { name: "Sign in" })).toBeVisible();
+});
 
 test("phone navigation has five links and the menu retains access to scanning", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });

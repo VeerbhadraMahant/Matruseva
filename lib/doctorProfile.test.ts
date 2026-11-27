@@ -2,12 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { setDemoDoctorProfile } from "@/lib/demo-data";
 import { updateDoctorProfile } from "@/app/(app)/settings/actions";
 
 vi.mock("server-only", () => ({}));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/auth", () => ({ getCurrentUser: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
+vi.mock("@/lib/demo-data", () => ({ setDemoDoctorProfile: vi.fn() }));
 vi.mock("@/lib/i18n/server", () => ({ getT: async () => ({ t: (key: string) => key }) }));
 
 const doctor = { userId: "doctor-1", clinicId: "clinic-1", clinicName: "Test Clinic", fullName: "Dr. Test", role: "doctor" } as const;
@@ -21,6 +23,7 @@ const from = vi.fn().mockReturnValue(query);
 
 function submit(degree: string, years: string) {
   const form = new FormData();
+  form.set("fullName", " Dr. Updated ");
   form.set("degree", degree);
   form.set("yearsOfExperience", years);
   form.set("id", "another-user");
@@ -38,7 +41,7 @@ describe("updateDoctorProfile", () => {
   it("updates only the signed-in doctor's profile and preserves zero years", async () => {
     await expect(submit("  MBBS, MD  ", "0")).resolves.toEqual({ error: null });
     expect(from).toHaveBeenCalledWith("profiles");
-    expect(query.update).toHaveBeenCalledWith({ degree: "MBBS, MD", years_of_experience: 0 });
+    expect(query.update).toHaveBeenCalledWith({ full_name: "Dr. Updated", degree: "MBBS, MD", years_of_experience: 0 });
     expect(query.eq).toHaveBeenCalledWith("id", doctor.userId);
     expect(query.eq).toHaveBeenCalledWith("clinic_id", doctor.clinicId);
     expect(revalidatePath).toHaveBeenCalledWith("/settings");
@@ -46,7 +49,7 @@ describe("updateDoctorProfile", () => {
 
   it("clears either optional field when blank", async () => {
     await expect(submit("  ", "")).resolves.toEqual({ error: null });
-    expect(query.update).toHaveBeenCalledWith({ degree: null, years_of_experience: null });
+    expect(query.update).toHaveBeenCalledWith({ full_name: "Dr. Updated", degree: null, years_of_experience: null });
   });
 
   it.each(["-1", "2.5", "unknown"])("rejects invalid experience %s before updating", async (years) => {
@@ -60,12 +63,16 @@ describe("updateDoctorProfile", () => {
     expect(revalidatePath).not.toHaveBeenCalled();
   });
 
-  it.each([
-    [{ ...doctor, isDemo: true }, "settings.error.demo"],
-    [{ ...doctor, role: "staff" as const }, "settings.error.doctorOnly"],
-  ])("blocks writes for demo and staff accounts", async (user, error) => {
-    vi.mocked(getCurrentUser).mockResolvedValueOnce(user);
-    await expect(submit("MD", "12")).resolves.toEqual({ error });
+  it("saves the demo profile locally", async () => {
+    vi.mocked(getCurrentUser).mockResolvedValueOnce({ ...doctor, isDemo: true });
+    await expect(submit("MD", "12")).resolves.toEqual({ error: null });
+    expect(setDemoDoctorProfile).toHaveBeenCalledWith({ fullName: "Dr. Updated", degree: "MD", yearsOfExperience: 12 });
+    expect(createClient).not.toHaveBeenCalled();
+  });
+
+  it("blocks staff from editing the doctor profile", async () => {
+    vi.mocked(getCurrentUser).mockResolvedValueOnce({ ...doctor, role: "staff" });
+    await expect(submit("MD", "12")).resolves.toEqual({ error: "settings.error.doctorOnly" });
     expect(createClient).not.toHaveBeenCalled();
   });
 });

@@ -15,7 +15,7 @@ import { PageHeader, Panel, Tag, buttonSecondary, card, pageBody } from "@/compo
 import type { MessageTemplates } from "@/lib/whatsapp";
 import { getT } from "@/lib/i18n/server";
 import { intlLocale } from "@/lib/i18n/intl";
-import { DEMO_SCHEDULE_ITEMS } from "@/lib/demo-data";
+import { DEMO_SCHEDULE_ITEMS, getDemoDoctorProfile } from "@/lib/demo-data";
 import { CLINICAL_RISK_THRESHOLDS } from "@/lib/clinicalProtocols";
 import { careEventName } from "@/lib/clinicalLabels";
 
@@ -37,8 +37,10 @@ export default async function SettingsPage() {
         supabase.from("profiles").select("degree, years_of_experience").eq("id", me.userId).maybeSingle(),
       ])
     : [{ data: null }, { data: null }, { data: null }, { data: null }];
-  const degree = me.isDemo ? "MBBS, MD" : professionalDetails?.degree ?? null;
-  const yearsOfExperience = me.isDemo ? 12 : professionalDetails?.years_of_experience ?? null;
+  const { degree, yearsOfExperience } = me.isDemo ? getDemoDoctorProfile() : {
+    degree: professionalDetails?.degree ?? null,
+    yearsOfExperience: professionalDetails?.years_of_experience ?? null,
+  };
   const items = me.isDemo ? DEMO_SCHEDULE_ITEMS : [...(template?.schedule_template_items ?? [])]
     .sort((a, b) => a.sort_order - b.sort_order)
     .map((item) => ({
@@ -65,8 +67,8 @@ export default async function SettingsPage() {
       </Link>
     </div>
   ) : (
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-5 xl:grid-cols-2">
-        <div className="space-y-5">
+      <div className="space-y-5">
+        <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-5 xl:grid-cols-2">
           <Panel title={t("settings.panel.clinic")}>
             <fieldset disabled={me.isDemo} className="p-4 pt-1">
               <ClinicDetailsForm name={clinicName} city={clinic?.city ?? null} phone={clinic?.phone ?? null} />
@@ -97,15 +99,14 @@ export default async function SettingsPage() {
             </ul>
             {!me.isDemo && <div className="p-4 pt-1"><StaffInviteForm /></div>}
           </Panel>
-        </div>
-
-        <div className="space-y-5">
           {!me.isDemo && (
             <Panel title={t("settings.panel.signoff")}>
               <div className="p-4 pt-1"><ClinicalProtocolSignOff /></div>
             </Panel>
           )}
+        </div>
 
+        <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-5 xl:grid-cols-2">
           <Panel title={t("settings.panel.schedule")} count={items.length}>
             <p className="px-4 pb-2 text-[13px] text-[var(--color-charcoal)]">
               {t("settings.schedule.help")}
@@ -178,14 +179,12 @@ export default async function SettingsPage() {
               </div>
             )}
           </dl>
-          {!me.isDemo && (
-            <details className="mt-4 border-t border-[var(--color-border)] pt-4">
-              <summary className="w-fit cursor-pointer rounded-sm text-sm font-semibold text-[var(--color-primary)] hover:underline">
-                {t("settings.profile.edit")}
-              </summary>
-              <DoctorProfessionalDetailsForm degree={degree} yearsOfExperience={yearsOfExperience} />
-            </details>
-          )}
+          <details className="mt-4 border-t border-[var(--color-border)] pt-4">
+            <summary className="inline-flex min-h-10 cursor-pointer items-center rounded-lg px-3 text-sm font-semibold text-[var(--color-primary)] hover:bg-[var(--color-primary-surface)]">
+              {t("settings.profile.edit")}
+            </summary>
+            <DoctorProfessionalDetailsForm fullName={me.fullName} degree={degree} yearsOfExperience={yearsOfExperience} />
+          </details>
         </section>
 
         <section aria-labelledby="application-settings" className="space-y-4">

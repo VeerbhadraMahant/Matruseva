@@ -1,18 +1,19 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser, type CurrentUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getT } from "@/lib/i18n/server";
+import { setDemoDoctorProfile } from "@/lib/demo-data";
 
 export interface ActionResult {
   error: string | null;
-  inviteLink?: string;
 }
 
-/** Doctor-only guard for live settings and profile changes. */
+/** Doctor-only guard for live clinic settings. */
 async function requireDoctor(t: Awaited<ReturnType<typeof getT>>["t"]): Promise<
   | { supabase: Awaited<ReturnType<typeof createClient>>; profile: { id: string; clinic_id: string; role: CurrentUser["role"] }; error: null }
   | { supabase: null; profile: null; error: string }
@@ -29,6 +30,7 @@ async function requireDoctor(t: Awaited<ReturnType<typeof getT>>["t"]): Promise<
 }
 
 const doctorProfileSchema = z.object({
+  fullName: z.string().trim().min(2),
   degree: z.string().trim(),
   yearsOfExperience: z.string().trim()
     .transform((value) => value === "" ? null : Number(value))
@@ -36,26 +38,30 @@ const doctorProfileSchema = z.object({
 });
 
 export async function updateDoctorProfile(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
-  const { t } = await getT();
-  const { supabase, profile, error } = await requireDoctor(t);
-  if (error || !profile) return { error };
-
+  const [{ t }, me] = await Promise.all([getT(), getCurrentUser()]);
+  if (me.role !== "doctor") return { error: t("settings.error.doctorOnly") };
   const parsed = doctorProfileSchema.safeParse(Object.fromEntries(formData.entries()));
-  if (!parsed.success) return { error: t("settings.profile.invalid") };
+  if (!parsed.success) {
+    return { error: t(parsed.error.issues[0].path[0] === "fullName" ? "settings.profile.invalidName" : "settings.profile.invalid") };
+  }
 
-  const { data: updated, error: updateError } = await supabase
-    .from("profiles")
-    .update({
-      degree: parsed.data.degree || null,
-      years_of_experience: parsed.data.yearsOfExperience,
-    })
-    .eq("id", profile.id)
-    .eq("clinic_id", profile.clinic_id)
-    .eq("role", "doctor")
-    .select("id")
-    .maybeSingle();
+  const { fullName, degree, yearsOfExperience } = parsed.data;
+  if (me.isDemo) {
+    setDemoDoctorProfile({ fullName, degree: degree || null, yearsOfExperience });
+  } else {
+    const supabase = await createClient();
+    const { data: updated, error } = await supabase
+      .from("profiles")
+      .update({ full_name: fullName, degree: degree || null, years_of_experience: yearsOfExperience })
+      .eq("id", me.userId)
+      .eq("clinic_id", me.clinicId)
+      .eq("role", "doctor")
+      .select("id")
+      .maybeSingle();
 
-  if (updateError || !updated) return { error: t("settings.profile.saveFailed") };
+    if (error || !updated) return { error: t("settings.profile.saveFailed") };
+  }
+  revalidatePath("/(app)", "layout");
   revalidatePath("/settings");
   return { error: null };
 }
@@ -204,16 +210,9 @@ export async function updateScheduleItem(_prev: ActionResult, formData: FormData
 
 const inviteSchema = (msg: { email: string; name: string }) => z.object({
   email: z.email(msg.email),
-  fullName: z.string().min(2, msg.name),
+  fullName: z.string().trim().min(2, msg.name),
 });
 
-/**
- * Creates the staff member's account and profile directly (service role),
- * then returns a one-time password-recovery link for the doctor to share
- * manually (call, SMS, WhatsApp) — this project has no SMTP configured yet,
- * so Supabase's invite/magic-link emails would not actually be delivered.
- * See memory: matrusetu-supabase-auth-autoconfirm.
- */
 export async function inviteStaff(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
   const { t } = await getT();
   const { profile, error } = await requireDoctor(t);
@@ -222,31 +221,36 @@ export async function inviteStaff(_prev: ActionResult, formData: FormData): Prom
   const parsed = inviteSchema({ email: t("settings.error.email"), name: t("settings.error.staffName") }).safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (await headers()).get("origin");
+  const inviteUrl = siteUrl && URL.parse("/auth/staff-invite", siteUrl);
+  if (!inviteUrl || !["https:", "http:"].includes(inviteUrl.protocol)) {
+    return { error: t("settings.error.inviteUnavailable") };
+  }
   const admin = createAdminClient();
-
-  const { data: created, error: createError } = await admin.auth.admin.createUser({
-    email: parsed.data.email,
-    password: crypto.randomUUID(),
-    email_confirm: true,
+  const inviteId = crypto.randomUUID();
+  const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(parsed.data.email, {
+    redirectTo: inviteUrl.toString(),
+    data: { matrusetu_staff_invite: inviteId },
   });
-  if (createError || !created.user) return { error: createError?.message ?? t("settings.error.createAccount") };
+  if (inviteError || !invited.user) return { error: inviteError?.message ?? t("settings.error.createAccount") };
+  // Supabase may return an existing unconfirmed account. Only attach or clean up a user created by this request.
+  if (invited.user.user_metadata?.matrusetu_staff_invite !== inviteId) {
+    return { error: t("settings.error.inviteExisting") };
+  }
 
   const { error: profileError } = await admin.from("profiles").insert({
-    id: created.user.id,
+    id: invited.user.id,
     clinic_id: profile.clinic_id,
     full_name: parsed.data.fullName,
     role: "staff",
   });
-  if (profileError) return { error: profileError.message };
-
-  const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
-    type: "recovery",
-    email: parsed.data.email,
-  });
-  if (linkError) return { error: linkError.message };
+  if (profileError) {
+    await admin.auth.admin.deleteUser(invited.user.id);
+    return { error: profileError.message };
+  }
 
   revalidatePath("/settings");
-  return { error: null, inviteLink: linkData.properties.action_link };
+  return { error: null };
 }
 
 export async function removeStaff(staffProfileId: string): Promise<ActionResult> {
