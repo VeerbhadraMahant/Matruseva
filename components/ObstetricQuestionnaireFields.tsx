@@ -172,8 +172,9 @@ export function ObstetricQuestionnaireFields({
       <input type="hidden" name="q_syphilisStatus" value={syphilis} />
       <input type="hidden" name="q_hepBStatus" value={hepB} />
 
-      {isOpen && (
-        <div className="p-5 space-y-5 border-t border-[var(--color-border)] bg-[var(--color-background)]">
+      {/* Collapse with `hidden`, not unmount: unmounted inputs would drop out of the form and overwrite saved answers. */}
+      {(
+        <div hidden={!isOpen} className="p-5 space-y-5 border-t border-[var(--color-border)] bg-[var(--color-background)]">
           {/* Question 1: Delivery Mode */}
           <div className="space-y-2">
             <label className="block text-[13px] font-bold text-[var(--color-foreground)]">
