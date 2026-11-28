@@ -18,7 +18,58 @@ export interface ObstetricQuestionnaireFieldsProps {
     familyComplications?: string[];
     chronicConditions?: string[];
     doctorNotes?: string;
+    heightCm?: number;
+    bookingWeightKg?: number;
+    previousCaesareans?: string;
+    multiplePregnancy?: string;
+    hivStatus?: string;
+    syphilisStatus?: string;
+    hepBStatus?: string;
   };
+}
+
+const SCREENING_OPTIONS = [
+  { id: "unknown", label: "Unknown / not tested" },
+  { id: "negative", label: "Negative" },
+  { id: "positive", label: "Positive", alert: true },
+];
+
+/** Single-choice button group in the same look as the questions above; labelled for assistive tech. */
+function Segmented({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: { id: string; label: string; alert?: boolean }[];
+  value: string;
+  onChange: (id: string) => void;
+}) {
+  return (
+    <div className="space-y-2" role="group" aria-label={label}>
+      <span className="block text-[13px] font-bold text-[var(--color-foreground)]">{label}</span>
+      <div className="grid grid-cols-3 gap-2">
+        {options.map((o) => (
+          <button
+            key={o.id}
+            type="button"
+            aria-pressed={value === o.id}
+            onClick={() => onChange(o.id)}
+            className={`p-2 text-left rounded-xl border text-xs transition cursor-pointer ${
+              value === o.id
+                ? o.alert
+                  ? "border-red-400 bg-red-50 text-red-950 font-semibold ring-1 ring-red-400"
+                  : "border-[var(--color-primary)] bg-[var(--color-primary-surface)] text-[var(--color-foreground)] font-semibold ring-1 ring-[var(--color-primary)]"
+                : "border-[var(--color-border)] bg-[var(--color-surface-1)] text-[var(--color-charcoal)]"
+            }`}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export function ObstetricQuestionnaireFields({
@@ -50,6 +101,11 @@ export function ObstetricQuestionnaireFields({
   const [doctorNotes, setDoctorNotes] = useState(
     defaultValues?.doctorNotes || ""
   );
+  const [caesareans, setCaesareans] = useState(defaultValues?.previousCaesareans || "0");
+  const [multiple, setMultiple] = useState(defaultValues?.multiplePregnancy || "single");
+  const [hiv, setHiv] = useState(defaultValues?.hivStatus || "unknown");
+  const [syphilis, setSyphilis] = useState(defaultValues?.syphilisStatus || "unknown");
+  const [hepB, setHepB] = useState(defaultValues?.hepBStatus || "unknown");
 
   const toggleMultiSelect = (
     currentList: string[],
@@ -110,6 +166,11 @@ export function ObstetricQuestionnaireFields({
       <input type="hidden" name="q_interpregnancyInterval" value={interval} />
       <input type="hidden" name="q_familyComplications" value={JSON.stringify(familyComp)} />
       <input type="hidden" name="q_chronicConditions" value={JSON.stringify(chronic)} />
+      <input type="hidden" name="q_previousCaesareans" value={caesareans} />
+      <input type="hidden" name="q_multiplePregnancy" value={multiple} />
+      <input type="hidden" name="q_hivStatus" value={hiv} />
+      <input type="hidden" name="q_syphilisStatus" value={syphilis} />
+      <input type="hidden" name="q_hepBStatus" value={hepB} />
 
       {isOpen && (
         <div className="p-5 space-y-5 border-t border-[var(--color-border)] bg-[var(--color-background)]">
@@ -361,6 +422,71 @@ export function ObstetricQuestionnaireFields({
                 );
               })}
             </div>
+          </div>
+
+          {/* High-risk intake (MoHFW) */}
+          <div className="space-y-4 border-t border-[var(--color-border)] pt-4">
+            <h3 className="text-[13px] font-bold text-[var(--color-primary)]">High-risk intake (MoHFW)</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label htmlFor="q_heightCm" className="block text-[12px] font-medium text-[var(--color-charcoal)]">
+                  Height (cm)
+                </label>
+                <input
+                  id="q_heightCm"
+                  name="q_heightCm"
+                  type="number"
+                  inputMode="decimal"
+                  min={120}
+                  max={200}
+                  step="any"
+                  defaultValue={defaultValues?.heightCm ?? ""}
+                  placeholder="120 - 200"
+                  className="min-h-9 w-full rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 text-xs focus:border-[var(--color-primary)] focus:outline-none"
+                />
+              </div>
+              <div className="space-y-1">
+                <label htmlFor="q_bookingWeightKg" className="block text-[12px] font-medium text-[var(--color-charcoal)]">
+                  Weight at booking (kg)
+                </label>
+                <input
+                  id="q_bookingWeightKg"
+                  name="q_bookingWeightKg"
+                  type="number"
+                  inputMode="decimal"
+                  min={30}
+                  max={200}
+                  step="any"
+                  defaultValue={defaultValues?.bookingWeightKg ?? ""}
+                  placeholder="30 - 200"
+                  className="min-h-9 w-full rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-background)] px-3 text-xs focus:border-[var(--color-primary)] focus:outline-none"
+                />
+              </div>
+            </div>
+            <Segmented
+              label="Number of previous caesareans"
+              value={caesareans}
+              onChange={setCaesareans}
+              options={[
+                { id: "0", label: "None" },
+                { id: "1", label: "1", alert: true },
+                { id: "2+", label: "2 or more", alert: true },
+              ]}
+            />
+            <Segmented
+              label="This pregnancy"
+              value={multiple}
+              onChange={setMultiple}
+              options={[
+                { id: "single", label: "Single baby" },
+                { id: "twins", label: "Twins", alert: true },
+                { id: "triplets+", label: "Triplets or more", alert: true },
+              ]}
+            />
+            <h3 className="pt-1 text-[13px] font-bold text-[var(--color-primary)]">Infection screening</h3>
+            <Segmented label="HIV" value={hiv} onChange={setHiv} options={SCREENING_OPTIONS} />
+            <Segmented label="Syphilis (VDRL / RPR)" value={syphilis} onChange={setSyphilis} options={SCREENING_OPTIONS} />
+            <Segmented label="Hepatitis B (HBsAg)" value={hepB} onChange={setHepB} options={SCREENING_OPTIONS} />
           </div>
 
           {/* Additional Clinician Notes */}

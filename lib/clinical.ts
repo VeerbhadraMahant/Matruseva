@@ -6,6 +6,7 @@
 
 import type { MessageKey } from "@/lib/i18n/messages";
 import type { Translator } from "@/lib/i18n/translate-client";
+import type { ObstetricQuestionnaireData } from "@/lib/obstetricQuestionnaire";
 
 export type FlagSeverity = "critical" | "warning" | "info";
 
@@ -31,6 +32,8 @@ export interface PatientFactsInput {
   rhNegative: boolean;
   bloodGroup?: string | null;
   gaWeeks: number | null;
+  /** Intake questionnaire (patients.obstetric_questionnaire); old rows may lack the newer fields. */
+  questionnaire?: ObstetricQuestionnaireData | null;
 }
 
 export function bpFlag(sys: number | null, dia: number | null): ClinicalFlag | null {
@@ -58,6 +61,26 @@ export function vitalsFlags(v: VitalsInput): ClinicalFlag[] {
   return [bpFlag(v.bpSys, v.bpDia), hbFlag(v.hb), fhrFlag(v.fhr)].filter((f): f is ClinicalFlag => f !== null);
 }
 
+/** MoHFW high-risk intake flags from the questionnaire. */
+export function questionnaireFlags(q: ObstetricQuestionnaireData | null | undefined): ClinicalFlag[] {
+  if (!q) return [];
+  const flags: ClinicalFlag[] = [];
+  const flag = (code: string, label: string, severity: FlagSeverity) =>
+    flags.push({ code, label, labelKey: `clinical.flag.${code}` as MessageKey, severity });
+  if (typeof q.heightCm === "number" && q.heightCm < 140) flag("short_stature", "Short stature (<140 cm)", "warning");
+  if (typeof q.bookingWeightKg === "number" && q.bookingWeightKg < 45) flag("low_weight", "Low booking weight (<45 kg)", "warning");
+  // A previous LSCS delivery mode counts as at least one caesarean even if the count was left at 0.
+  const caesareans = q.previousCaesareans === "2+" ? "2+" : q.previousCaesareans === "1" || q.previousDeliveryMode === "LSCS" ? "1" : "0";
+  if (caesareans === "2+") flag("prev_caesarean_multiple", "Two or more previous caesareans", "critical");
+  else if (caesareans === "1") flag("prev_caesarean", "Previous caesarean", "warning");
+  if (q.multiplePregnancy === "twins" || q.multiplePregnancy === "triplets+") flag("multiple_pregnancy", "Multiple pregnancy", "warning");
+  if (q.pastPregnancyLoss === "stillbirth") flag("prev_stillbirth", "Previous stillbirth", "warning");
+  if (q.hivStatus === "positive") flag("infection_hiv", "HIV positive", "warning");
+  if (q.syphilisStatus === "positive") flag("infection_syphilis", "Syphilis positive", "warning");
+  if (q.hepBStatus === "positive") flag("infection_hepb", "Hepatitis B positive", "warning");
+  return flags;
+}
+
 export function patientFlags(p: PatientFactsInput): ClinicalFlag[] {
   const flags: ClinicalFlag[] = [];
   if (p.gaWeeks !== null && p.gaWeeks >= 42) flags.push({ code: "post_term", label: "Post-term (≥42w)", labelKey: "clinical.flag.post_term", severity: "critical" });
@@ -67,6 +90,7 @@ export function patientFlags(p: PatientFactsInput): ClinicalFlag[] {
   if (p.age !== null && p.age >= 35) flags.push({ code: "age_35", label: "Age ≥35", labelKey: "clinical.flag.age_35", severity: "info" });
   if (p.age !== null && p.age < 18) flags.push({ code: "age_teen", label: "Adolescent", labelKey: "clinical.flag.age_teen", severity: "info" });
   if (p.gravida !== null && p.gravida >= 5) flags.push({ code: "grand_multi", label: "Grand multigravida", labelKey: "clinical.flag.grand_multi", severity: "info" });
+  flags.push(...questionnaireFlags(p.questionnaire));
   return flags;
 }
 

@@ -15,7 +15,17 @@ export interface ObstetricQuestionnaireData {
   familyComplications: string[]; // ["preeclampsia", "diabetes", "twins", "anemia", "none"]
   chronicConditions: string[]; // ["hypertension", "thyroid", "cardiac", "asthma_epilepsy", "none"]
   doctorNotes?: string;
+  // MoHFW high-risk intake fields. Optional: questionnaires saved before they existed lack them.
+  heightCm?: number;
+  bookingWeightKg?: number;
+  previousCaesareans?: "0" | "1" | "2+";
+  multiplePregnancy?: "single" | "twins" | "triplets+";
+  hivStatus?: ScreeningStatus;
+  syphilisStatus?: ScreeningStatus;
+  hepBStatus?: ScreeningStatus;
 }
+
+export type ScreeningStatus = "unknown" | "negative" | "positive";
 
 export const DEFAULT_OBSTETRIC_QUESTIONNAIRE: ObstetricQuestionnaireData = {
   previousDeliveryMode: "Primi",
@@ -26,6 +36,11 @@ export const DEFAULT_OBSTETRIC_QUESTIONNAIRE: ObstetricQuestionnaireData = {
   familyComplications: ["none"],
   chronicConditions: ["none"],
   doctorNotes: "",
+  previousCaesareans: "0",
+  multiplePregnancy: "single",
+  hivStatus: "unknown",
+  syphilisStatus: "unknown",
+  hepBStatus: "unknown",
 };
 
 export const obstetricQuestionnaireSchema = z.object({
@@ -37,7 +52,48 @@ export const obstetricQuestionnaireSchema = z.object({
   familyComplications: z.array(z.string()).default([]),
   chronicConditions: z.array(z.string()).default([]),
   doctorNotes: z.string().optional().default(""),
+  heightCm: z.number().min(120).max(200).optional(),
+  bookingWeightKg: z.number().min(30).max(200).optional(),
+  previousCaesareans: z.enum(["0", "1", "2+"]).default("0"),
+  multiplePregnancy: z.enum(["single", "twins", "triplets+"]).default("single"),
+  hivStatus: z.enum(["unknown", "negative", "positive"]).default("unknown"),
+  syphilisStatus: z.enum(["unknown", "negative", "positive"]).default("unknown"),
+  hepBStatus: z.enum(["unknown", "negative", "positive"]).default("unknown"),
 });
+
+/**
+ * Builds the questionnaire from the q_* form fields shared by the registration form and the edit
+ * modal. Returns null when the form carries no questionnaire; otherwise the zod result, so callers
+ * can reject out-of-range input instead of silently dropping it.
+ */
+export function parseQuestionnaireForm(raw: Record<string, FormDataEntryValue>) {
+  if (!raw.q_previousDeliveryMode) return null;
+  const list = (v: FormDataEntryValue | undefined) => {
+    try {
+      return v ? JSON.parse(String(v)) : undefined;
+    } catch {
+      return null; // malformed: let zod reject it
+    }
+  };
+  const num = (v: FormDataEntryValue | undefined) => (v === undefined || v === "" ? undefined : Number(v));
+  return obstetricQuestionnaireSchema.safeParse({
+    previousDeliveryMode: raw.q_previousDeliveryMode,
+    priorComplications: list(raw.q_priorComplications),
+    pastPregnancyLoss: raw.q_pastPregnancyLoss,
+    pastBirthWeight: raw.q_pastBirthWeight,
+    interpregnancyInterval: raw.q_interpregnancyInterval,
+    familyComplications: list(raw.q_familyComplications),
+    chronicConditions: list(raw.q_chronicConditions),
+    doctorNotes: raw.q_doctorNotes ? String(raw.q_doctorNotes) : "",
+    heightCm: num(raw.q_heightCm),
+    bookingWeightKg: num(raw.q_bookingWeightKg),
+    previousCaesareans: raw.q_previousCaesareans,
+    multiplePregnancy: raw.q_multiplePregnancy,
+    hivStatus: raw.q_hivStatus,
+    syphilisStatus: raw.q_syphilisStatus,
+    hepBStatus: raw.q_hepBStatus,
+  });
+}
 
 /**
  * Converts questionnaire responses into structured PastObstetricHistory & FamilyPregnancyHistory
@@ -84,6 +140,12 @@ export function questionnaireToObstetricReport(
   if (chronic.includes("hypertension")) derivedRiskFlags.push("Chronic Pre-existing Hypertension");
   if (chronic.includes("thyroid")) derivedRiskFlags.push("Maternal Thyroid Disorder");
   if (chronic.includes("cardiac")) derivedRiskFlags.push("Heart Disease in Pregnancy (High Risk)");
+  if (q.previousCaesareans === "2+") derivedRiskFlags.push("Two or more previous caesareans");
+  if (q.multiplePregnancy && q.multiplePregnancy !== "single") derivedRiskFlags.push("Multiple pregnancy (this pregnancy)");
+  const positives = (
+    [["HIV", q.hivStatus], ["Syphilis", q.syphilisStatus], ["Hepatitis B", q.hepBStatus]] as const
+  ).filter(([, status]) => status === "positive").map(([name]) => name);
+  if (positives.length) derivedRiskFlags.push(`Screening positive: ${positives.join(", ")}`);
 
   let pastNotes = isPrimi
     ? "Primigravida. No past obstetric interventions or surgical scars on the uterus."
@@ -92,6 +154,14 @@ export function questionnaireToObstetricReport(
   if (prior.length > 0 && !prior.includes("none")) {
     pastNotes += ` Prior complications noted: ${prior.join(", ").toUpperCase()}.`;
   }
+  const intake = [
+    q.heightCm ? `Height ${q.heightCm} cm` : "",
+    q.bookingWeightKg ? `booking weight ${q.bookingWeightKg} kg` : "",
+    q.previousCaesareans && q.previousCaesareans !== "0" ? `previous caesareans: ${q.previousCaesareans}` : "",
+    q.multiplePregnancy && q.multiplePregnancy !== "single" ? `this pregnancy: ${q.multiplePregnancy}` : "",
+    positives.length ? `positive: ${positives.join(", ")}` : "",
+  ].filter(Boolean);
+  if (intake.length) pastNotes += ` Intake: ${intake.join("; ")}.`;
   if (q.doctorNotes?.trim()) {
     pastNotes += ` Clinician Note: ${q.doctorNotes.trim()}`;
   }

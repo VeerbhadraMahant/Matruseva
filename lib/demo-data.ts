@@ -481,6 +481,7 @@ export function getDemoSnapshot(): { rows: PatientRow[]; today: Date; todayIso: 
         rhNegative: p.rhNegative,
         bloodGroup: p.bloodGroup ?? null,
         gaWeeks: ga?.weeks ?? null,
+        questionnaire: p.obstetricQuestionnaire,
       }),
     ]);
 
