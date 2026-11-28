@@ -13,6 +13,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Browser traces contain bundled third-party JavaScript, not project source.
+    "test-results/**",
+    "playwright-report/**",
+    "coverage/**",
     // Serwist-generated service worker files:
     "public/sw.js",
     "public/sw.js.map",

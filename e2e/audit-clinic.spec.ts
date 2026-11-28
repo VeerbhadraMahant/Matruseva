@@ -52,7 +52,10 @@ test("Documents show distinguishable previews and file assigned pages out of the
   await expect(doc.getByText("Pooja Deshmukh", { exact: true })).toBeVisible();
   await page.goto("/documents");
   await expect(main.getByText(/PATHOLOGY LAB REPORT/)).toBeVisible();
-  await expect(report).toHaveCount(0);
+  const inbox = main.locator("section").filter({ has: page.getByRole("heading", { name: /^Inbox/ }) });
+  const processed = main.locator("section").filter({ has: page.getByRole("heading", { name: /^Processed/ }) });
+  await expect(inbox.getByText(/OBSTETRIC ULTRASOUND REPORT/)).toHaveCount(0);
+  await expect(processed.getByText(/OBSTETRIC ULTRASOUND REPORT/)).toBeVisible();
 });
 
 test("OPD capture starts with today's date and explains date-based filing", async ({ page }) => {
