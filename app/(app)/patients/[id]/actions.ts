@@ -11,6 +11,7 @@ import { normalizeVisitDate } from "@/lib/visitDate";
 import { formatDate, parseLocalDate } from "@/lib/format";
 import { closeDemoPregnancy, getDemoPatientDetail, markDemoCareEventDone, undoDemoCareEvent, recordDemoVisit, updateDemoPatient } from "@/lib/demo-data";
 import { isDuplicateRequest } from "@/lib/idempotency";
+import { BIRTH_VACCINES, buildPostnatalVisits, gestationalWeeksAtBirth, newbornInputSchema } from "@/lib/postnatal";
 import { eddFromLmp } from "@/lib/pregnancy";
 import { getT } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/messages";
@@ -184,8 +185,10 @@ const closePregnancySchema = z.object({
   // Messages are mapped to the active language from the issue path/code in closePregnancy().
   deliveryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   deliveryMode: z.enum(["NVD", "LSCS"]),
-  birthWeightKg: z.coerce.number().min(0.5).max(6.5),
+  // Optional when `newborns` is given (baby 1's weight is then the patient's birth weight).
+  birthWeightKg: z.coerce.number().min(0.5).max(6.5).optional(),
   notes: z.string().optional(),
+  newborns: z.array(newbornInputSchema).min(1).max(3).optional(),
 });
 
 export type ClosePregnancyInput = z.infer<typeof closePregnancySchema>;
@@ -204,6 +207,10 @@ export async function closePregnancy(
       case "deliveryMode":
         return { error: t("patientDetail.error.deliveryModeInvalid") };
       case "birthWeightKg":
+      case "newborns":
+        if (issue.path[0] === "newborns" && issue.path[2] !== "birth_weight_kg") {
+          return { error: t("patientDetail.error.invalidInput") };
+        }
         return {
           error: t(
             issue.code === "too_small"
@@ -225,12 +232,23 @@ export async function closePregnancy(
   if (data.deliveryDate > todayIso) {
     return { error: t("patientDetail.error.deliveryFuture") };
   }
+  const babies = data.newborns ?? (data.birthWeightKg === undefined ? [] : [{ birth_weight_kg: data.birthWeightKg, nicu_admission: false }]);
+  if (babies.length === 0) return { error: t("patientDetail.error.birthWeightNumber") };
 
   const [cookieStore, me] = await Promise.all([cookies(), getCurrentUser()]);
   const isDemo = isDemoActive(cookieStore);
+  // Gestational age at birth is shared by all babies; the DB only accepts 20-44 weeks.
+  const gaAt = (lmp: string | null | undefined) => {
+    const weeks = lmp ? gestationalWeeksAtBirth(lmp, data.deliveryDate) : null;
+    return weeks !== null && weeks >= 20 && weeks <= 44 ? weeks : null;
+  };
 
   if (isDemo) {
-    const demoRes = closeDemoPregnancy(patientId, data, me.fullName);
+    const demoRes = closeDemoPregnancy(
+      patientId,
+      { ...data, newborns: babies, gestationalAgeWeeks: gaAt(getDemoPatientDetail(patientId).patient.lmp) },
+      me.fullName,
+    );
     if (demoRes.error) return demoRes;
 
     revalidatePatientViews(patientId);
@@ -246,8 +264,9 @@ export async function closePregnancy(
     .eq("id", patientId)
     .maybeSingle();
 
+  if (fetchError) console.error("closePregnancy: patient lookup failed", fetchError);
   if (fetchError || !patient) {
-    return { error: fetchError?.message || t("patientDetail.error.patientNotFound") };
+    return { error: t(fetchError ? "common.error.generic" : "patientDetail.error.patientNotFound") };
   }
 
   // Idempotent rejection: reject if already closed
@@ -265,31 +284,37 @@ export async function closePregnancy(
     return { error: t("patientDetail.error.beforeLmp", { lmp: formatDate(patient.lmp, locale) }) };
   }
 
-  const nowIso = new Date().toISOString();
+  const gestationalAgeWeeks = gaAt(patient.lmp);
+  const newborns = babies.map((b, i) => ({
+    birth_order: i + 1,
+    name: b.name || null,
+    sex: b.sex || null,
+    birth_date: data.deliveryDate,
+    birth_weight_kg: b.birth_weight_kg,
+    gestational_age_weeks: gestationalAgeWeeks,
+    nicu_admission: b.nicu_admission,
+  }));
 
-  // Single transaction update on patients table
-  const { error: updateError } = await supabase
-    .from("patients")
-    .update({
-      status: "delivered",
-      pregnancy_status: "delivered",
+  // One atomic RPC: closes the pregnancy, skips open ANC care events, creates babies, visits and birth vaccines.
+  const { error: rpcError } = await supabase.rpc("record_delivery", {
+    p_patient_id: patientId,
+    p_delivery: {
       delivery_date: data.deliveryDate,
       delivery_mode: data.deliveryMode,
-      birth_weight_kg: data.birthWeightKg,
-      closed_at: nowIso,
       closed_by: me.userId,
-    })
-    .eq("id", patientId);
-
-  if (updateError) return { error: updateError.message };
-
-  // Close active/open ANC care events so they no longer trigger overdue/due alerts
-  await supabase
-    .from("care_events")
-    .update({ skipped_reason: "Pregnancy closed / delivered" })
-    .eq("patient_id", patientId)
-    .is("completed_at", null)
-    .is("skipped_reason", null);
+      notes: data.notes ?? null,
+    },
+    p_newborns: newborns,
+    p_visits: buildPostnatalVisits(data.deliveryDate),
+    p_vaccines: newborns.flatMap((n) =>
+      BIRTH_VACCINES.map((v) => ({ birth_order: n.birth_order, vaccine: v.code })),
+    ),
+  });
+  if (rpcError) {
+    console.error("closePregnancy: record_delivery failed", rpcError);
+    // A concurrent close lands here; the RPC raises "pregnancy is not active".
+    return { error: t(rpcError.message.includes("not active") ? "patientDetail.error.alreadyClosed" : "common.error.generic") };
+  }
 
   revalidatePatientViews(patientId);
   return { error: null };
