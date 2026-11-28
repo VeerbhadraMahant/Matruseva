@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { gestationalAge, type GestationalAge } from "@/lib/pregnancy";
 import { todayInClinicTimezone, toISODate, WORKLIST_DAYS } from "@/lib/today";
 import { parseLocalDate, daysBetween } from "@/lib/format";
+import type { ObstetricQuestionnaireData } from "@/lib/obstetricQuestionnaire";
 import { patientFlags, vitalsFlags, sortFlags, type ClinicalFlag } from "@/lib/clinical";
 import type { CareEventStatus, FollowUpRisk } from "@/lib/supabase/enums";
 import { isDemoActive } from "@/lib/auth";
@@ -75,7 +76,7 @@ export const getClinicSnapshot = cache(async () => {
   const [{ data: patients }, { data: events }, { data: risks }, { data: visits }] = await Promise.all([
     supabase
       .from("patients")
-      .select("id, name, phone, clinic_patient_no, age, gravida, para, rh_negative, blood_group, lmp, edd, created_at")
+      .select("id, name, phone, clinic_patient_no, age, gravida, para, rh_negative, blood_group, lmp, edd, created_at, obstetric_questionnaire")
       .eq("status", "active")
       .order("name"),
     supabase
@@ -143,7 +144,7 @@ export const getClinicSnapshot = cache(async () => {
       createdAt: p.created_at ?? null,
       flags: sortFlags([
         ...(latestVisit ? vitalsFlags(latestVisit) : []),
-        ...patientFlags({ age: p.age, gravida: p.gravida, rhNegative: p.rh_negative, bloodGroup: p.blood_group, gaWeeks: ga?.weeks ?? null }),
+        ...patientFlags({ age: p.age, gravida: p.gravida, rhNegative: p.rh_negative, bloodGroup: p.blood_group, gaWeeks: ga?.weeks ?? null, questionnaire: p.obstetric_questionnaire as ObstetricQuestionnaireData | null }),
       ]),
     };
   });

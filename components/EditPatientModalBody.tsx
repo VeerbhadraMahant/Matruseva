@@ -10,6 +10,7 @@ import { useT } from "@/lib/i18n/provider";
 import { SubmitButton } from "@/components/SubmitButton";
 import { withSuccessToast } from "@/components/Toaster";
 import { PatientDetailDialog } from "@/components/PatientDetailDialog";
+import { ObstetricQuestionnaireFields } from "@/components/ObstetricQuestionnaireFields";
 
 
 const initialState: ActionResult = { error: null };
@@ -48,6 +49,8 @@ export function EditPatientModal({
   const [edd, setEdd] = useState(patient.edd || "");
   const [eddSource, setEddSource] = useState<"lmp" | "scan" | "manual">(patient.eddSource || "lmp");
   const [rhNegative, setRhNegative] = useState<boolean>(patient.rhNegative || false);
+  // Mounted only when asked for, so saving an unrelated edit never writes a default questionnaire.
+  const [showQuestionnaire, setShowQuestionnaire] = useState(Boolean(patient.obstetricQuestionnaire));
 
   const handleLmpChange = (newLmp: string) => {
     setLmp(newLmp);
@@ -361,6 +364,14 @@ export function EditPatientModal({
               </p>
             )}
           </div>
+
+          {showQuestionnaire ? (
+            <ObstetricQuestionnaireFields defaultValues={patient.obstetricQuestionnaire ?? undefined} />
+          ) : (
+            <button type="button" onClick={() => setShowQuestionnaire(true)} className={buttonSecondary}>
+              {t("patients.edit.addQuestionnaire")}
+            </button>
+          )}
 
           {/* Form Actions */}
           <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-[var(--color-border)]">

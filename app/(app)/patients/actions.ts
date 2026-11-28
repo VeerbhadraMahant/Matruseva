@@ -12,6 +12,7 @@ import { normalizeIndianPhone } from "@/lib/whatsapp";
 import { eddFromLmp } from "@/lib/pregnancy";
 import { addDemoPatient, getDemoStore } from "@/lib/demo-data";
 import type { CareEventKind } from "@/lib/supabase/enums";
+import { parseQuestionnaireForm } from "@/lib/obstetricQuestionnaire";
 import { getT } from "@/lib/i18n/server";
 import type { Translator } from "@/lib/i18n/translate-client";
 
@@ -82,23 +83,11 @@ export async function createPatient(_prev: ActionResult, formData: FormData): Pr
   const isDemo = isDemoActive(cookieStore);
 
   // Parse questionnaire if present
-  let questionnaireData: import("@/lib/obstetricQuestionnaire").ObstetricQuestionnaireData | undefined;
-  if (raw.q_previousDeliveryMode) {
-    try {
-      questionnaireData = {
-        previousDeliveryMode: (String(raw.q_previousDeliveryMode || "Primi") as import("@/lib/obstetricQuestionnaire").ObstetricQuestionnaireData["previousDeliveryMode"]),
-        priorComplications: raw.q_priorComplications ? JSON.parse(String(raw.q_priorComplications)) : ["none"],
-        pastPregnancyLoss: (String(raw.q_pastPregnancyLoss || "0") as import("@/lib/obstetricQuestionnaire").ObstetricQuestionnaireData["pastPregnancyLoss"]),
-        pastBirthWeight: (String(raw.q_pastBirthWeight || "na") as import("@/lib/obstetricQuestionnaire").ObstetricQuestionnaireData["pastBirthWeight"]),
-        interpregnancyInterval: (String(raw.q_interpregnancyInterval || "na") as import("@/lib/obstetricQuestionnaire").ObstetricQuestionnaireData["interpregnancyInterval"]),
-        familyComplications: raw.q_familyComplications ? JSON.parse(String(raw.q_familyComplications)) : ["none"],
-        chronicConditions: raw.q_chronicConditions ? JSON.parse(String(raw.q_chronicConditions)) : ["none"],
-        doctorNotes: raw.q_doctorNotes ? String(raw.q_doctorNotes) : "",
-      };
-    } catch {
-      // fallback to undefined
-    }
+  const parsedQuestionnaire = parseQuestionnaireForm(raw);
+  if (parsedQuestionnaire && !parsedQuestionnaire.success) {
+    return { error: t("patientDetail.error.invalidInput") };
   }
+  const questionnaireData = parsedQuestionnaire?.data;
 
   if (isDemo) {
     if (getDemoStore().patients.some((patient) => (patient.status ?? "active") === "active" && matchesRegistration(patient))) {

@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { NotePencil } from "@phosphor-icons/react";
 import { buttonSecondary } from "@/components/ui";
 import { useT } from "@/lib/i18n/provider";
+import type { ObstetricQuestionnaireData } from "@/lib/obstetricQuestionnaire";
 
 // Modal body is loaded on demand (first open / hover / focus) to keep it out of the page's initial JS.
 const loadModal = () => import("@/components/EditPatientModalBody");
@@ -47,4 +48,5 @@ export interface EditPatientData {
   lmp: string | null;
   edd?: string | null;
   eddSource?: "lmp" | "scan" | "manual" | null;
+  obstetricQuestionnaire?: ObstetricQuestionnaireData | null;
 }

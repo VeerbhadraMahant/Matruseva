@@ -94,6 +94,12 @@ export default async function PatientReportPage({ params }: { params: Promise<{ 
     patient.edd ?? (lmp ? toISODate(new Date(lmp.getFullYear(), lmp.getMonth(), lmp.getDate() + 280)) : null);
 
   const latestVisit = visits[0];
+  const patientQuestionnaire = (
+    isDemo
+      ? (patient as unknown as { obstetricQuestionnaire?: import("@/lib/obstetricQuestionnaire").ObstetricQuestionnaireData })?.obstetricQuestionnaire
+      : (patient as unknown as { obstetric_questionnaire?: import("@/lib/obstetricQuestionnaire").ObstetricQuestionnaireData })?.obstetric_questionnaire
+  ) || null;
+
   const clinicalFlags = sortFlags([
     ...(latestVisit
       ? vitalsFlags({
@@ -109,14 +115,9 @@ export default async function PatientReportPage({ params }: { params: Promise<{ 
       rhNegative: patient.rh_negative,
       bloodGroup: patient.blood_group,
       gaWeeks: ga?.weeks ?? null,
+      questionnaire: patientQuestionnaire,
     }),
   ]);
-
-  const patientQuestionnaire = (
-    isDemo
-      ? (patient as unknown as { obstetricQuestionnaire?: import("@/lib/obstetricQuestionnaire").ObstetricQuestionnaireData })?.obstetricQuestionnaire
-      : (patient as unknown as { obstetric_questionnaire?: import("@/lib/obstetricQuestionnaire").ObstetricQuestionnaireData })?.obstetric_questionnaire
-  ) || null;
 
   const { pastHistory, familyHistory, scans } = getPatientObstetricData(
     patient.id,

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { cookies, headers } from "next/headers";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import type { Json } from "@/lib/supabase/types";
 import { getCurrentUser, isDemoActive } from "@/lib/auth";
 import { todayInClinicTimezone, toISODate } from "@/lib/today";
 import { normalizeVisitDate } from "@/lib/visitDate";
@@ -13,6 +14,7 @@ import { closeDemoPregnancy, getDemoPatientDetail, markDemoCareEventDone, undoDe
 import { isDuplicateRequest } from "@/lib/idempotency";
 import { BIRTH_VACCINES, buildPostnatalVisits, gestationalWeeksAtBirth, newbornInputSchema } from "@/lib/postnatal";
 import { eddFromLmp } from "@/lib/pregnancy";
+import { parseQuestionnaireForm } from "@/lib/obstetricQuestionnaire";
 import { getT } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { createListenToken, ListenLinkConfigError } from "@/lib/listenLink";
@@ -360,6 +362,9 @@ export async function updatePatient(
     };
   }
   const input = parsed.data;
+  // Only present when the modal's questionnaire section was opened; absent leaves the stored one untouched.
+  const questionnaire = parseQuestionnaireForm(raw);
+  if (questionnaire && !questionnaire.success) return { error: t("patientDetail.error.invalidInput") };
 
   const cookieStore = await cookies();
   const isDemo = isDemoActive(cookieStore);
@@ -382,6 +387,7 @@ export async function updatePatient(
       rhNegative: input.rhNegative,
       lmp: input.lmp || null,
       edd: finalEdd,
+      ...(questionnaire && { obstetricQuestionnaire: questionnaire.data }),
     });
     revalidatePatientViews(patientId);
     return { error: null };
@@ -425,6 +431,7 @@ export async function updatePatient(
       lmp: input.lmp,
       edd: finalEdd,
       edd_source: input.eddSource,
+      ...(questionnaire && { obstetric_questionnaire: questionnaire.data as unknown as Json }),
       updated_at: new Date().toISOString(),
     })
     .eq("id", patientId);

@@ -120,6 +120,7 @@ export const patients = defineArea({
     "patients.edit.rhProtocolBody":
       "Anti-D prophylaxis injection milestone at 28 weeks will be automatically verified in the ANC schedule.",
     "patients.edit.cancel": "Cancel",
+    "patients.edit.addQuestionnaire": "Add obstetric questionnaire",
     "patients.edit.save": "Save & recalculate",
 
     // QR scanner
@@ -284,6 +285,7 @@ export const patients = defineArea({
     "patients.edit.rhProtocolBody":
       "28 सप्ताह पर एंटी-D इंजेक्शन का पड़ाव ANC कार्यक्रम में अपने आप जाँचा जाएगा।",
     "patients.edit.cancel": "रद्द करें",
+    "patients.edit.addQuestionnaire": "प्रसूति प्रश्नावली जोड़ें",
     "patients.edit.save": "सहेजें और दोबारा गणना करें",
 
     "patients.qr.buttonTitle": "रिसेप्शन पर माँ का QR हेल्थ कार्ड स्कैन करें",
@@ -445,6 +447,7 @@ export const patients = defineArea({
     "patients.edit.rhProtocolBody":
       "28 आठवड्यांचा अँटी-D इंजेक्शनचा टप्पा ANC वेळापत्रकात आपोआप तपासला जाईल.",
     "patients.edit.cancel": "रद्द करा",
+    "patients.edit.addQuestionnaire": "प्रसूती प्रश्नावली जोडा",
     "patients.edit.save": "जतन करा आणि पुन्हा गणना करा",
 
     "patients.qr.buttonTitle": "रिसेप्शनवर मातेचे QR हेल्थ कार्ड स्कॅन करा",

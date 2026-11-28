@@ -217,9 +217,12 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
 
   const visitList = visits ?? [];
   const latest = visitList[0];
+  const questionnaire = ((isDemo
+    ? (patient as unknown as { obstetricQuestionnaire?: unknown }).obstetricQuestionnaire
+    : patient.obstetric_questionnaire) ?? null) as import("@/lib/obstetricQuestionnaire").ObstetricQuestionnaireData | null;
   const flags = sortFlags([
     ...(latest ? vitalsFlags({ bpSys: latest.bp_sys, bpDia: latest.bp_dia, hb: latest.hb, fhr: latest.fhr }) : []),
-    ...patientFlags({ age: patient.age, gravida: patient.gravida, rhNegative: patient.rh_negative, bloodGroup: patient.blood_group, gaWeeks: ga?.weeks ?? null }),
+    ...patientFlags({ age: patient.age, gravida: patient.gravida, rhNegative: patient.rh_negative, bloodGroup: patient.blood_group, gaWeeks: ga?.weeks ?? null, questionnaire }),
   ]);
   const alertFlags = localizeFlags(flags, t);
 
@@ -356,6 +359,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
                     lmp: patient.lmp,
                     edd: patient.edd,
                     eddSource: (patient.edd_source as "lmp" | "scan" | "manual") || "lmp",
+                    obstetricQuestionnaire: questionnaire,
                   }}
                 />
                 <MotherHealthCardButton
